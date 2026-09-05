@@ -70,6 +70,8 @@
   .chipico.ci.x::after{content:'×';position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:var(--fx);font-size:14px}
   .chipico.ci.zig::after{content:'≋';position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:var(--fx);font-size:12px}
   .chipico.ci.fade::after{content:')))';position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:var(--fx);font-size:8px;letter-spacing:1px}
+  .chipico.ci.wob::after{content:'∿';position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:var(--fx);font-size:13px}
+  .chipico.ci.px::after{content:'▦';position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:var(--fx);font-size:11px}
   .chipico.ci.tick{border-color:var(--ctl)}
   .chipico.ci.tick::after{content:'';position:absolute;left:11px;bottom:5px;width:2px;height:13px;background:var(--ctl);transform:rotate(24deg);transform-origin:bottom}
   .chipico.di{border:2px solid var(--ctl);border-radius:5px;transform:rotate(45deg) scale(.84)}
@@ -107,6 +109,7 @@
     <button class="chip" id="recChip">⏺ record</button>
     <button class="chip" id="midiChip" hidden>midi <b id="midiv">off</b></button>
     <button class="chip" id="shareChip">share</button>
+    <button class="chip warn" id="undoChip">↶ undo</button>
     <button class="chip warn" id="demoChip">demo</button>
     <button class="chip warn" id="clearChip">clear</button>
   </div>
@@ -125,6 +128,8 @@
   <button class="spawn" data-type="delay"><span class="chipico ci dot"></span>delay</button>
   <button class="spawn" data-type="dist"><span class="chipico ci zig"></span>drive</button>
   <button class="spawn" data-type="reverb"><span class="chipico ci fade"></span>verb</button>
+  <button class="spawn" data-type="chorus"><span class="chipico ci wob"></span>chorus</button>
+  <button class="spawn" data-type="crush"><span class="chipico ci px"></span>crush</button>
   <button class="spawn" data-type="mod"><span class="chipico ci x"></span>mod</button>
   <button class="spawn" data-type="lfo"><span class="chipico di"></span>lfo</button>
   <button class="spawn" data-type="tempo"><span class="chipico ci tick"></span>tempo</button>
@@ -154,7 +159,7 @@ for(const k of ['ground','rim','text','dim','line','gen','fx','ctl'])
   COL[k] = CSSV.getPropertyValue('--' + k).trim();
 
 const FAMILY = { osc:'gen', sampler:'gen', rec:'gen', mic:'gen',
-                 filter:'fx', delay:'fx', mod:'fx', dist:'fx', reverb:'fx',
+                 filter:'fx', delay:'fx', mod:'fx', dist:'fx', reverb:'fx', chorus:'fx', crush:'fx',
                  lfo:'ctl', seq:'ctl', tempo:'ctl' };
 const FCOLOR = { gen:COL.gen, fx:COL.fx, ctl:COL.ctl };
 const NOTE_NAMES = ['C','C#','D','D#','E','F','F#','G','G#','A','A#','B'];
@@ -219,7 +224,8 @@ const dist  = (a,b) => Math.hypot(a.x-b.x, a.y-b.y);
 function defaults(type){
   return { osc:{arc:0.72}, sampler:{arc:0.8}, rec:{arc:0.85}, mic:{arc:0.5},
            filter:{arc:0.18}, delay:{arc:0.4}, mod:{arc:0.5}, dist:{arc:0.5},
-           reverb:{arc:0.35}, lfo:{arc:0.45}, seq:{arc:0.5}, tempo:{arc:0.5} }[type];
+           reverb:{arc:0.35}, chorus:{arc:0.5}, crush:{arc:0.6},
+           lfo:{arc:0.45}, seq:{arc:0.5}, tempo:{arc:0.5} }[type];
 }
 function spawn(type, x, y){
   const o = { id:nextId++, type, x, y, angle:0, arc:defaults(type).arc,
@@ -232,6 +238,8 @@ function spawn(type, x, y){
   if(type==='sampler') o.angle = (1.5/6)*TAU;
   if(type==='dist') o.angle = TAU*0.3;
   if(type==='reverb') o.angle = TAU*0.45;
+  if(type==='chorus') o.angle = TAU*0.4;
+  if(type==='crush') o.angle = TAU*0.5;
   if(type==='rec'){ o.angle = (1.5/4)*TAU; o.recState = 'idle'; o.ownLoop = null; }
   if(type==='mic') o.micState = 'wait';
   if(type==='tempo') o.angle = ((state.bpm-60)/120)*TAU;
@@ -247,7 +255,8 @@ function destroyObject(o){
     try{ if(o.src2) o.src2.stop(); }catch(e){}
     if(o.micStream){ try{ o.micStream.getTracks().forEach(tr=>tr.stop()); }catch(e){} }
     for(const c of [...audio.captures]) if(c.obj===o) audio.captures.delete(c);
-    for(const k of ['src','src2','preF','fmGain','amp','gate','out','an','biq','inG','dl','fb','dry','wet','depthG','carrier','ring','dryG','shaper','conv','micSrc'])
+    try{ if(o.chLfo) o.chLfo.stop(); }catch(e){}
+    for(const k of ['src','src2','preF','fmGain','amp','gate','out','an','biq','inG','dl','fb','dry','wet','depthG','carrier','ring','dryG','shaper','conv','micSrc','chDelay','chLfo','chDepth'])
       if(o[k]){ try{ o[k].disconnect(); }catch(e){} }
     if(o.playing){ try{ o.playing.stop(); }catch(e){} o.playing = null; }
   }
@@ -289,6 +298,8 @@ function lfoRate(o){
 }
 function distDrive(o){ return 1 + (o.angle/TAU)*24; }
 function reverbDecay(o){ return 0.4 + (o.angle/TAU)*3.6; }
+function chorusRate(o){ return 0.15 + (o.angle/TAU)*5.5; }       // 0.15..5.7 Hz
+function crushBits(o){ return Math.round(2 + (1-o.angle/TAU)*10); } // 12 bits (fine) .. 2 (harsh)
 function recBars(o){ return REC_BARS[Math.floor((o.angle/TAU)*REC_BARS.length) % REC_BARS.length]; }
 function tempoBpm(o){ return 60 + Math.round((o.angle/TAU)*120); }
 function samplerLoop(o){ return Math.floor((o.angle/TAU)*LOOPS.length) % LOOPS.length; }
@@ -305,6 +316,8 @@ function readout(o){
     case 'mod': return ['MOD · RING', fmtHz(modFreq(o))+' · '+Math.round(o.arc*100)+'%'];
     case 'dist': return ['DRIVE', 'x'+Math.round(distDrive(o))+' · mix '+Math.round(o.arc*100)+'%'];
     case 'reverb': return ['REVERB', reverbDecay(o).toFixed(1)+' s · mix '+Math.round(o.arc*100)+'%'];
+    case 'chorus': return ['CHORUS', chorusRate(o).toFixed(1)+' Hz · mix '+Math.round(o.arc*100)+'%'];
+    case 'crush': return ['CRUSH', crushBits(o)+'-bit · mix '+Math.round(o.arc*100)+'%'];
     case 'lfo': return ['LFO · '+OSC_WAVES[o.option%4].slice(0,3).toUpperCase(),
                         (lfoSynced(o) ? lfoDiv(o).n : lfoRate(o).toFixed(2)+' Hz')+' · '+Math.round(o.arc*100)+'%'];
     case 'seq': return ['SEQUENCER', 'shift '+seqOffset(o)+' · gate '+Math.round((0.1+o.arc*0.85)*100)+'%'];
@@ -327,13 +340,16 @@ function startAudio(){
   comp.threshold.value=-16; comp.ratio.value=8;
   const master = ctx.createGain(); master.gain.value=0.55;
   master.connect(comp); comp.connect(ctx.destination);
+  const masterAn = ctx.createAnalyser(); masterAn.fftSize = 1024;
+  comp.connect(masterAn);
   // capture taps: PCM for the loop-recorder object, stream for webm export
   const tap = ctx.createScriptProcessor(4096,1,1);
   const sink = ctx.createGain(); sink.gain.value = 0;
   comp.connect(tap); tap.connect(sink); sink.connect(ctx.destination);
   const mediaDest = ctx.createMediaStreamDestination();
   comp.connect(mediaDest);
-  audio = { ctx, master, comp, tap, mediaDest, buffers:{}, captures:new Set() };
+  audio = { ctx, master, comp, tap, mediaDest, masterAn, masterWave:new Float32Array(1024),
+            buffers:{}, captures:new Set() };
   tap.onaudioprocess = e => {
     if(!audio.captures.size) return;
     const t0 = e.playbackTime !== undefined ? e.playbackTime : ctx.currentTime;
@@ -359,6 +375,11 @@ function makeImpulse(sec){
     for(let i=0;i<N;i++) d[i] = (Math.random()*2-1) * Math.exp(-3*i/N);
   }
   return b;
+}
+function makeCrushCurve(bits){
+  const n = 2048, c = new Float32Array(n), levels = Math.pow(2, bits);
+  for(let i=0;i<n;i++){ const x = i/(n-1)*2-1; c[i] = Math.round(x*levels)/levels; }
+  return c;
 }
 function buildNodes(o){
   const { ctx } = audio;
@@ -415,6 +436,24 @@ function buildNodes(o){
     o.wet = ctx.createGain(); o.wet.gain.value = o.arc*0.9;
     o.inG.connect(o.dry); o.dry.connect(o.out);
     o.inG.connect(o.conv); o.conv.connect(o.wet); o.wet.connect(o.out);
+  } else if(o.type==='chorus'){
+    o.inG = ctx.createGain();
+    o.dry = ctx.createGain(); o.dry.gain.value = 1-o.arc*0.5;
+    o.wet = ctx.createGain(); o.wet.gain.value = o.arc*0.7;
+    o.chDelay = ctx.createDelay(0.05); o.chDelay.delayTime.value = 0.022;
+    o.chLfo = ctx.createOscillator(); o.chLfo.frequency.value = chorusRate(o);
+    o.chDepth = ctx.createGain(); o.chDepth.gain.value = 0.006;
+    o.chLfo.connect(o.chDepth); o.chDepth.connect(o.chDelay.delayTime); o.chLfo.start();
+    o.inG.connect(o.dry); o.dry.connect(o.out);
+    o.inG.connect(o.chDelay); o.chDelay.connect(o.wet); o.wet.connect(o.out);
+  } else if(o.type==='crush'){
+    o.inG = ctx.createGain();
+    o.shaper = ctx.createWaveShaper();
+    o.shaper.curve = makeCrushCurve(crushBits(o));
+    o.dry = ctx.createGain(); o.dry.gain.value = 1-o.arc;
+    o.wet = ctx.createGain(); o.wet.gain.value = o.arc;
+    o.inG.connect(o.dry); o.dry.connect(o.out);
+    o.inG.connect(o.shaper); o.shaper.connect(o.wet); o.wet.connect(o.out);
   } else if(o.type==='tempo'){
     /* global object: no audio path */
   } else if(o.type==='filter'){
@@ -453,7 +492,7 @@ function buildNodes(o){
 function inputOf(t){
   if(t==='C') return audio.master;
   if(t.type==='filter') return t.biq;
-  if(t.type==='delay' || t.type==='mod' || t.type==='dist' || t.type==='reverb') return t.inG;
+  if(['delay','mod','dist','reverb','chorus','crush'].includes(t.type)) return t.inG;
   return null;
 }
 function ctlParamOf(t){
@@ -502,6 +541,14 @@ function applyParams(o){
     o.wet.gain.setTargetAtTime(o.arc*0.9, t, 0.02);
     clearTimeout(o.rvT);
     o.rvT = setTimeout(()=>{ if(o.conv && audio) o.conv.buffer = makeImpulse(reverbDecay(o)); }, 300);
+  } else if(o.type==='chorus'){
+    o.chLfo.frequency.setTargetAtTime(chorusRate(o), t, 0.05);
+    o.dry.gain.setTargetAtTime(1-o.arc*0.5, t, 0.02);
+    o.wet.gain.setTargetAtTime(o.arc*0.7, t, 0.02);
+  } else if(o.type==='crush'){
+    o.shaper.curve = makeCrushCurve(crushBits(o));
+    o.dry.gain.setTargetAtTime(1-o.arc, t, 0.02);
+    o.wet.gain.setTargetAtTime(o.arc, t, 0.02);
   } else if(o.type==='tempo'){
     setBpm(tempoBpm(o)); syncChips();
   } else if(o.type==='filter'){
@@ -1068,7 +1115,7 @@ function endDrag(e){
   drags.delete(e.pointerId);
   if(!dr) return;
   if(dr.mode==='move'){
-    if(distC(dr.obj) > TABLE_R-8) destroyObject(dr.obj);
+    if(distC(dr.obj) > TABLE_R-8){ pushUndo(); destroyObject(dr.obj); }
     else if(!dr.moved && dr.obj.type==='osc') dr.obj.piano = !dr.obj.piano;
   }
   if(dr.mode==='pad' && !dr.moved){
@@ -1108,6 +1155,7 @@ for(const btn of document.querySelectorAll('.spawn[data-type]')){
   btn.addEventListener('pointerdown', e=>{
     e.preventDefault();
     btn.setPointerCapture(e.pointerId);
+    pushUndo();
     const o = spawn(btn.dataset.type, e.clientX, e.clientY-70);
     const move = ev=>{ o.x=ev.clientX; o.y=ev.clientY-70; computePatch(); };
     const up = ()=>{
@@ -1126,7 +1174,7 @@ for(const btn of document.querySelectorAll('.spawn[data-type]')){
    Open the page with ?tuio=ws://host:port to drive it from reacTIVision
    via a UDP→WebSocket relay (see prototype/tuio-bridge.js in the repo).
    Fiducial class IDs map onto object types in blocks of 8.              */
-const TUIO_TYPES = ['osc','sampler','seq','filter','delay','mod','lfo','dist','reverb','rec','mic','tempo'];
+const TUIO_TYPES = ['osc','sampler','seq','filter','delay','mod','lfo','dist','reverb','rec','mic','tempo','chorus','crush'];
 const tuioObjs = new Map();
 function tuioConnect(url){
   const ws = new WebSocket(url);
@@ -1213,6 +1261,23 @@ function loadScene(){
     return raw ? loadSceneFrom(JSON.parse(raw)) : false;
   }catch(e){ return false; }
 }
+/* undo: snapshot before each structural change, restore the last one */
+const undoStack = [];
+function pushUndo(){
+  undoStack.push(JSON.stringify(sceneJSON()));
+  if(undoStack.length > 40) undoStack.shift();
+}
+function doUndo(){
+  if(!undoStack.length) return;
+  const snap = undoStack.pop();
+  for(const o of [...objects]) destroyObject(o);
+  try{ loadSceneFrom(JSON.parse(snap)); }catch(e){}
+  if(audio){ for(const o of objects){ if(FAMILY[o.type]!=='ctl') rewireAudio(o);
+    if(o.type==='lfo') rewireCtl(o); if(o.type==='osc'){ applyFm(o); if(o.customWave) applyDrawnWave(o); } applyParams(o); } }
+  computePatch();
+  syncChips();
+  saveSoon();
+}
 function loadHashScene(){
   try{
     const m = location.hash.match(/jam=([A-Za-z0-9\-_]+)/);
@@ -1272,8 +1337,12 @@ $('shareChip').addEventListener('click', async ()=>{
   $('shareChip').textContent = copied ? 'copied!' : 'link is in the address bar';
   setTimeout(()=>{ $('shareChip').textContent = 'share'; }, 2200);
 });
-$('demoChip').addEventListener('click', demoScene);
-$('clearChip').addEventListener('click', ()=>{ for(const o of [...objects]) destroyObject(o); });
+$('demoChip').addEventListener('click', ()=>{ pushUndo(); demoScene(); });
+$('clearChip').addEventListener('click', ()=>{ pushUndo(); for(const o of [...objects]) destroyObject(o); });
+$('undoChip').addEventListener('click', doUndo);
+addEventListener('keydown', e=>{
+  if((e.ctrlKey||e.metaKey) && e.key.toLowerCase()==='z'){ e.preventDefault(); doUndo(); }
+});
 $('midiChip').addEventListener('click', ()=>{
   state.midiOn = !state.midiOn;
   $('midiv').textContent = state.midiOn ? 'on' : 'off';
@@ -1335,6 +1404,7 @@ $('importFile').addEventListener('change', async e=>{
     const beats = Math.max(1, Math.min(32, Math.round(mono.duration/(60/state.bpm))));
     audio.buffers.MINE = { beats, buffer: mono };
     if(!LOOPS.includes('MINE')) LOOPS.push('MINE');
+    pushUndo();
     // spawn a sampler already dialled to the imported loop
     const o = spawn('sampler', CX, CY - TABLE_R*0.5);
     o.angle = ((LOOPS.indexOf('MINE')+0.5)/LOOPS.length)*TAU;
@@ -1527,6 +1597,18 @@ function drawObject(o){
     g.fillStyle=col; g.font=`600 ${10*S}px "Chakra Petch", sans-serif`;
     g.fillText('RV', o.x, o.y+1);
   }
+  else if(o.type==='chorus'){
+    g.strokeStyle=col; g.lineWidth=1.6; g.beginPath();
+    const w=rb*1.0, h=rb*0.32;
+    for(let i=0;i<=24;i++){ const x=o.x-w/2+(i/24)*w, y=o.y-Math.sin(i/24*TAU*1.5)*h; g[i?'lineTo':'moveTo'](x,y); }
+    g.stroke();
+  }
+  else if(o.type==='crush'){
+    g.fillStyle=col;
+    const s2=rb*0.24;
+    for(let r=0;r<3;r++) for(let c=0;c<3;c++) if((r+c)%2===0)
+      g.fillRect(o.x-s2*1.5+c*s2, o.y-s2*1.5+r*s2, s2-1, s2-1);
+  }
   else if(o.type==='tempo'){
     const sway = REDUCED ? 0 : Math.sin(performance.now()/1000*Math.PI*state.bpm/60)*0.5;
     g.strokeStyle=col; g.lineWidth=2; g.lineCap='round';
@@ -1638,7 +1720,19 @@ function frame(){
 
   const ph = ((beatPhase()%1)+1)%1;
   const ease = Math.pow(1-ph,2.2);
+  // master output level (VU) drives a steady ring around the centre
+  let level = 0;
+  if(audio && audio.masterAn){
+    audio.masterAn.getFloatTimeDomainData(audio.masterWave);
+    let sum=0; for(let i=0;i<audio.masterWave.length;i++) sum += audio.masterWave[i]*audio.masterWave[i];
+    level = Math.min(1, Math.sqrt(sum/audio.masterWave.length)*3.2);
+  }
   g.save();
+  if(level > 0.01){
+    g.strokeStyle=COL.line; g.globalAlpha=0.25+level*0.5; g.lineWidth=2.5;
+    g.beginPath(); g.arc(CX,CY,(16+level*30)*S,0,TAU); g.stroke();
+    g.globalAlpha=1;
+  }
   g.fillStyle='#ffffff'; g.shadowColor=COL.line; g.shadowBlur=22;
   g.beginPath(); g.arc(CX,CY,(6+(REDUCED?0:3.5*ease))*S,0,TAU); g.fill();
   if(!REDUCED){
