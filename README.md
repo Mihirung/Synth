@@ -47,7 +47,12 @@ most of Phase 2 of the plan:
   with real control (BPM, key, scale, semitone-accurate readouts) for a musician.
 - **Loop material is synthesised at startup** (kick, beat, hats, bass, chord, arp — the
   tonal loops regenerate when key or scale changes), so the file stays dependency-free.
-- **Scenes persist** in the browser between visits, with demo and clear controls.
+- **Scenes persist** in the browser between visits, with demo and clear controls, and any
+  patch can be shared as a **jam link** (the whole scene encoded in the URL — open it on
+  any device and the patch loads).
+- **Swing** (off/lite/full, baked into the generated loops and the sequencer), a
+  dual-detuned oscillator voice for a warmer virtual-analog tone, and **audio import**:
+  load any audio file as a bar-fitted loop on a sampler cube.
 - **Physical-table ready**: open the page with `?tuio=ws://localhost:8765` and run
   [`prototype/tuio-bridge.js`](prototype/tuio-bridge.js) to drive it from reacTIVision's
   TUIO stream instead of the mouse (fiducial class IDs map to object types in blocks of
