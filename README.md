@@ -32,5 +32,13 @@ synthesiser.
 
 ## Status
 
-Research complete. No code yet; the next step is the Phase 0 spike described in the rebuild
-plan (one oscillator cube on a circular stage, making sound).
+Research complete, and the Phase 0 "proof of feel" prototype is built:
+[`prototype/index.html`](prototype/index.html), a self-contained page with no dependencies
+or build step (open it in any browser). It implements the circular stage with the
+tempo-pulsing centre output, draggable virtual objects (oscillator, filter, delay, LFO),
+proximity-based dynamic patching, rotation and arc-fader parameter control, live waveforms
+rendered on the connection lines, tap-to-mute connections, and real-time Web Audio
+synthesis. Multi-touch works on touchscreens via Pointer Events.
+
+Next step: Phase 1 of the rebuild plan (connection hysteresis polish, volume object, scene
+save/load), then the sequencer and sampler in Phase 2.
