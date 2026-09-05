@@ -31,26 +31,32 @@
     justify-content:space-between;padding:12px 16px;pointer-events:none;z-index:2;row-gap:6px;
   }
   .wordmark{font-weight:600;font-size:15px;letter-spacing:.32em;color:var(--text)}
-  .wordmark span{color:var(--line)}
+  .wordmark span{color:var(--line);text-shadow:0 0 14px rgba(127,216,232,.55)}
   .tag{font-size:10px;letter-spacing:.18em;text-transform:uppercase;color:var(--dim);margin-left:12px}
   .chips{display:flex;gap:6px;pointer-events:auto;align-items:center}
   .chip{
     font-family:var(--font);font-size:10px;letter-spacing:.16em;text-transform:uppercase;
-    color:var(--text);background:rgba(10,17,30,.82);border:1px solid var(--rim);
+    color:var(--text);background:rgba(12,20,36,.55);border:1px solid rgba(255,255,255,.09);
     border-radius:999px;padding:6px 12px;cursor:pointer;
+    backdrop-filter:blur(12px) saturate(1.3);-webkit-backdrop-filter:blur(12px) saturate(1.3);
+    box-shadow:inset 0 1px 0 rgba(255,255,255,.05),0 4px 18px rgba(0,0,0,.35);
+    transition:background .15s,border-color .15s;
   }
+  .chip:hover{background:rgba(20,32,54,.72);border-color:rgba(127,216,232,.38)}
   .chip b{color:var(--line);font-weight:600}
   .chip:focus-visible{outline:1px solid var(--line);outline-offset:2px}
   .chip.warn{color:var(--dim)}
   #hint{
-    position:fixed;left:50%;transform:translateX(-50%);bottom:96px;z-index:2;max-width:720px;
+    position:fixed;left:50%;transform:translateX(-50%);bottom:136px;z-index:2;max-width:720px;
     font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--dim);
     text-align:center;pointer-events:none;padding:0 16px;line-height:1.9;
   }
   #dock{
     position:fixed;left:50%;transform:translateX(-50%);bottom:14px;z-index:3;
-    display:flex;gap:2px;padding:8px 10px;border:1px solid var(--rim);
-    border-radius:14px;background:rgba(10,17,30,.85);touch-action:none;max-width:96vw;
+    display:flex;gap:2px;padding:8px 10px;border:1px solid rgba(255,255,255,.09);
+    border-radius:16px;background:rgba(10,17,30,.5);touch-action:none;max-width:96vw;
+    backdrop-filter:blur(16px) saturate(1.3);-webkit-backdrop-filter:blur(16px) saturate(1.3);
+    box-shadow:inset 0 1px 0 rgba(255,255,255,.05),0 12px 44px rgba(0,0,0,.5);
     flex-wrap:wrap;justify-content:center;
   }
   .spawn{
@@ -60,6 +66,8 @@
     padding:4px 6px;border-radius:10px;cursor:grab;touch-action:none;
   }
   .spawn:focus-visible{outline:1px solid var(--line);outline-offset:2px}
+  .spawn{transition:color .15s,transform .15s}
+  .spawn:hover{color:var(--text);transform:translateY(-1px)}
   .spawn .chipico{width:24px;height:24px;position:relative}
   .chipico.sq{border:2px solid var(--gen);border-radius:5px}
   .chipico.sq.dot::after{content:'';position:absolute;inset:8px;border-radius:2px;background:var(--gen)}
@@ -82,8 +90,10 @@
     background:rgba(4,7,13,.55);backdrop-filter:blur(3px);
   }
   .card{
-    text-align:center;padding:34px 42px;border:1px solid var(--rim);border-radius:16px;
-    background:rgba(9,15,26,.93);max-width:360px;
+    text-align:center;padding:34px 42px;border:1px solid rgba(255,255,255,.1);border-radius:18px;
+    background:rgba(9,15,26,.68);max-width:360px;
+    backdrop-filter:blur(20px) saturate(1.3);-webkit-backdrop-filter:blur(20px) saturate(1.3);
+    box-shadow:0 30px 90px rgba(0,0,0,.6),inset 0 1px 0 rgba(255,255,255,.06);
   }
   .card h1{font-size:19px;font-weight:600;letter-spacing:.34em;margin:0 0 10px;color:var(--text)}
   .card h1 span{color:var(--line)}
@@ -191,9 +201,153 @@ const state = { bpm:112, key:0, scaleIdx:0, swingIdx:0 };
 const swingAmt = () => SWINGS[state.swingIdx].v;
 const scaleSteps = () => SCALES[state.scaleIdx].steps;
 
+/* ================= GPU post pipeline (WebGL) =================
+   The crisp 2D scene is drawn offscreen, then pushed through a
+   multi-scale bloom, glass caustics, beat light, vignette and grain.
+   Without WebGL the scene draws straight to screen with CPU glows. */
+let gl = null, G = null;
+const VS = 'attribute vec2 p;varying vec2 v;void main(){v=p*.5+.5;gl_Position=vec4(p,0.,1.);}';
+const FS_BRIGHT = `precision mediump float;varying vec2 v;uniform sampler2D t;uniform float th;
+void main(){vec3 c=texture2D(t,v).rgb;float l=dot(c,vec3(.299,.587,.114));
+float k=smoothstep(th,th+.45,l);gl_FragColor=vec4(c*k,1.);}`;
+const FS_BLUR = `precision mediump float;varying vec2 v;uniform sampler2D t;uniform vec2 d;
+void main(){vec3 s=texture2D(t,v).rgb*.227027;
+s+=(texture2D(t,v+d*1.3846).rgb+texture2D(t,v-d*1.3846).rgb)*.3162162;
+s+=(texture2D(t,v+d*3.2308).rgb+texture2D(t,v-d*3.2308).rgb)*.0702703;
+gl_FragColor=vec4(s,1.);}`;
+const FS_COMP = `precision mediump float;varying vec2 v;
+uniform sampler2D scene,b1,b2;uniform vec2 res,cen;uniform float rad,time,beat,level,amt;
+float hash(vec2 p){return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453);}
+float noise(vec2 p){vec2 i=floor(p),f=fract(p);f=f*f*(3.-2.*f);
+return mix(mix(hash(i),hash(i+vec2(1.,0.)),f.x),mix(hash(i+vec2(0.,1.)),hash(i+vec2(1.,1.)),f.x),f.y);}
+void main(){
+ vec3 c=texture2D(scene,v).rgb;
+ float asp=res.x/res.y;
+ vec2 q=(v-cen)*vec2(asp,1.);
+ float dc=length(q)/rad;
+ float inD=1.-smoothstep(.985,1.0,dc);
+ float n=noise(q*7.+vec2(time*.05,-time*.03))*.6+noise(q*15.-vec2(time*.07,time*.04))*.4;
+ float caust=pow(n,3.)*.14*inD*(1.-.5*smoothstep(.7,1.,dc));
+ vec3 tint=vec3(.45,.78,.92);
+ c+=tint*caust;
+ float bp=pow(1.-beat,3.);
+ c+=tint*bp*(.08+level*.07)*(1.-smoothstep(0.,.6,dc))*inD;
+ vec2 ca=(v-.5)*.0025;
+ vec3 bl=vec3(texture2D(b1,v+ca).r,texture2D(b1,v).g,texture2D(b1,v-ca).b);
+ vec3 bl2=texture2D(b2,v).rgb;
+ vec3 bloom=bl*.85+bl2*1.15;
+ c=1.-(1.-c)*(1.-bloom*amt);
+ float vg=smoothstep(1.45,.5,length((v-.5)*vec2(asp,1.))*1.15);
+ c*=mix(.7,1.,vg);
+ c+=(hash(v*res+fract(time*7.))-.5)*.012;
+ gl_FragColor=vec4(c,1.);}`;
+function glProg(fs){
+  const mk=(type,src)=>{const sh=gl.createShader(type);gl.shaderSource(sh,src);gl.compileShader(sh);
+    if(!gl.getShaderParameter(sh,gl.COMPILE_STATUS)) throw new Error(gl.getShaderInfoLog(sh)); return sh;};
+  const pr=gl.createProgram(); gl.attachShader(pr,mk(gl.VERTEX_SHADER,VS)); gl.attachShader(pr,mk(gl.FRAGMENT_SHADER,fs));
+  gl.linkProgram(pr); if(!gl.getProgramParameter(pr,gl.LINK_STATUS)) throw new Error(gl.getProgramInfoLog(pr));
+  const u={}, n=gl.getProgramParameter(pr,gl.ACTIVE_UNIFORMS);
+  for(let i=0;i<n;i++){const nm=gl.getActiveUniform(pr,i).name; u[nm]=gl.getUniformLocation(pr,nm);}
+  return {p:pr,u,a:gl.getAttribLocation(pr,'p')};
+}
+function glTarget(w,h){
+  const tex=gl.createTexture(); gl.bindTexture(gl.TEXTURE_2D,tex);
+  gl.texImage2D(gl.TEXTURE_2D,0,gl.RGBA,w,h,0,gl.RGBA,gl.UNSIGNED_BYTE,null);
+  gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_MIN_FILTER,gl.LINEAR);
+  gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_MAG_FILTER,gl.LINEAR);
+  gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_WRAP_S,gl.CLAMP_TO_EDGE);
+  gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_WRAP_T,gl.CLAMP_TO_EDGE);
+  const fb=gl.createFramebuffer(); gl.bindFramebuffer(gl.FRAMEBUFFER,fb);
+  gl.framebufferTexture2D(gl.FRAMEBUFFER,gl.COLOR_ATTACHMENT0,gl.TEXTURE_2D,tex,0);
+  gl.bindFramebuffer(gl.FRAMEBUFFER,null);
+  return {tex,fb,w,h};
+}
+function glSetup(ctx){
+  gl = ctx;
+  try{
+    const buf=gl.createBuffer(); gl.bindBuffer(gl.ARRAY_BUFFER,buf);
+    gl.bufferData(gl.ARRAY_BUFFER,new Float32Array([-1,-1,3,-1,-1,3]),gl.STATIC_DRAW);
+    const sceneTex=gl.createTexture(); gl.bindTexture(gl.TEXTURE_2D,sceneTex);
+    gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_MIN_FILTER,gl.LINEAR);
+    gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_MAG_FILTER,gl.LINEAR);
+    gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_WRAP_S,gl.CLAMP_TO_EDGE);
+    gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_WRAP_T,gl.CLAMP_TO_EDGE);
+    gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL,true);
+    G = { buf, sceneTex, bright:glProg(FS_BRIGHT), blur:glProg(FS_BLUR), comp:glProg(FS_COMP),
+          t0:performance.now(), sceneW:0, sceneH:0 };
+    return true;
+  }catch(e){ console.warn('GPU post pipeline unavailable:', e.message); gl=null; G=null; return false; }
+}
+function glResize(){
+  if(!G) return;
+  const w=canvas.width, h=canvas.height;
+  const hw=Math.max(1,w>>1), hh=Math.max(1,h>>1), qw=Math.max(1,w>>2), qh=Math.max(1,h>>2);
+  for(const k of ['hA','hB','qA','qB']) if(G[k]){ gl.deleteTexture(G[k].tex); gl.deleteFramebuffer(G[k].fb); }
+  G.hA=glTarget(hw,hh); G.hB=glTarget(hw,hh); G.qA=glTarget(qw,qh); G.qB=glTarget(qw,qh);
+  G.sceneW=0;
+}
+function glPass(pr, srcTex, dst, setU){
+  gl.bindFramebuffer(gl.FRAMEBUFFER, dst?dst.fb:null);
+  gl.viewport(0,0, dst?dst.w:canvas.width, dst?dst.h:canvas.height);
+  gl.useProgram(pr.p);
+  gl.bindBuffer(gl.ARRAY_BUFFER,G.buf);
+  gl.enableVertexAttribArray(pr.a); gl.vertexAttribPointer(pr.a,2,gl.FLOAT,false,0,0);
+  gl.activeTexture(gl.TEXTURE0); gl.bindTexture(gl.TEXTURE_2D,srcTex);
+  gl.uniform1i(pr.u.t,0);
+  if(setU) setU();
+  gl.drawArrays(gl.TRIANGLES,0,3);
+}
+function glPost(beatPh, level){
+  gl.activeTexture(gl.TEXTURE0); gl.bindTexture(gl.TEXTURE_2D,G.sceneTex);
+  if(G.sceneW!==scene.width || G.sceneH!==scene.height){
+    gl.texImage2D(gl.TEXTURE_2D,0,gl.RGBA,gl.RGBA,gl.UNSIGNED_BYTE,scene);
+    G.sceneW=scene.width; G.sceneH=scene.height;
+  } else gl.texSubImage2D(gl.TEXTURE_2D,0,0,0,gl.RGBA,gl.UNSIGNED_BYTE,scene);
+  glPass(G.bright, G.sceneTex, G.hA, ()=>gl.uniform1f(G.bright.u.th,0.24));
+  for(let i=0;i<2;i++){
+    glPass(G.blur, G.hA.tex, G.hB, ()=>gl.uniform2f(G.blur.u.d,1/G.hA.w,0));
+    glPass(G.blur, G.hB.tex, G.hA, ()=>gl.uniform2f(G.blur.u.d,0,1/G.hA.h));
+  }
+  glPass(G.blur, G.hA.tex, G.qA, ()=>gl.uniform2f(G.blur.u.d,1/G.qA.w,0));
+  glPass(G.blur, G.qA.tex, G.qB, ()=>gl.uniform2f(G.blur.u.d,0,1/G.qA.h));
+  glPass(G.blur, G.qB.tex, G.qA, ()=>gl.uniform2f(G.blur.u.d,1.6/G.qA.w,0));
+  glPass(G.blur, G.qA.tex, G.qB, ()=>gl.uniform2f(G.blur.u.d,0,1.6/G.qA.h));
+  gl.bindFramebuffer(gl.FRAMEBUFFER,null);
+  gl.viewport(0,0,canvas.width,canvas.height);
+  gl.useProgram(G.comp.p);
+  gl.bindBuffer(gl.ARRAY_BUFFER,G.buf);
+  gl.enableVertexAttribArray(G.comp.a); gl.vertexAttribPointer(G.comp.a,2,gl.FLOAT,false,0,0);
+  gl.activeTexture(gl.TEXTURE0); gl.bindTexture(gl.TEXTURE_2D,G.sceneTex);
+  gl.activeTexture(gl.TEXTURE1); gl.bindTexture(gl.TEXTURE_2D,G.hA.tex);
+  gl.activeTexture(gl.TEXTURE2); gl.bindTexture(gl.TEXTURE_2D,G.qB.tex);
+  const u=G.comp.u;
+  gl.uniform1i(u.scene,0); gl.uniform1i(u.b1,1); gl.uniform1i(u.b2,2);
+  gl.uniform2f(u.res,canvas.width,canvas.height);
+  gl.uniform2f(u.cen,CX/W,1-CY/H);
+  gl.uniform1f(u.rad,TABLE_R/H);
+  gl.uniform1f(u.time,(performance.now()-G.t0)/1000);
+  gl.uniform1f(u.beat,beatPh);
+  gl.uniform1f(u.level,level);
+  gl.uniform1f(u.amt,REDUCED?0.6:0.95);
+  gl.drawArrays(gl.TRIANGLES,0,3);
+}
+
 /* ================= canvas / geometry ================= */
 const canvas = document.getElementById('stage');
-const g = canvas.getContext('2d');
+(function(){
+  let ctx=null;
+  try{
+    const opts={antialias:false, alpha:false, depth:false, stencil:false, powerPreference:'high-performance'};
+    ctx = canvas.getContext('webgl2',opts) || canvas.getContext('webgl',opts);
+  }catch(e){ ctx=null; }
+  if(ctx) glSetup(ctx);
+})();
+const scene = gl ? document.createElement('canvas') : canvas;
+const g = scene.getContext('2d');
+const GLOW = !gl;
+function glow(color, px){ if(GLOW){ g.shadowColor=color; g.shadowBlur=px; } }
+function noGlow(){ if(GLOW) noGlow(); }
+let discGrad = null;
 let W=0, H=0, DPR=1, CX=0, CY=0, TABLE_R=300, S=1;
 function resize(){
   const oCX=CX, oCY=CY, oR=TABLE_R, had = TABLE_R > 0 && objects.length;
@@ -201,6 +355,9 @@ function resize(){
   W = innerWidth; H = innerHeight;
   canvas.width = W*DPR; canvas.height = H*DPR;
   canvas.style.width = W+'px'; canvas.style.height = H+'px';
+  if(scene!==canvas){ scene.width = W*DPR; scene.height = H*DPR; }
+  if(gl) glResize();
+  discGrad = null;
   CX = W/2; CY = (H-80)/2 + 26;
   TABLE_R = Math.min(W/2 - 20, (H-180)/2);
   S = Math.max(0.62, Math.min(1.12, TABLE_R/320));
@@ -1550,8 +1707,6 @@ function drawConnection(o){
     g.beginPath(); g.moveTo(x0,y0); g.lineTo(x0+ux*L,y0+uy*L); g.stroke();
     g.restore(); return;
   }
-  g.strokeStyle=COL.line; g.lineWidth=1.8;
-  g.shadowColor=COL.line; g.shadowBlur=9;
   g.beginPath();
   if(audio && o.an){
     o.an.getFloatTimeDomainData(o.wave);
@@ -1563,7 +1718,11 @@ function drawConnection(o){
       g[i?'lineTo':'moveTo'](x0+ux*(f*L)+px*s*amp*fall, y0+uy*(f*L)+py*s*amp*fall);
     }
   } else { g.moveTo(x0,y0); g.lineTo(x0+ux*L,y0+uy*L); }
-  g.stroke();
+  if(GLOW){ g.strokeStyle=COL.line; g.lineWidth=1.8; glow(COL.line, 9); g.stroke(); }
+  else {
+    g.strokeStyle=COL.line; g.lineWidth=3.6; g.globalAlpha=0.62; g.stroke();  // soft body the bloom picks up
+    g.strokeStyle='#eafcff'; g.lineWidth=1.3; g.globalAlpha=1; g.stroke();   // crisp neon core
+  }
   g.restore();
 }
 function drawObject(o){
@@ -1589,9 +1748,9 @@ function drawObject(o){
     const am=(R_ARC0()+R_ARC1())/2;
     g.lineWidth=3.5; g.strokeStyle=COL.rim;
     g.beginPath(); g.arc(o.x,o.y,am,ARC_START,ARC_START+ARC_SPAN); g.stroke();
-    g.strokeStyle=col; g.shadowColor=col; g.shadowBlur=6;
+    g.strokeStyle=col; glow(col, 6);
     g.beginPath(); g.arc(o.x,o.y,am,ARC_START,ARC_START+ARC_SPAN*o.arc); g.stroke();
-    g.shadowBlur=0;
+    noGlow();
     const ha=ARC_START+ARC_SPAN*o.arc;
     g.fillStyle=COL.text;
     g.beginPath(); g.arc(o.x+Math.cos(ha)*am, o.y+Math.sin(ha)*am, 4*S, 0, TAU); g.fill();
@@ -1602,10 +1761,10 @@ function drawObject(o){
     if(o.recState==='armed' || o.recState==='recording'){
       const f = o.recState==='recording'
         ? Math.min(1,(now-o.recFrom)/Math.max(0.01,o.recUntil-o.recFrom)) : 0;
-      g.strokeStyle='#ff5d5d'; g.lineWidth=3; g.shadowColor='#ff5d5d'; g.shadowBlur=8;
+      g.strokeStyle='#ff5d5d'; g.lineWidth=3; glow('#ff5d5d', 8);
       g.beginPath(); g.arc(o.x,o.y,R_RING1()+3*S,-Math.PI/2,-Math.PI/2+TAU*(o.recState==='armed'?1:f));
       if(o.recState==='armed') g.globalAlpha=0.4+0.4*Math.sin(performance.now()/150);
-      g.stroke(); g.globalAlpha=outside?0.35:1; g.shadowBlur=0;
+      g.stroke(); g.globalAlpha=outside?0.35:1; noGlow();
     }
   }
 
@@ -1621,18 +1780,20 @@ function drawObject(o){
       const rr = st.on ? r0 + 6*S + st.deg/maxDeg*(R_PAD1()-r0-10*S) : r0+3*S;
       g.strokeStyle = st.on ? col : COL.rim;
       g.lineWidth = i===playIdx ? 5 : 3.2;
-      if(i===playIdx && st.on){ g.shadowColor=col; g.shadowBlur=10; }
+      if(i===playIdx && st.on) glow(col, 10);
       g.beginPath();
       g.moveTo(o.x+Math.cos(a)*r0, o.y+Math.sin(a)*r0);
       g.lineTo(o.x+Math.cos(a)*rr, o.y+Math.sin(a)*rr);
       g.stroke();
-      g.shadowBlur=0;
+      noGlow();
     }
   }
 
   // body
-  g.shadowColor=col; g.shadowBlur=16+flash*14;
-  g.fillStyle='#0d1626'; g.strokeStyle=col; g.lineWidth=2+flash*1.5;
+  glow(col, 16+flash*14);
+  const bodyGrad = g.createRadialGradient(o.x-rb*0.35, o.y-rb*0.45, rb*0.05, o.x, o.y, rb*1.15);
+  bodyGrad.addColorStop(0,'#1a2740'); bodyGrad.addColorStop(0.6,'#0f1a2c'); bodyGrad.addColorStop(1,'#0a1220');
+  g.fillStyle=bodyGrad; g.strokeStyle=col; g.lineWidth=2+flash*1.5;
   g.beginPath();
   if(FAMILY[o.type]==='gen'){
     const r=rb*0.92, cr=7*S;
@@ -1645,7 +1806,10 @@ function drawObject(o){
     g.arc(o.x,o.y,rb*0.92,0,TAU);
   }
   g.fill(); g.stroke();
-  g.shadowBlur=0;
+  noGlow();
+  // glass specular: a faint highlight along the lit edge
+  g.save(); g.globalAlpha=(outside?0.35:1)*0.35; g.strokeStyle='#dff6ff'; g.lineWidth=1.2;
+  g.beginPath(); g.arc(o.x,o.y,rb*0.78,Math.PI*1.1,Math.PI*1.55); g.stroke(); g.restore();
 
   // icon
   g.textAlign='center'; g.textBaseline='middle';
@@ -1761,12 +1925,24 @@ function frame(){
   g.setTransform(DPR,0,0,DPR,0,0);
   g.fillStyle=COL.ground; g.fillRect(0,0,W,H);
 
-  const grad = g.createRadialGradient(CX,CY,TABLE_R*0.1,CX,CY,TABLE_R);
-  grad.addColorStop(0,'#101a2c'); grad.addColorStop(1,'#0a1220');
-  g.fillStyle=grad;
+  if(!discGrad){
+    discGrad = g.createRadialGradient(CX,CY,TABLE_R*0.05,CX,CY,TABLE_R);
+    discGrad.addColorStop(0,'#121e33'); discGrad.addColorStop(0.8,'#0c1526'); discGrad.addColorStop(1,'#0a1220');
+  }
+  g.fillStyle=discGrad;
   g.beginPath(); g.arc(CX,CY,TABLE_R,0,TAU); g.fill();
+  if(!GLOW){   // soft backlight under the surface, the bloom lifts it into a haze
+    const bl = g.createRadialGradient(CX,CY,0,CX,CY,TABLE_R*0.55);
+    bl.addColorStop(0,'rgba(127,216,232,0.16)'); bl.addColorStop(1,'rgba(127,216,232,0)');
+    g.fillStyle=bl; g.beginPath(); g.arc(CX,CY,TABLE_R*0.55,0,TAU); g.fill();
+  }
   g.strokeStyle=COL.rim; g.lineWidth=1.5;
   g.beginPath(); g.arc(CX,CY,TABLE_R,0,TAU); g.stroke();
+  // glass edge: a faint inner highlight, brighter where the light falls (top-left)
+  g.save(); g.lineWidth=2; g.strokeStyle='#a9dcea';
+  g.globalAlpha=0.10; g.beginPath(); g.arc(CX,CY,TABLE_R-2.5,0,TAU); g.stroke();
+  g.globalAlpha=0.30; g.beginPath(); g.arc(CX,CY,TABLE_R-2.5,Math.PI*1.08,Math.PI*1.72); g.stroke();
+  g.restore();
   g.globalAlpha=0.35;
   for(const f of [0.38,0.68]){
     g.beginPath(); g.arc(CX,CY,TABLE_R*f,0,TAU);
@@ -1784,7 +1960,7 @@ function frame(){
     const ux=dx/len, uy=dy/len, px=-uy, py=ux;
     g.save();
     g.strokeStyle=COL.gen; g.globalAlpha=0.9; g.lineWidth=1.6;
-    g.shadowColor=COL.gen; g.shadowBlur=6;
+    glow(COL.gen, 6);
     g.beginPath();
     const segs = Math.max(6, Math.floor(len/(9*S)));
     for(let i=0;i<=segs;i++){
@@ -1818,7 +1994,7 @@ function frame(){
     g.beginPath(); g.arc(CX,CY,(16+level*30)*S,0,TAU); g.stroke();
     g.globalAlpha=1;
   }
-  g.fillStyle='#ffffff'; g.shadowColor=COL.line; g.shadowBlur=22;
+  g.fillStyle='#ffffff'; glow(COL.line, 22);
   g.beginPath(); g.arc(CX,CY,(6+(REDUCED?0:3.5*ease))*S,0,TAU); g.fill();
   if(!REDUCED){
     g.strokeStyle=COL.line; g.globalAlpha=ease*0.5; g.lineWidth=1.5;
@@ -1827,6 +2003,7 @@ function frame(){
   g.restore();
 
   for(const o of objects) drawObject(o);
+  if(gl) glPost(ph, level);
   requestAnimationFrame(frame);
 }
 
