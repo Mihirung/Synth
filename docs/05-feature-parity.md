@@ -41,7 +41,7 @@ excluded, with reason.
 | Cut a connection | **done** | Swipe across the line (robust crossing test) |
 | Finger-drawn waveform absorbed by oscillator | **done** | Draw a shape near an osc; becomes its tone |
 | Cube-face flipping for presets/sounds | **partial** | Double-tap cycles modes on screen; true per-face banks arrive with physical cubes (**hardware**) |
-| Multi-touch, many hands | **partial** | Multi-touch works on one screen; several people on one table is **hardware** |
+| Multi-touch, many hands | **partial** | Multi-touch works on one screen; several people around one table is the physical build (**hardware**), which is how the original did it too |
 
 ## Modern additions (what they'd build today)
 
@@ -81,6 +81,13 @@ excluded, with reason.
 - **Guaranteed microphone / MIDI in the artifact sandbox.** Both depend on the viewer's
   browser granting permission to the framed page; they work in the standalone repo build and
   in permissive browsers, and degrade gracefully (the chip simply doesn't appear) elsewhere.
+- **Networked multiplayer without losing public sharing.** Real-time collaboration (two people
+  on two devices playing one table) is buildable with the artifact `room` capability, but a
+  page that declares `room` (or `db`) becomes organisation-internal and can no longer be
+  shared by public link. That trade breaks the core use case here (hand the link to a child on
+  any device), so it is deliberately not taken. The original Reactable's multiplayer was
+  physical, many hands on one surface, which the Phase B table delivers; a networked variant
+  is a one-flag change for anyone who wants org-internal collaboration instead of open sharing.
 
 The short version: every sound object and interaction the original Reactable had now exists
 here, plus the recorder, mic, and tangible tempo it had that we previously lacked, plus modern
