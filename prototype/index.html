@@ -308,7 +308,7 @@ function fmtHz(v){ return v>=1000 ? (v/1000).toFixed(1)+' kHz' : Math.round(v)+'
 function readout(o){
   switch(o.type){
     case 'osc': return ['OSC · '+(o.option===4 ? 'DRAWN' : OSC_WAVES[o.option].slice(0,3).toUpperCase()),
-                        noteName(oscMidi(o))+' · '+fmtHz(oscFreq(o))];
+                        (o.midiNote!=null ? noteName(o.midiNote)+' · MIDI' : noteName(oscMidi(o))+' · '+fmtHz(oscFreq(o)))];
     case 'sampler': return ['LOOPS · '+LOOPS[samplerLoop(o)], 'bar-synced · '+Math.round(o.arc*100)+'%'];
     case 'filter': return ['FILTER · '+FILTER_TAGS[FILTER_MODES[o.option]],
                         fmtHz(filtCut(o))+' · Q '+filtQ(o).toFixed(1)];
@@ -525,6 +525,7 @@ function applyParams(o){
   if(!audio) return;
   const t = audio.ctx.currentTime;
   if(o.type==='osc'){
+    o.midiNote = null;                 // a manual change reclaims the pitch from MIDI
     if(!o.gated){
       o.src.frequency.setTargetAtTime(oscFreq(o), t, 0.02);
       o.src2.frequency.setTargetAtTime(oscFreq(o), t, 0.02);
@@ -833,7 +834,27 @@ function initMidi(){
   navigator.requestMIDIAccess().then(acc=>{
     const outs = [...acc.outputs.values()];
     if(outs.length){ midi = outs[0]; document.getElementById('midiChip').hidden = false; }
+    for(const inp of acc.inputs.values()) inp.onmidimessage = onMidiIn;
+    acc.onstatechange = e => { if(e.port.type==='input' && e.port.state==='connected') e.port.onmidimessage = onMidiIn; };
   }).catch(()=>{});
+}
+// MIDI note-in retunes every ungated oscillator to the exact played pitch
+function onMidiIn(ev){
+  const [status, d1, d2] = ev.data;
+  const cmd = status & 0xf0;
+  if(cmd===0x90 && d2>0){
+    const f = midiToF(d1);
+    const t = audio ? audio.ctx.currentTime : 0;
+    for(const o of objects) if(o.type==='osc' && !o.gated && o.src){
+      o.midiNote = d1;
+      o.src.frequency.setTargetAtTime(f, t, 0.008);
+      o.src2.frequency.setTargetAtTime(f, t, 0.008);
+      o.amp.gain.cancelScheduledValues(t);
+      o.amp.gain.setValueAtTime(o.arc*0.34, t);
+      o.amp.gain.setTargetAtTime(o.arc*0.22, t+0.02, 0.12);
+      o.flashAt = t;
+    }
+  }
 }
 function noteOn(osc, deg, t, len){
   if(!osc.src || !osc.gate) return;
