@@ -10,8 +10,6 @@
 <style>
   :root{
     --ground:#060a12;
-    --table-hi:#101a2c;
-    --table-lo:#0a1220;
     --rim:#22314a;
     --text:#c7d3e0;
     --dim:#5a6a7e;
@@ -29,451 +27,714 @@
   }
   #stage{position:fixed;inset:0;display:block;touch-action:none;cursor:default}
   header{
-    position:fixed;top:0;left:0;right:0;display:flex;align-items:baseline;
-    justify-content:space-between;padding:14px 18px;pointer-events:none;z-index:2;
+    position:fixed;top:0;left:0;right:0;display:flex;align-items:center;flex-wrap:wrap;
+    justify-content:space-between;padding:12px 16px;pointer-events:none;z-index:2;row-gap:6px;
   }
   .wordmark{font-weight:600;font-size:15px;letter-spacing:.32em;color:var(--text)}
   .wordmark span{color:var(--line)}
-  .tag{font-size:10px;letter-spacing:.18em;text-transform:uppercase;color:var(--dim);margin-left:14px}
-  .bpm{font-size:11px;letter-spacing:.22em;color:var(--dim)}
-  .bpm b{color:var(--text);font-weight:600}
+  .tag{font-size:10px;letter-spacing:.18em;text-transform:uppercase;color:var(--dim);margin-left:12px}
+  .chips{display:flex;gap:6px;pointer-events:auto;align-items:center}
+  .chip{
+    font-family:var(--font);font-size:10px;letter-spacing:.16em;text-transform:uppercase;
+    color:var(--text);background:rgba(10,17,30,.82);border:1px solid var(--rim);
+    border-radius:999px;padding:6px 12px;cursor:pointer;
+  }
+  .chip b{color:var(--line);font-weight:600}
+  .chip:focus-visible{outline:1px solid var(--line);outline-offset:2px}
+  .chip.warn{color:var(--dim)}
   #hint{
-    position:fixed;left:50%;transform:translateX(-50%);bottom:96px;z-index:2;
+    position:fixed;left:50%;transform:translateX(-50%);bottom:96px;z-index:2;max-width:720px;
     font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--dim);
     text-align:center;pointer-events:none;padding:0 16px;line-height:1.9;
   }
   #dock{
-    position:fixed;left:50%;transform:translateX(-50%);bottom:16px;z-index:3;
-    display:flex;gap:10px;padding:10px 14px;border:1px solid var(--rim);
-    border-radius:14px;background:rgba(10,17,30,.82);touch-action:none;
+    position:fixed;left:50%;transform:translateX(-50%);bottom:14px;z-index:3;
+    display:flex;gap:6px;padding:8px 10px;border:1px solid var(--rim);
+    border-radius:14px;background:rgba(10,17,30,.85);touch-action:none;max-width:96vw;
   }
   .spawn{
-    display:flex;flex-direction:column;align-items:center;gap:6px;
+    display:flex;flex-direction:column;align-items:center;gap:5px;
     background:none;border:0;color:var(--dim);font-family:var(--font);
-    font-size:9px;letter-spacing:.16em;text-transform:uppercase;
-    padding:4px 8px;border-radius:10px;cursor:grab;touch-action:none;
+    font-size:9px;letter-spacing:.14em;text-transform:uppercase;
+    padding:4px 6px;border-radius:10px;cursor:grab;touch-action:none;
   }
   .spawn:focus-visible{outline:1px solid var(--line);outline-offset:2px}
-  .spawn .chip{width:26px;height:26px;position:relative}
-  .chip.sq{border:2px solid var(--gen);border-radius:5px}
-  .chip.ci{border:2px solid var(--fx);border-radius:50%}
-  .chip.ci.dot::after{content:'';position:absolute;inset:8px;border-radius:50%;border:2px solid var(--fx)}
-  .chip.di{border:2px solid var(--ctl);border-radius:5px;transform:rotate(45deg) scale(.86)}
+  .spawn .chipico{width:24px;height:24px;position:relative}
+  .chipico.sq{border:2px solid var(--gen);border-radius:5px}
+  .chipico.sq.dot::after{content:'';position:absolute;inset:8px;border-radius:2px;background:var(--gen)}
+  .chipico.ci{border:2px solid var(--fx);border-radius:50%}
+  .chipico.ci.dot::after{content:'';position:absolute;inset:7px;border-radius:50%;border:2px solid var(--fx)}
+  .chipico.ci.x::after{content:'×';position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:var(--fx);font-size:14px}
+  .chipico.di{border:2px solid var(--ctl);border-radius:5px;transform:rotate(45deg) scale(.84)}
+  .chipico.ri{border:2px solid var(--ctl);border-radius:50%}
+  .chipico.ri::after{content:'';position:absolute;inset:9px;border-radius:50%;background:var(--ctl)}
   #overlay{
     position:fixed;inset:0;z-index:10;display:flex;align-items:center;justify-content:center;
     background:rgba(4,7,13,.55);backdrop-filter:blur(3px);
   }
   .card{
-    text-align:center;padding:36px 44px;border:1px solid var(--rim);border-radius:16px;
-    background:rgba(9,15,26,.92);max-width:340px;
+    text-align:center;padding:34px 42px;border:1px solid var(--rim);border-radius:16px;
+    background:rgba(9,15,26,.93);max-width:360px;
   }
   .card h1{font-size:19px;font-weight:600;letter-spacing:.34em;margin:0 0 10px;color:var(--text)}
   .card h1 span{color:var(--line)}
-  .card p{font-size:12px;line-height:1.7;color:var(--dim);margin:0 0 24px;letter-spacing:.04em}
+  .card p{font-size:12px;line-height:1.7;color:var(--dim);margin:0 0 22px;letter-spacing:.04em}
   #begin{
     font-family:var(--font);font-size:12px;letter-spacing:.28em;text-transform:uppercase;
     color:var(--ground);background:var(--line);border:0;border-radius:999px;
     padding:12px 30px;cursor:pointer;font-weight:600;
   }
   #begin:focus-visible{outline:2px solid var(--text);outline-offset:3px}
-  @media (prefers-reduced-motion: reduce){ .no-motion-hide{display:none} }
 </style>
 
 <canvas id="stage"></canvas>
 <header>
-  <div><span class="wordmark">LUMA<span>TABLE</span></span><span class="tag">proof of feel · phase 0</span></div>
-  <div class="bpm"><b id="bpmv">120</b> BPM</div>
+  <div><span class="wordmark">LUMA<span>TABLE</span></span><span class="tag">a reactable rebuild study</span></div>
+  <div class="chips">
+    <button class="chip" id="bpmDn" aria-label="slower">−</button>
+    <button class="chip" id="bpmChip"><b id="bpmv">112</b>&nbsp;BPM</button>
+    <button class="chip" id="bpmUp" aria-label="faster">+</button>
+    <button class="chip" id="keyChip">key <b id="keyv">C</b></button>
+    <button class="chip" id="scaleChip"><b id="scalev">penta</b></button>
+    <button class="chip warn" id="demoChip">demo</button>
+    <button class="chip warn" id="clearChip">clear</button>
+  </div>
 </header>
 <div id="hint">
-  drag blocks from the tray · turn the inner ring · slide the outer arc<br>
-  double-tap a block to change its mode · tap a line to mute · drag off the disc to remove
+  drag blocks onto the disc · turn the inner ring · slide the outer arc · tap sequencer pads, pull them outwards for higher notes<br>
+  double-tap a block to change its mode · tap a line to mute it · drag a block off the disc to remove it
 </div>
 <div id="dock" aria-label="object tray">
-  <button class="spawn" data-type="osc"><span class="chip sq"></span>osc</button>
-  <button class="spawn" data-type="filter"><span class="chip ci"></span>filter</button>
-  <button class="spawn" data-type="delay"><span class="chip ci dot"></span>delay</button>
-  <button class="spawn" data-type="lfo"><span class="chip di"></span>lfo</button>
+  <button class="spawn" data-type="osc"><span class="chipico sq"></span>osc</button>
+  <button class="spawn" data-type="sampler"><span class="chipico sq dot"></span>loops</button>
+  <button class="spawn" data-type="seq"><span class="chipico ri"></span>seq</button>
+  <button class="spawn" data-type="filter"><span class="chipico ci"></span>filter</button>
+  <button class="spawn" data-type="delay"><span class="chipico ci dot"></span>delay</button>
+  <button class="spawn" data-type="mod"><span class="chipico ci x"></span>mod</button>
+  <button class="spawn" data-type="lfo"><span class="chipico di"></span>lfo</button>
 </div>
 <div id="overlay">
   <div class="card">
     <h1>LUMA<span>TABLE</span></h1>
-    <p>A playable study for rebuilding the Reactable's tabletop synthesiser. Place blocks on the disc; sound flows to the pulsing centre.</p>
+    <p>A playable rebuild of the Reactable's tangible table. Place blocks on the disc; sound flows to the pulsing centre. Everything you do stays in key and on the beat.</p>
     <button id="begin">Switch on</button>
   </div>
 </div>
 
 <script>
 'use strict';
-/* ================= constants ================= */
-const BPM = 120;
+/* ================================================================
+   Lumatable — a Reactable rebuild study.
+   Layers: surface input (pointer / TUIO) → instrument model
+   (objects + dynamic patching) → Web Audio engine + canvas render.
+   ================================================================ */
 const TAU = Math.PI * 2;
 const REDUCED = matchMedia('(prefers-reduced-motion: reduce)').matches;
-const CSS = getComputedStyle(document.documentElement);
-const COL = {
-  ground: CSS.getPropertyValue('--ground').trim(),
-  rim: CSS.getPropertyValue('--rim').trim(),
-  text: CSS.getPropertyValue('--text').trim(),
-  dim: CSS.getPropertyValue('--dim').trim(),
-  line: CSS.getPropertyValue('--line').trim(),
-  gen: CSS.getPropertyValue('--gen').trim(),
-  fx: CSS.getPropertyValue('--fx').trim(),
-  ctl: CSS.getPropertyValue('--ctl').trim(),
-};
-const FAMILY = { osc:'gen', filter:'fx', delay:'fx', lfo:'ctl' };
+const CSSV = getComputedStyle(document.documentElement);
+const COL = {};
+for(const k of ['ground','rim','text','dim','line','gen','fx','ctl'])
+  COL[k] = CSSV.getPropertyValue('--' + k).trim();
+
+const FAMILY = { osc:'gen', sampler:'gen', filter:'fx', delay:'fx', mod:'fx', lfo:'ctl', seq:'ctl' };
 const FCOLOR = { gen:COL.gen, fx:COL.fx, ctl:COL.ctl };
 const NOTE_NAMES = ['C','C#','D','D#','E','F','F#','G','G#','A','A#','B'];
 const OSC_WAVES = ['sine','sawtooth','square','triangle'];
 const FILTER_MODES = ['lowpass','highpass','bandpass'];
 const FILTER_TAGS = { lowpass:'LP', highpass:'HP', bandpass:'BP' };
+const SCALES = [
+  { name:'penta', steps:[0,2,4,7,9] },
+  { name:'major', steps:[0,2,4,5,7,9,11] },
+  { name:'minor', steps:[0,2,3,5,7,10] },
+  { name:'blues', steps:[0,3,5,6,7,10] },
+];
+const LOOPS = ['KICK','BEAT','HATS','BASS','CHORD','ARP'];
+const DIVS = [ {n:'1/16',b:0.25}, {n:'1/8',b:0.5}, {n:'1/8·',b:0.75}, {n:'1/4',b:1}, {n:'1/2',b:2}, {n:'3/4',b:3} ];
+const SEQ_PATTERNS = [
+  [[0,0],null,[2,0],null,[4,0],[3,0],null,[2,0],[0,0],null,[2,0],null,[5,0],null,[4,0],[3,0]],
+  [[0,0],null,null,[0,0],null,[4,0],null,null,[2,0],null,null,[2,0],[5,0],null,[4,0],null],
+  [[0,0],[2,0],[4,0],[7,0],[9,0],[7,0],[4,0],[2,0],[0,0],[2,0],[4,0],[7,0],[9,0],[7,0],[4,0],[2,0]],
+  [[0,0],null,[0,0],null,[1,0],null,[0,0],null,[3,0],null,[0,0],null,[4,0],[3,0],[1,0],null],
+];
+const state = { bpm:112, key:0, scaleIdx:0 };
+const scaleSteps = () => SCALES[state.scaleIdx].steps;
 
-/* ================= canvas ================= */
+/* ================= canvas / geometry ================= */
 const canvas = document.getElementById('stage');
 const g = canvas.getContext('2d');
-let W = 0, H = 0, DPR = 1;
-let CX = 0, CY = 0, TABLE_R = 300, S = 1;   // S = object scale factor
+let W=0, H=0, DPR=1, CX=0, CY=0, TABLE_R=300, S=1;
 function resize(){
+  const oCX=CX, oCY=CY, oR=TABLE_R, had = TABLE_R > 0 && objects.length;
   DPR = Math.min(devicePixelRatio || 1, 2);
   W = innerWidth; H = innerHeight;
-  canvas.width = W * DPR; canvas.height = H * DPR;
-  canvas.style.width = W + 'px'; canvas.style.height = H + 'px';
-  CX = W / 2;
-  CY = (H - 80) / 2 + 26;
-  TABLE_R = Math.min(W / 2 - 20, (H - 170) / 2);
-  S = Math.max(0.68, Math.min(1.12, TABLE_R / 320));
+  canvas.width = W*DPR; canvas.height = H*DPR;
+  canvas.style.width = W+'px'; canvas.style.height = H+'px';
+  CX = W/2; CY = (H-80)/2 + 26;
+  TABLE_R = Math.min(W/2 - 20, (H-180)/2);
+  S = Math.max(0.62, Math.min(1.12, TABLE_R/320));
+  if(had) for(const o of objects){
+    o.x = CX + (o.x - oCX)/oR * TABLE_R;
+    o.y = CY + (o.y - oCY)/oR * TABLE_R;
+  }
 }
-addEventListener('resize', resize); resize();
-
-const R_BODY  = () => 26 * S;
-const R_RING0 = () => 30 * S, R_RING1 = () => 42 * S;
-const R_ARC0  = () => 46 * S, R_ARC1 = () => 58 * S;
-const LINK    = () => TABLE_R * 0.52;
-const CTL_LINK= () => TABLE_R * 0.40;
-const ARC_START = 0.75 * Math.PI, ARC_SPAN = 1.5 * Math.PI;
+const R_BODY  = () => 26*S;
+const R_RING0 = () => 30*S, R_RING1 = () => 42*S;
+const R_ARC0  = () => 46*S, R_ARC1 = () => 58*S;
+const R_PAD0  = () => 62*S, R_PAD1 = () => 84*S;
+const LINK    = () => TABLE_R*0.52;
+const CTL_LINK= () => TABLE_R*0.40;
+const ARC_START = 0.75*Math.PI, ARC_SPAN = 1.5*Math.PI;
+const hitR = o => o.type==='seq' ? R_PAD1()+4 : R_ARC1()+6;
 
 /* ================= model ================= */
 let nextId = 1;
-const objects = [];           // {id,type,x,y,angle,arc,option,muted,hop,ax…audio nodes}
-let audio = null;             // {ctx, master, comp}
+const objects = [];
+let audio = null;
+const distC = o => Math.hypot(o.x-CX, o.y-CY);
+const dist  = (a,b) => Math.hypot(a.x-b.x, a.y-b.y);
 
 function defaults(type){
-  return {
-    osc:    { arc:0.72, option:0 },
-    filter: { arc:0.18, option:0 },
-    delay:  { arc:0.42, option:0 },
-    lfo:    { arc:0.45, option:0 },
-  }[type];
+  return { osc:{arc:0.72}, sampler:{arc:0.8}, filter:{arc:0.18}, delay:{arc:0.4},
+           mod:{arc:0.5}, lfo:{arc:0.45}, seq:{arc:0.5} }[type];
+}
+function spawn(type, x, y){
+  const o = { id:nextId++, type, x, y, angle:0, arc:defaults(type).arc,
+              option:0, muted:false, hop:'C', gated:false, flashAt:-9 };
+  if(type==='osc') o.angle = (26/48)*TAU;
+  if(type==='filter') o.angle = TAU*0.62;
+  if(type==='delay') o.angle = (1.5/6)*TAU;
+  if(type==='mod') o.angle = TAU*0.3;
+  if(type==='lfo') o.angle = TAU*0.5;
+  if(type==='sampler') o.angle = (1.5/6)*TAU;
+  if(type==='seq') o.steps = SEQ_PATTERNS[0].map(s => s ? {on:true,deg:s[0]} : {on:false,deg:0});
+  objects.push(o);
+  if(audio) buildNodes(o);
+  computePatch();
+  return o;
+}
+function destroyObject(o){
+  if(audio){
+    try{ if(o.src) o.src.stop(); }catch(e){}
+    for(const k of ['src','amp','gate','out','an','biq','inG','dl','fb','dry','wet','depthG','carrier','ring','dryG'])
+      if(o[k]){ try{ o[k].disconnect(); }catch(e){} }
+    if(o.playing){ try{ o.playing.stop(); }catch(e){} o.playing = null; }
+  }
+  const i = objects.indexOf(o);
+  if(i>=0) objects.splice(i,1);
+  computePatch(); saveSoon();
 }
 
-/* -------- parameter mappings -------- */
-function oscSemi(o){ return Math.round((o.angle / TAU) * 48); }          // 4 octaves from A1
-function oscFreq(o){ return 55 * Math.pow(2, oscSemi(o) / 12); }
-function oscNote(o){
-  const midi = 33 + oscSemi(o);
-  return NOTE_NAMES[midi % 12] + (Math.floor(midi / 12) - 1);
+/* ================= musical mappings ================= */
+const midiToF = m => 440*Math.pow(2,(m-69)/12);
+function quantMidi(m){
+  const st = scaleSteps();
+  let best=m, bd=99;
+  for(let oct=-1; oct<=1; oct++) for(const s of st){
+    const c = Math.floor((m-state.key)/12 + oct)*12 + state.key + s;
+    const d = Math.abs(c-m);
+    if(d<bd){ bd=d; best=c; }
+  }
+  return best;
 }
-function filtCut(o){ return 60 * Math.pow(12000 / 60, o.angle / TAU); }
-function filtQ(o){ return 0.4 + o.arc * 15.6; }
-function delayTime(o){ return 0.05 + (o.angle / TAU) * 0.85; }
-function delayFb(o){ return o.arc * 0.85; }
-function lfoRate(o){ return 0.05 * Math.pow(16 / 0.05, o.angle / TAU); }
-function lfoDepth(o){ return o.arc; }
-
-function fmtHz(v){ return v >= 1000 ? (v/1000).toFixed(1) + ' kHz' : Math.round(v) + ' Hz'; }
+function degSemis(deg){
+  const st = scaleSteps();
+  return st[deg % st.length] + 12*Math.floor(deg/st.length);
+}
+function oscMidi(o){ return quantMidi(33 + Math.round((o.angle/TAU)*48)); }
+function oscFreq(o){ return midiToF(oscMidi(o)); }
+function noteName(m){ return NOTE_NAMES[((m%12)+12)%12] + (Math.floor(m/12)-1); }
+function filtCut(o){ return 60*Math.pow(200, o.angle/TAU); }        // 60..12000
+function filtQ(o){ return 0.4 + o.arc*15.6; }
+function delayDiv(o){ return DIVS[Math.floor((o.angle/TAU)*DIVS.length) % DIVS.length]; }
+function delayTime(o){ return Math.min(3.8, delayDiv(o).b * 60/state.bpm); }
+function delayFb(o){ return o.arc*0.8; }
+function modFreq(o){ return 20*Math.pow(100, o.angle/TAU); }        // 20..2000
+function lfoRate(o){ return 0.05*Math.pow(16/0.05, o.angle/TAU); }
+function samplerLoop(o){ return Math.floor((o.angle/TAU)*LOOPS.length) % LOOPS.length; }
+function seqOffset(o){ return Math.round((o.angle/TAU)*16) % 16; }
+function fmtHz(v){ return v>=1000 ? (v/1000).toFixed(1)+' kHz' : Math.round(v)+' Hz'; }
 function readout(o){
   switch(o.type){
-    case 'osc':    return [ 'OSC · ' + OSC_WAVES[o.option].slice(0,3).toUpperCase(), oscNote(o) + ' · ' + fmtHz(oscFreq(o)) ];
-    case 'filter': return [ 'FILTER · ' + FILTER_TAGS[FILTER_MODES[o.option]], fmtHz(filtCut(o)) + ' · Q ' + filtQ(o).toFixed(1) ];
-    case 'delay':  return [ 'DELAY', Math.round(delayTime(o)*1000) + ' ms · fb ' + Math.round(delayFb(o)*100) + '%' ];
-    case 'lfo':    return [ 'LFO · ' + OSC_WAVES[o.option].slice(0,3).toUpperCase(), lfoRate(o).toFixed(2) + ' Hz · ' + Math.round(lfoDepth(o)*100) + '%' ];
+    case 'osc': return ['OSC · '+OSC_WAVES[o.option].slice(0,3).toUpperCase(),
+                        noteName(oscMidi(o))+' · '+fmtHz(oscFreq(o))];
+    case 'sampler': return ['LOOPS · '+LOOPS[samplerLoop(o)], 'bar-synced · '+Math.round(o.arc*100)+'%'];
+    case 'filter': return ['FILTER · '+FILTER_TAGS[FILTER_MODES[o.option]],
+                        fmtHz(filtCut(o))+' · Q '+filtQ(o).toFixed(1)];
+    case 'delay': return ['DELAY · '+delayDiv(o).n, Math.round(delayTime(o)*1000)+' ms · fb '+Math.round(delayFb(o)*100)+'%'];
+    case 'mod': return ['MOD · RING', fmtHz(modFreq(o))+' · '+Math.round(o.arc*100)+'%'];
+    case 'lfo': return ['LFO · '+OSC_WAVES[o.option].slice(0,3).toUpperCase(),
+                        lfoRate(o).toFixed(2)+' Hz · '+Math.round(o.arc*100)+'%'];
+    case 'seq': return ['SEQUENCER', 'shift '+seqOffset(o)+' · gate '+Math.round((0.1+o.arc*0.85)*100)+'%'];
   }
 }
 
-/* ================= audio ================= */
+/* ================= audio engine ================= */
 function startAudio(){
   const ctx = new (window.AudioContext || window.webkitAudioContext)();
   const comp = ctx.createDynamicsCompressor();
-  comp.threshold.value = -18; comp.ratio.value = 6;
-  const master = ctx.createGain(); master.gain.value = 0.6;
+  comp.threshold.value=-16; comp.ratio.value=8;
+  const master = ctx.createGain(); master.gain.value=0.55;
   master.connect(comp); comp.connect(ctx.destination);
-  audio = { ctx, master, comp };
+  audio = { ctx, master, comp, buffers:{} };
   ctx.resume();
+  buildLoopBuffers();
 }
-
 function buildNodes(o){
-  if(!audio) return;
   const { ctx } = audio;
-  o.out = ctx.createGain();                 // mute / crossfade gain
-  o.out.gain.value = o.muted ? 0 : 1;
-  o.an = ctx.createAnalyser(); o.an.fftSize = 512;
+  o.out = ctx.createGain(); o.out.gain.value = o.muted?0:1;
+  o.an = ctx.createAnalyser(); o.an.fftSize=512;
   o.wave = new Float32Array(o.an.fftSize);
   o.out.connect(o.an);
-  if(o.type === 'osc'){
+  if(o.type==='osc'){
     o.src = ctx.createOscillator();
     o.src.type = OSC_WAVES[o.option];
     o.src.frequency.value = oscFreq(o);
-    o.amp = ctx.createGain(); o.amp.gain.value = o.arc * 0.5;
-    o.src.connect(o.amp); o.amp.connect(o.out);
+    o.amp = ctx.createGain(); o.amp.gain.value = o.arc*0.4;
+    o.gate = ctx.createGain(); o.gate.gain.value = o.gated?0:1;
+    o.src.connect(o.amp); o.amp.connect(o.gate); o.gate.connect(o.out);
     o.src.start();
-  } else if(o.type === 'filter'){
+  } else if(o.type==='sampler'){
+    o.amp = ctx.createGain(); o.amp.gain.value = o.arc;
+    o.amp.connect(o.out);
+  } else if(o.type==='filter'){
     o.biq = ctx.createBiquadFilter();
     o.biq.type = FILTER_MODES[o.option];
-    o.biq.frequency.value = filtCut(o);
-    o.biq.Q.value = filtQ(o);
+    o.biq.frequency.value = filtCut(o); o.biq.Q.value = filtQ(o);
     o.biq.connect(o.out);
-  } else if(o.type === 'delay'){
+  } else if(o.type==='delay'){
     o.inG = ctx.createGain();
-    o.dl = ctx.createDelay(2); o.dl.delayTime.value = delayTime(o);
+    o.dl = ctx.createDelay(4); o.dl.delayTime.value = delayTime(o);
     o.fb = ctx.createGain(); o.fb.gain.value = delayFb(o);
     o.dry = ctx.createGain(); o.dry.gain.value = 0.9;
-    o.wet = ctx.createGain(); o.wet.gain.value = 0.9;
+    o.wet = ctx.createGain(); o.wet.gain.value = 0.85;
     o.inG.connect(o.dry); o.dry.connect(o.out);
     o.inG.connect(o.dl); o.dl.connect(o.fb); o.fb.connect(o.dl);
     o.dl.connect(o.wet); o.wet.connect(o.out);
-  } else if(o.type === 'lfo'){
+  } else if(o.type==='mod'){
+    o.inG = ctx.createGain();
+    o.dryG = ctx.createGain();
+    o.ring = ctx.createGain(); o.ring.gain.value = 0;
+    o.carrier = ctx.createOscillator(); o.carrier.frequency.value = modFreq(o);
+    o.carrier.connect(o.ring.gain); o.carrier.start();
+    o.inG.connect(o.dryG); o.dryG.connect(o.out);
+    o.inG.connect(o.ring); o.ring.connect(o.out);
+    o.dryG.gain.value = 1-o.arc;
+    o.src = o.carrier;   // so destroy stops it
+  } else if(o.type==='lfo'){
     o.src = ctx.createOscillator();
     o.src.type = OSC_WAVES[o.option];
     o.src.frequency.value = lfoRate(o);
-    o.depthG = ctx.createGain(); o.depthG.gain.value = 0;
+    o.depthG = ctx.createGain(); o.depthG.gain.value=0;
     o.src.connect(o.depthG);
     o.src.start();
   }
 }
-
-function inputOf(target){                    // where audio enters a hop target
-  if(target === 'C') return audio.master;
-  if(target.type === 'filter') return target.biq;
-  if(target.type === 'delay')  return target.inG;
+function inputOf(t){
+  if(t==='C') return audio.master;
+  if(t.type==='filter') return t.biq;
+  if(t.type==='delay' || t.type==='mod') return t.inG;
   return null;
 }
-function ctlParamOf(target){                 // AudioParam an LFO modulates + scale
-  if(!target) return null;
-  if(target.type === 'osc')    return { param: target.src.frequency,   scale: oscFreq(target) * 0.5 };
-  if(target.type === 'filter') return { param: target.biq.frequency,   scale: filtCut(target) * 0.9 };
-  if(target.type === 'delay')  return { param: target.dl.delayTime,    scale: 0.12 };
+function ctlParamOf(t){
+  if(!t) return null;
+  if(t.type==='osc') return { param:t.src.frequency, scale:oscFreq(t)*0.5 };
+  if(t.type==='filter') return { param:t.biq.frequency, scale:filtCut(t)*0.9 };
+  if(t.type==='delay') return { param:t.dl.delayTime, scale:0.08 };
   return null;
 }
-
 function rewireAudio(o){
-  if(!audio || o.type === 'lfo') return;
+  if(!audio || FAMILY[o.type]==='ctl') return;
   try{ o.an.disconnect(); }catch(e){}
-  const t = o.hop === 'C' ? 'C' : objects.find(x => x.id === o.hop);
+  const t = o.hop==='C' ? 'C' : objects.find(x=>x.id===o.hop);
   const dst = t ? inputOf(t) : null;
   if(dst) o.an.connect(dst);
 }
 function rewireCtl(o){
-  if(!audio || o.type !== 'lfo') return;
+  if(!audio || o.type!=='lfo') return;
   try{ o.depthG.disconnect(); }catch(e){}
-  const t = objects.find(x => x.id === o.hop);
+  const t = objects.find(x=>x.id===o.hop);
   const p = ctlParamOf(t);
-  if(p){ o.depthG.connect(p.param); o.depthG.gain.value = lfoDepth(o) * p.scale; }
+  if(p){ o.depthG.connect(p.param); o.depthG.gain.value = o.arc*p.scale; }
 }
-function refreshCtlScales(){                 // target params moved → rescale LFO depth
-  for(const l of objects) if(l.type === 'lfo' && l.hop !== 'C') rewireCtl(l);
+function refreshCtlScales(){
+  for(const l of objects) if(l.type==='lfo' && l.hop!=='C') rewireCtl(l);
 }
-
 function applyParams(o){
+  saveSoon();
   if(!audio) return;
   const t = audio.ctx.currentTime;
-  if(o.type === 'osc'){
-    o.src.frequency.setTargetAtTime(oscFreq(o), t, 0.02);
-    o.amp.gain.setTargetAtTime(o.arc * 0.5, t, 0.02);
-  } else if(o.type === 'filter'){
+  if(o.type==='osc'){
+    if(!o.gated) o.src.frequency.setTargetAtTime(oscFreq(o), t, 0.02);
+    o.amp.gain.setTargetAtTime(o.arc*0.4, t, 0.02);
+  } else if(o.type==='sampler'){
+    o.amp.gain.setTargetAtTime(o.arc, t, 0.02);
+  } else if(o.type==='filter'){
     o.biq.frequency.setTargetAtTime(filtCut(o), t, 0.02);
     o.biq.Q.setTargetAtTime(filtQ(o), t, 0.02);
-  } else if(o.type === 'delay'){
-    o.dl.delayTime.setTargetAtTime(delayTime(o), t, 0.05);
+  } else if(o.type==='delay'){
+    o.dl.delayTime.setTargetAtTime(delayTime(o), t, 0.06);
     o.fb.gain.setTargetAtTime(delayFb(o), t, 0.02);
-  } else if(o.type === 'lfo'){
+  } else if(o.type==='mod'){
+    o.carrier.frequency.setTargetAtTime(modFreq(o), t, 0.02);
+    o.dryG.gain.setTargetAtTime(1-o.arc, t, 0.02);
+  } else if(o.type==='lfo'){
     o.src.frequency.setTargetAtTime(lfoRate(o), t, 0.02);
   }
   refreshCtlScales();
 }
-
 function cycleOption(o){
-  if(o.type === 'osc' || o.type === 'lfo'){
-    o.option = (o.option + 1) % OSC_WAVES.length;
+  if(o.type==='osc' || o.type==='lfo'){
+    o.option = (o.option+1)%OSC_WAVES.length;
     if(o.src) o.src.type = OSC_WAVES[o.option];
-  } else if(o.type === 'filter'){
-    o.option = (o.option + 1) % FILTER_MODES.length;
+  } else if(o.type==='filter'){
+    o.option = (o.option+1)%FILTER_MODES.length;
     if(o.biq) o.biq.type = FILTER_MODES[o.option];
+  } else if(o.type==='sampler' || o.type==='delay'){
+    o.angle = (o.angle + TAU/6) % TAU; applyParams(o);
+  } else if(o.type==='seq'){
+    o.option = (o.option+1)%SEQ_PATTERNS.length;
+    o.steps = SEQ_PATTERNS[o.option].map(s => s?{on:true,deg:s[0]}:{on:false,deg:0});
+  }
+  saveSoon();
+}
+function setMuted(o,m){
+  o.muted = m; saveSoon();
+  if(audio && o.out) o.out.gain.setTargetAtTime(m?0:1, audio.ctx.currentTime, 0.015);
+}
+
+/* ================= generated loop material =================
+   All sample content is synthesised at boot (nothing fetched),
+   1 bar at 120 BPM (2 s), tempo-followed via playbackRate.    */
+function buildLoopBuffers(){
+  const sr = audio.ctx.sampleRate, N = Math.floor(sr*2);
+  const mk = fn => {
+    const b = audio.ctx.createBuffer(1,N,sr), d = b.getChannelData(0);
+    fn(d,sr,N);
+    const F = Math.floor(sr*0.004);
+    for(let i=0;i<F;i++){ d[i]*=i/F; d[N-1-i]*=i/F; }
+    return b;
+  };
+  const beatN = sr*0.5;
+  const kick = (d,at,sr)=>{ for(let i=0;i<sr*0.3;i++){ const t=i/sr;
+      d[at+i] += Math.sin(TAU*(50+110*Math.exp(-t*30))*t)*Math.exp(-t*9)*0.9; } };
+  const snare = (d,at,sr)=>{ for(let i=0;i<sr*0.2;i++){ const t=i/sr;
+      d[at+i] += ((Math.random()*2-1)*0.55 + Math.sin(TAU*190*t)*0.3)*Math.exp(-t*18); } };
+  const hat = (d,at,sr,amp)=>{ let p=0; for(let i=0;i<sr*0.06;i++){ const t=i/sr;
+      const n=Math.random()*2-1, h=n-p; p=n;
+      d[at+i] += h*Math.exp(-t*60)*amp; } };
+  audio.buffers.KICK = mk((d,sr)=>{ for(let b=0;b<4;b++) kick(d, Math.floor(b*beatN), sr); });
+  audio.buffers.BEAT = mk((d,sr)=>{
+    for(let b=0;b<4;b++) kick(d, Math.floor(b*beatN), sr);
+    snare(d, Math.floor(1*beatN), sr); snare(d, Math.floor(3*beatN), sr);
+    for(let e=0;e<8;e++) hat(d, Math.floor(e*beatN/2), sr, 0.25);
+  });
+  audio.buffers.HATS = mk((d,sr)=>{
+    for(let e=0;e<16;e++) hat(d, Math.floor(e*beatN/4), sr, e%4===2?0.5:0.3);
+  });
+  buildTonalBuffers();
+}
+function buildTonalBuffers(){
+  if(!audio) return;
+  const sr = audio.ctx.sampleRate, N = Math.floor(sr*2);
+  const mk = fn => {
+    const b = audio.ctx.createBuffer(1,N,sr), d = b.getChannelData(0);
+    fn(d,sr,N);
+    const F = Math.floor(sr*0.004);
+    for(let i=0;i<F;i++){ d[i]*=i/F; d[N-1-i]*=i/F; }
+    return b;
+  };
+  const eighthN = sr*0.25;
+  audio.buffers.BASS = mk((d,sr)=>{
+    const degs = [0,null,0,1,null,0,2,1];
+    let y=0;
+    for(let e=0;e<8;e++){
+      if(degs[e]===null) continue;
+      const f = midiToF(36+state.key+degSemis(degs[e]));
+      const at = Math.floor(e*eighthN);
+      for(let i=0;i<eighthN*0.95;i++){ const t=i/sr;
+        const x = (Math.sin(TAU*f*t)>0?1:-1)*Math.exp(-t*6)*0.5;
+        y += 0.12*(x-y);
+        d[at+i] += y;
+      }
+    }
+  });
+  audio.buffers.CHORD = mk((d,sr,N)=>{
+    const semis = [0,2,4].map(degSemis);
+    for(const s of semis){
+      const f = midiToF(60+state.key+s);
+      for(const det of [0.997,1.004]){
+        for(let i=0;i<N;i++){ const t=i/sr;
+          const env = Math.min(1,t*2)*Math.min(1,(N/sr-t)*2);
+          d[i] += Math.sin(TAU*f*det*t)*env*0.09;
+        }
+      }
+    }
+  });
+  audio.buffers.ARP = mk((d,sr)=>{
+    const degs = [0,2,4,7,4,2,5,4, 0,2,4,7,9,7,4,2];
+    const sixteenthN = sr*0.125;
+    for(let e=0;e<16;e++){
+      const f = midiToF(72+state.key+degSemis(degs[e]));
+      const at = Math.floor(e*sixteenthN);
+      for(let i=0;i<sixteenthN*1.5 && at+i<d.length;i++){ const t=i/sr;
+        d[at+i] += Math.sin(TAU*f*t)*Math.exp(-t*14)*0.4;
+      }
+    }
+  });
+}
+
+/* ================= transport & scheduling ================= */
+const transport = { step:0, nextTime:0, anchor:0, timer:null };
+const stepDur = () => 60/state.bpm/4;
+function startTransport(){
+  transport.nextTime = audio.ctx.currentTime + 0.1;
+  transport.step = 0;
+  transport.anchor = transport.nextTime;
+  transport.timer = setInterval(schedulerTick, 25);
+}
+function schedulerTick(){
+  const now = audio.ctx.currentTime;
+  while(transport.nextTime < now + 0.12){
+    scheduleStep(transport.step, transport.nextTime);
+    transport.step++;
+    transport.nextTime += stepDur();
+    transport.anchor = transport.nextTime - transport.step*stepDur();
   }
 }
-
-function setMuted(o, m){
-  o.muted = m;
-  if(audio && o.out) o.out.gain.setTargetAtTime(m ? 0 : 1, audio.ctx.currentTime, 0.015);
+function currentStep(){
+  if(!audio) return -1;
+  return Math.floor((audio.ctx.currentTime - transport.anchor)/stepDur());
 }
-
-function destroyObject(o){
+function scheduleStep(stepAbs, t){
+  const s16 = stepAbs % 16;
+  if(s16===0) for(const o of objects) if(o.type==='sampler') scheduleBar(o, t);
+  for(const o of objects) if(o.type==='seq' && o.hop!=='C'){
+    const target = objects.find(x=>x.id===o.hop);
+    if(!target || target.type!=='osc') continue;
+    const idx = (s16 + seqOffset(o)) % 16;
+    const st = o.steps[idx];
+    if(st && st.on){
+      noteOn(target, st.deg, t, (0.1+o.arc*0.85)*stepDur());
+      o.flashAt = t; o.flashIdx = idx;
+    }
+  }
+}
+function scheduleBar(o, t){
+  const buf = audio.buffers[LOOPS[samplerLoop(o)]];
+  if(!buf || !o.amp) return;
+  const src = audio.ctx.createBufferSource();
+  src.buffer = buf;
+  src.playbackRate.value = state.bpm/120;
+  src.connect(o.amp);
+  src.start(t);
+  src.stop(t + 16*stepDur() + 0.03);
+  if(o.playing){ try{ o.playing.stop(t); }catch(e){} }
+  o.playing = src;
+  o.flashAt = t;
+}
+function noteOn(osc, deg, t, len){
+  if(!osc.src || !osc.gate) return;
+  const m = quantMidi(oscMidi(osc) + degSemis(deg));
+  try{
+    osc.src.frequency.setValueAtTime(midiToF(m), t);
+    const gn = osc.gate.gain;
+    gn.cancelScheduledValues(t);
+    gn.setValueAtTime(0, t);
+    gn.linearRampToValueAtTime(1, t+0.008);
+    gn.setTargetAtTime(0, t+Math.max(0.02,len), 0.045);
+  }catch(e){}
+}
+function setBpm(v){
+  state.bpm = Math.max(60, Math.min(180, Math.round(v)));
+  document.getElementById('bpmv').textContent = state.bpm;
   if(audio){
-    try{ if(o.src) o.src.stop(); }catch(e){}
-    for(const k of ['src','amp','out','an','biq','inG','dl','fb','dry','wet','depthG'])
-      if(o[k]){ try{ o[k].disconnect(); }catch(e){} }
+    const now = audio.ctx.currentTime + 0.05;
+    transport.step = Math.max(transport.step, Math.ceil((now-transport.anchor)/stepDur()));
+    transport.nextTime = Math.max(transport.nextTime, now);
+    transport.anchor = transport.nextTime - transport.step*stepDur();
+    for(const o of objects) if(o.type==='delay') applyParams(o);
   }
-  const i = objects.indexOf(o);
-  if(i >= 0) objects.splice(i, 1);
-  computePatch();
+  saveSoon();
 }
 
 /* ================= dynamic patching ================= */
-const distC = o => Math.hypot(o.x - CX, o.y - CY);
-const dist  = (a,b) => Math.hypot(a.x - b.x, a.y - b.y);
-
 function computePatch(){
-  const fx  = objects.filter(o => o.type === 'filter' || o.type === 'delay')
-                     .sort((a,b) => distC(a) - distC(b));
-  // effects chain inward: nearest effect strictly closer to centre, else centre
+  const fx = objects.filter(o=>FAMILY[o.type]==='fx').sort((a,b)=>distC(a)-distC(b));
   for(const e of fx){
-    let best = null, bd = LINK();
+    let best=null, bd=LINK();
     for(const f of fx){
-      if(f === e || distC(f) >= distC(e) - 8 * S) continue;
-      const d = dist(e, f);
-      if(d < bd){ bd = d; best = f; }
+      if(f===e || distC(f) >= distC(e)-8*S) continue;
+      const d = dist(e,f);
+      if(d<bd){ bd=d; best=f; }
     }
-    setHop(e, best ? best.id : 'C');
+    setHop(e, best?best.id:'C');
   }
-  // generators: nearest effect in range (with hysteresis), else centre
-  for(const o of objects) if(o.type === 'osc'){
-    const cur = o.hop !== 'C' && objects.find(x => x.id === o.hop);
-    let best = null, bd = LINK();
+  for(const o of objects) if(FAMILY[o.type]==='gen'){
+    const cur = o.hop!=='C' && objects.find(x=>x.id===o.hop);
+    let best=null, bd=LINK();
     for(const f of fx){
-      const d = dist(o, f);
-      if(d < bd){ bd = d; best = f; }
+      const d = dist(o,f);
+      if(d<bd){ bd=d; best=f; }
     }
-    if(cur && (cur.type === 'filter' || cur.type === 'delay') && dist(o, cur) < LINK() * 1.12){
-      if(!(best && best !== cur && dist(o, best) < dist(o, cur) * 0.85)) best = cur;
+    if(cur && FAMILY[cur.type]==='fx' && dist(o,cur) < LINK()*1.12){
+      if(!(best && best!==cur && dist(o,best) < dist(o,cur)*0.85)) best = cur;
     }
-    setHop(o, best ? best.id : 'C');
+    setHop(o, best?best.id:'C');
   }
-  // LFOs: nearest modulatable object in control range
-  for(const l of objects) if(l.type === 'lfo'){
-    let best = null, bd = CTL_LINK();
+  for(const l of objects) if(l.type==='lfo'){
+    let best=null, bd=CTL_LINK();
     for(const t of objects){
-      if(t === l || t.type === 'lfo') continue;
-      const d = dist(l, t);
-      if(d < bd){ bd = d; best = t; }
+      if(t===l || FAMILY[t.type]==='ctl' || t.type==='sampler') continue;
+      const d = dist(l,t);
+      if(d<bd){ bd=d; best=t; }
     }
-    setHop(l, best ? best.id : 'C');   // 'C' = unattached for an LFO
+    setHop(l, best?best.id:'C');
+  }
+  for(const q of objects) if(q.type==='seq'){
+    let best=null, bd=CTL_LINK();
+    for(const t of objects) if(t.type==='osc'){
+      const d = dist(q,t);
+      if(d<bd){ bd=d; best=t; }
+    }
+    setHop(q, best?best.id:'C');
+  }
+  // gate oscillators that a sequencer is driving; free the rest to drone
+  for(const o of objects) if(o.type==='osc'){
+    const bound = objects.some(q=>q.type==='seq' && q.hop===o.id);
+    if(bound!==o.gated){
+      o.gated = bound;
+      if(audio && o.gate){
+        const t = audio.ctx.currentTime;
+        o.gate.gain.cancelScheduledValues(t);
+        o.gate.gain.setTargetAtTime(bound?0:1, t, 0.05);
+        if(!bound) o.src.frequency.setTargetAtTime(oscFreq(o), t, 0.02);
+      }
+    }
   }
 }
 function setHop(o, hop){
-  if(o.hop === hop) return;
+  if(o.hop===hop) return;
   o.hop = hop;
-  if(o.type === 'lfo') rewireCtl(o); else rewireAudio(o);
+  if(o.type==='lfo') rewireCtl(o);
+  else if(o.type!=='seq') rewireAudio(o);
 }
 
-/* ================= interaction ================= */
-const drags = new Map();   // pointerId -> {mode, obj, ...}
+/* ================= surface input: pointers ================= */
+const drags = new Map();
 let lastTap = { t:0, x:0, y:0, id:0 };
-
-function objectAt(x, y){
-  for(let i = objects.length - 1; i >= 0; i--){
-    const o = objects[i];
-    const d = Math.hypot(x - o.x, y - o.y);
-    if(d <= R_ARC1() + 6) return { o, d };
+function objectAt(x,y){
+  for(let i=objects.length-1;i>=0;i--){
+    const o = objects[i], d = Math.hypot(x-o.x, y-o.y);
+    if(d <= hitR(o)) return { o, d };
   }
   return null;
 }
-function connAt(x, y){
+function connAt(x,y){
   for(const o of objects){
-    if(o.type === 'lfo' || o.hop === undefined) continue;
-    const t = o.hop === 'C' ? { x:CX, y:CY } : objects.find(z => z.id === o.hop);
+    if(FAMILY[o.type]==='ctl' || o.hop===undefined) continue;
+    const t = o.hop==='C' ? {x:CX,y:CY} : objects.find(z=>z.id===o.hop);
     if(!t) continue;
-    const mx = (o.x + t.x) / 2, my = (o.y + t.y) / 2;
-    if(Math.hypot(x - mx, y - my) < 16 * S) return o;
+    const mx=(o.x+t.x)/2, my=(o.y+t.y)/2;
+    if(Math.hypot(x-mx,y-my) < 16*S) return o;
   }
   return null;
 }
-function pointerAngle(o, x, y){ return Math.atan2(y - o.y, x - o.x); }
-
-canvas.addEventListener('pointerdown', e => {
-  const x = e.clientX, y = e.clientY;
-  const hit = objectAt(x, y);
+const pAngle = (o,x,y) => Math.atan2(y-o.y, x-o.x);
+function padIndexAt(o,x,y){
+  const a = ((pAngle(o,x,y) + Math.PI/2) % TAU + TAU) % TAU;
+  return Math.round(a/TAU*16) % 16;
+}
+canvas.addEventListener('pointerdown', e=>{
+  const x=e.clientX, y=e.clientY;
+  const hit = objectAt(x,y);
   if(hit){
     const { o, d } = hit;
     canvas.setPointerCapture(e.pointerId);
+    if(o.type==='seq' && d > R_ARC1()+4 && d <= R_PAD1()+4){
+      drags.set(e.pointerId, { mode:'pad', obj:o, idx:padIndexAt(o,x,y), sx:x, sy:y, moved:false });
+      return;
+    }
     if(d <= R_BODY()){
       const now = performance.now();
-      if(now - lastTap.t < 320 && lastTap.id === o.id && Math.hypot(x - lastTap.x, y - lastTap.y) < 14){
-        cycleOption(o); lastTap.t = 0; return;
+      if(now-lastTap.t < 320 && lastTap.id===o.id && Math.hypot(x-lastTap.x,y-lastTap.y)<14){
+        cycleOption(o); lastTap.t=0; return;
       }
-      lastTap = { t: now, x, y, id: o.id };
-      drags.set(e.pointerId, { mode:'move', obj:o, dx:o.x - x, dy:o.y - y });
+      lastTap = { t:now, x, y, id:o.id };
+      drags.set(e.pointerId, { mode:'move', obj:o, dx:o.x-x, dy:o.y-y });
     } else if(d <= R_RING1()){
-      drags.set(e.pointerId, { mode:'rotate', obj:o, off: pointerAngle(o, x, y) - o.angle });
+      drags.set(e.pointerId, { mode:'rotate', obj:o, off:pAngle(o,x,y)-o.angle });
     } else {
       drags.set(e.pointerId, { mode:'arc', obj:o });
-      applyArcFromPointer(o, x, y);
+      applyArcFromPointer(o,x,y);
     }
     return;
   }
-  const c = connAt(x, y);
+  const c = connAt(x,y);
   if(c) setMuted(c, !c.muted);
 });
-
-canvas.addEventListener('pointermove', e => {
+canvas.addEventListener('pointermove', e=>{
   const dr = drags.get(e.pointerId);
   if(!dr) return;
-  const { obj } = dr, x = e.clientX, y = e.clientY;
-  if(dr.mode === 'move'){
-    obj.x = x + dr.dx; obj.y = y + dr.dy;
-    computePatch();
-  } else if(dr.mode === 'rotate'){
-    obj.angle = ((pointerAngle(obj, x, y) - dr.off) % TAU + TAU) % TAU;
+  const { obj } = dr, x=e.clientX, y=e.clientY;
+  if(dr.mode==='move'){
+    obj.x = x+dr.dx; obj.y = y+dr.dy;
+    computePatch(); saveSoon();
+  } else if(dr.mode==='rotate'){
+    obj.angle = ((pAngle(obj,x,y)-dr.off) % TAU + TAU) % TAU;
     applyParams(obj);
-  } else if(dr.mode === 'arc'){
-    applyArcFromPointer(obj, x, y);
+  } else if(dr.mode==='arc'){
+    applyArcFromPointer(obj,x,y);
+  } else if(dr.mode==='pad'){
+    if(Math.hypot(x-dr.sx,y-dr.sy) > 6*S) dr.moved = true;
+    if(dr.moved){
+      const st = obj.steps[dr.idx];
+      st.on = true;
+      const d = Math.hypot(x-obj.x, y-obj.y);
+      const maxDeg = scaleSteps().length*2 - 1;
+      st.deg = Math.max(0, Math.min(maxDeg, Math.round((d-R_PAD0())/(R_PAD1()-R_PAD0())*maxDeg)));
+      saveSoon();
+    }
   }
 });
 function endDrag(e){
   const dr = drags.get(e.pointerId);
   drags.delete(e.pointerId);
-  if(dr && dr.mode === 'move' && distC(dr.obj) > TABLE_R - 8) destroyObject(dr.obj);
+  if(!dr) return;
+  if(dr.mode==='move' && distC(dr.obj) > TABLE_R-8) destroyObject(dr.obj);
+  if(dr.mode==='pad' && !dr.moved){
+    const st = dr.obj.steps[dr.idx];
+    st.on = !st.on;
+    saveSoon();
+  }
 }
 canvas.addEventListener('pointerup', endDrag);
 canvas.addEventListener('pointercancel', endDrag);
-
-function applyArcFromPointer(o, x, y){
-  const a = ((pointerAngle(o, x, y)) % TAU + TAU) % TAU;
-  let rel = (a - ARC_START + TAU) % TAU;
-  if(rel > ARC_SPAN) rel = rel < ARC_SPAN + (TAU - ARC_SPAN) / 2 ? ARC_SPAN : 0;
-  o.arc = Math.max(0, Math.min(1, rel / ARC_SPAN));
+function applyArcFromPointer(o,x,y){
+  const a = ((pAngle(o,x,y)) % TAU + TAU) % TAU;
+  let rel = (a-ARC_START+TAU) % TAU;
+  if(rel > ARC_SPAN) rel = rel < ARC_SPAN + (TAU-ARC_SPAN)/2 ? ARC_SPAN : 0;
+  o.arc = Math.max(0, Math.min(1, rel/ARC_SPAN));
   applyParams(o);
 }
-
-canvas.addEventListener('wheel', e => {
+canvas.addEventListener('wheel', e=>{
   const hit = objectAt(e.clientX, e.clientY);
   if(!hit) return;
   e.preventDefault();
-  hit.o.angle = ((hit.o.angle + e.deltaY * 0.0025) % TAU + TAU) % TAU;
+  hit.o.angle = ((hit.o.angle + e.deltaY*0.0025) % TAU + TAU) % TAU;
   applyParams(hit.o);
 }, { passive:false });
 
 /* dock spawning */
-function spawn(type, x, y){
-  const d = defaults(type);
-  const o = { id:nextId++, type, x, y, angle:Math.PI * 0.9, arc:d.arc,
-              option:d.option, muted:false, hop:'C' };
-  if(type === 'osc') o.angle = (24 / 48) * TAU;          // A3
-  if(type === 'filter') o.angle = TAU * 0.62;
-  if(type === 'lfo') o.angle = TAU * 0.5;
-  objects.push(o);
-  buildNodes(o);
-  computePatch();
-  rewireAudio(o); rewireCtl(o);
-  return o;
-}
 for(const btn of document.querySelectorAll('.spawn')){
-  btn.addEventListener('pointerdown', e => {
+  btn.addEventListener('pointerdown', e=>{
     e.preventDefault();
     btn.setPointerCapture(e.pointerId);
-    const o = spawn(btn.dataset.type, e.clientX, e.clientY - 60);
-    const move = ev => { o.x = ev.clientX; o.y = ev.clientY - 60; computePatch(); };
-    const up = ev => {
+    const o = spawn(btn.dataset.type, e.clientX, e.clientY-70);
+    const move = ev=>{ o.x=ev.clientX; o.y=ev.clientY-70; computePatch(); };
+    const up = ()=>{
       btn.removeEventListener('pointermove', move);
       btn.removeEventListener('pointerup', up);
       btn.removeEventListener('pointercancel', up);
-      if(distC(o) > TABLE_R - 8) destroyObject(o);
+      if(distC(o) > TABLE_R-8) destroyObject(o); else saveSoon();
     };
     btn.addEventListener('pointermove', move);
     btn.addEventListener('pointerup', up);
@@ -481,199 +742,347 @@ for(const btn of document.querySelectorAll('.spawn')){
   });
 }
 
-/* ================= drawing ================= */
-function beatPhase(){
-  const t = audio ? audio.ctx.currentTime : performance.now() / 1000;
-  return (t * BPM / 60) % 1;
+/* ================= surface input: TUIO (physical table) =================
+   Open the page with ?tuio=ws://host:port to drive it from reacTIVision
+   via a UDP→WebSocket relay (see prototype/tuio-bridge.js in the repo).
+   Fiducial class IDs map onto object types in blocks of 8.              */
+const TUIO_TYPES = ['osc','sampler','seq','filter','delay','mod','lfo'];
+const tuioObjs = new Map();
+function tuioConnect(url){
+  const ws = new WebSocket(url);
+  ws.binaryType = 'arraybuffer';
+  ws.onmessage = ev => { try{ oscParse(new DataView(ev.data), 0, ev.data.byteLength); }catch(e){} };
+  ws.onclose = () => setTimeout(()=>tuioConnect(url), 2000);
+}
+function oscStr(v,o){ let s=''; while(v.getUint8(o)!==0){ s+=String.fromCharCode(v.getUint8(o)); o++; }
+  return [s, (o+4)&~3]; }
+function oscParse(v, off, end){
+  let s; [s, off] = oscStr(v, off);
+  if(s==='#bundle'){
+    off += 8;
+    while(off < end){
+      const len = v.getInt32(off); off += 4;
+      oscParse(v, off, off+len); off += len;
+    }
+    return;
+  }
+  if(s!=='/tuio/2Dobj') return;
+  let tags; [tags, off] = oscStr(v, off);
+  const args = [];
+  for(let i=1;i<tags.length;i++){
+    if(tags[i]==='s'){ let a; [a,off]=oscStr(v,off); args.push(a); }
+    else if(tags[i]==='i'){ args.push(v.getInt32(off)); off+=4; }
+    else if(tags[i]==='f'){ args.push(v.getFloat32(off)); off+=4; }
+  }
+  const cmd = args[0];
+  if(cmd==='set'){
+    const [,sid,cid,x,y,ang] = args;
+    let o = tuioObjs.get(sid);
+    if(!o){
+      o = spawn(TUIO_TYPES[Math.floor(cid/8)%TUIO_TYPES.length] || 'osc',
+                CX + (x-0.5)*2*TABLE_R, CY + (y-0.5)*2*TABLE_R);
+      tuioObjs.set(sid, o);
+    }
+    o.x = CX + (x-0.5)*2*TABLE_R;
+    o.y = CY + (y-0.5)*2*TABLE_R;
+    o.angle = ((ang)%TAU+TAU)%TAU;
+    computePatch(); applyParams(o);
+  } else if(cmd==='alive'){
+    const alive = new Set(args.slice(1));
+    for(const [sid,o] of [...tuioObjs]){
+      if(!alive.has(sid)){ tuioObjs.delete(sid); destroyObject(o); }
+    }
+  }
 }
 
-function drawWaveGlyph(cx, cy, w, kind, color){
-  g.strokeStyle = color; g.lineWidth = 1.6; g.beginPath();
-  const h = w * 0.34;
-  if(kind === 'sine'){
-    for(let i = 0; i <= 20; i++){
-      const x = cx - w/2 + (i/20) * w, y = cy - Math.sin((i/20) * TAU) * h;
-      i ? g.lineTo(x, y) : g.moveTo(x, y);
+/* ================= persistence ================= */
+let saveTimer = null;
+function saveSoon(){
+  clearTimeout(saveTimer);
+  saveTimer = setTimeout(()=>{
+    try{
+      localStorage.setItem('lumatable-scene', JSON.stringify({
+        v:2, bpm:state.bpm, key:state.key, scaleIdx:state.scaleIdx,
+        objects: objects.map(o=>({
+          type:o.type, nx:(o.x-CX)/TABLE_R, ny:(o.y-CY)/TABLE_R,
+          angle:o.angle, arc:o.arc, option:o.option, muted:o.muted,
+          steps: o.steps ? o.steps.map(s=>({on:s.on,deg:s.deg})) : undefined,
+        })),
+      }));
+    }catch(e){}
+  }, 700);
+}
+function loadScene(){
+  try{
+    const raw = localStorage.getItem('lumatable-scene');
+    if(!raw) return false;
+    const sc = JSON.parse(raw);
+    if(sc.v!==2 || !Array.isArray(sc.objects)) return false;
+    state.bpm = sc.bpm||112; state.key = sc.key||0; state.scaleIdx = sc.scaleIdx||0;
+    for(const so of sc.objects){
+      const o = spawn(so.type, CX+so.nx*TABLE_R, CY+so.ny*TABLE_R);
+      o.angle=so.angle; o.arc=so.arc; o.option=so.option||0; o.muted=!!so.muted;
+      if(so.steps && o.steps) o.steps = so.steps.map(s=>({on:!!s.on,deg:s.deg|0}));
     }
-  } else if(kind === 'sawtooth'){
-    g.moveTo(cx - w/2, cy + h); g.lineTo(cx, cy - h); g.lineTo(cx, cy + h); g.lineTo(cx + w/2, cy - h);
-  } else if(kind === 'square'){
-    g.moveTo(cx - w/2, cy + h); g.lineTo(cx - w/2, cy - h); g.lineTo(cx, cy - h);
-    g.lineTo(cx, cy + h); g.lineTo(cx + w/2, cy + h); g.lineTo(cx + w/2, cy - h);
+    return objects.length>0;
+  }catch(e){ return false; }
+}
+function demoScene(){
+  for(const o of [...objects]) destroyObject(o);
+  const P = (nx,ny)=>[CX+nx*TABLE_R, CY+ny*TABLE_R];
+  const beat = spawn('sampler', ...P(-0.50,-0.12)); beat.angle=(1.5/6)*TAU;             // BEAT
+  const bass = spawn('sampler', ...P(-0.44, 0.36)); bass.angle=(3.5/6)*TAU; bass.arc=0.85; // BASS
+  const osc = spawn('osc', ...P(0.58,-0.20)); osc.angle=(26/48)*TAU; osc.arc=0.62;
+  const seq = spawn('seq', ...P(0.63, 0.12));
+  const flt = spawn('filter', ...P(0.30,-0.08)); flt.angle=TAU*0.60; flt.arc=0.22;
+  const dly = spawn('delay', ...P(0.06, 0.02)); dly.angle=(1.5/6)*TAU; dly.arc=0.42;
+  const lfo = spawn('lfo', ...P(0.16,-0.38)); lfo.angle=TAU*0.40; lfo.arc=0.30;
+  computePatch();
+  if(audio){ for(const o of objects){ rewireAudio(o); rewireCtl(o); applyParams(o); } }
+  saveSoon();
+}
+
+/* ================= header controls ================= */
+const $ = id => document.getElementById(id);
+function syncChips(){
+  $('bpmv').textContent = state.bpm;
+  $('keyv').textContent = NOTE_NAMES[state.key];
+  $('scalev').textContent = SCALES[state.scaleIdx].name;
+}
+$('bpmDn').addEventListener('click', ()=>setBpm(state.bpm-4));
+$('bpmUp').addEventListener('click', ()=>setBpm(state.bpm+4));
+$('bpmChip').addEventListener('wheel', e=>{ e.preventDefault(); setBpm(state.bpm - Math.sign(e.deltaY)); }, {passive:false});
+$('keyChip').addEventListener('click', ()=>{
+  state.key = (state.key+1)%12; syncChips(); buildTonalBuffers();
+  for(const o of objects) if(o.type==='osc') applyParams(o);
+  saveSoon();
+});
+$('scaleChip').addEventListener('click', ()=>{
+  state.scaleIdx = (state.scaleIdx+1)%SCALES.length; syncChips(); buildTonalBuffers();
+  for(const o of objects) if(o.type==='osc') applyParams(o);
+  saveSoon();
+});
+$('demoChip').addEventListener('click', demoScene);
+$('clearChip').addEventListener('click', ()=>{ for(const o of [...objects]) destroyObject(o); });
+
+/* ================= drawing ================= */
+function beatPhase(){
+  if(!audio) return (performance.now()/1000 * state.bpm/60) % 1;
+  return ((audio.ctx.currentTime - transport.anchor)/(stepDur()*4)) % 1;
+}
+function drawWaveGlyph(cx,cy,w,kind,color){
+  g.strokeStyle=color; g.lineWidth=1.6; g.beginPath();
+  const h=w*0.34;
+  if(kind==='sine'){
+    for(let i=0;i<=20;i++){
+      const x=cx-w/2+(i/20)*w, y=cy-Math.sin((i/20)*TAU)*h;
+      i?g.lineTo(x,y):g.moveTo(x,y);
+    }
+  } else if(kind==='sawtooth'){
+    g.moveTo(cx-w/2,cy+h); g.lineTo(cx,cy-h); g.lineTo(cx,cy+h); g.lineTo(cx+w/2,cy-h);
+  } else if(kind==='square'){
+    g.moveTo(cx-w/2,cy+h); g.lineTo(cx-w/2,cy-h); g.lineTo(cx,cy-h);
+    g.lineTo(cx,cy+h); g.lineTo(cx+w/2,cy+h); g.lineTo(cx+w/2,cy-h);
   } else {
-    g.moveTo(cx - w/2, cy + h); g.lineTo(cx - w/4, cy - h); g.lineTo(cx + w/4, cy + h); g.lineTo(cx + w/2, cy - h);
+    g.moveTo(cx-w/2,cy+h); g.lineTo(cx-w/4,cy-h); g.lineTo(cx+w/4,cy+h); g.lineTo(cx+w/2,cy-h);
   }
   g.stroke();
 }
-
 function drawConnection(o){
-  const t = o.hop === 'C' ? { x:CX, y:CY } : objects.find(z => z.id === o.hop);
+  const t = o.hop==='C' ? {x:CX,y:CY} : objects.find(z=>z.id===o.hop);
   if(!t) return;
-  const col = FCOLOR[FAMILY[o.type]];
-  const dx = t.x - o.x, dy = t.y - o.y;
-  const len = Math.hypot(dx, dy) || 1;
-  const ux = dx / len, uy = dy / len;         // along
-  const px = -uy, py = ux;                    // perpendicular
-  const x0 = o.x + ux * R_BODY(), y0 = o.y + uy * R_BODY();
-  const L = len - R_BODY() - (o.hop === 'C' ? 14 * S : R_BODY());
-
-  if(o.type === 'lfo'){                       // control line: animated dots
+  const isCtl = FAMILY[o.type]==='ctl';
+  if(isCtl && o.hop==='C') return;
+  const dx=t.x-o.x, dy=t.y-o.y;
+  const len=Math.hypot(dx,dy)||1;
+  const ux=dx/len, uy=dy/len, px=-uy, py=ux;
+  const x0=o.x+ux*R_BODY(), y0=o.y+uy*R_BODY();
+  const L=len-R_BODY()-(o.hop==='C'?14*S:R_BODY());
+  if(L<=0) return;
+  if(isCtl){
     g.save();
-    g.strokeStyle = col; g.globalAlpha = 0.85; g.lineWidth = 1.5;
-    g.setLineDash([2, 9]);
-    g.lineDashOffset = REDUCED ? 0 : -performance.now() / 24;
-    g.beginPath(); g.moveTo(x0, y0); g.lineTo(x0 + ux * L, y0 + uy * L); g.stroke();
+    g.strokeStyle=COL.ctl; g.globalAlpha=0.85; g.lineWidth=1.5;
+    g.setLineDash([2,9]);
+    g.lineDashOffset = REDUCED?0:-performance.now()/24;
+    g.beginPath(); g.moveTo(x0,y0); g.lineTo(x0+ux*L,y0+uy*L); g.stroke();
     g.restore();
     return;
   }
   g.save();
   if(o.muted){
-    g.strokeStyle = COL.dim; g.globalAlpha = 0.5; g.lineWidth = 1.2; g.setLineDash([4, 7]);
-    g.beginPath(); g.moveTo(x0, y0); g.lineTo(x0 + ux * L, y0 + uy * L); g.stroke();
+    g.strokeStyle=COL.dim; g.globalAlpha=0.5; g.lineWidth=1.2; g.setLineDash([4,7]);
+    g.beginPath(); g.moveTo(x0,y0); g.lineTo(x0+ux*L,y0+uy*L); g.stroke();
     g.restore(); return;
   }
-  let amp = 7 * S;
-  g.strokeStyle = COL.line; g.lineWidth = 1.8;
-  g.shadowColor = COL.line; g.shadowBlur = 9;
+  g.strokeStyle=COL.line; g.lineWidth=1.8;
+  g.shadowColor=COL.line; g.shadowBlur=9;
   g.beginPath();
   if(audio && o.an){
     o.an.getFloatTimeDomainData(o.wave);
-    const N = 96;
-    for(let i = 0; i <= N; i++){
-      const f = i / N;
-      const s = o.wave[Math.floor(f * (o.wave.length - 1))] || 0;
-      const fall = Math.sin(f * Math.PI);   // pin ends to the line
-      const x = x0 + ux * (f * L) + px * s * amp * 2.2 * fall;
-      const y = y0 + uy * (f * L) + py * s * amp * 2.2 * fall;
-      i ? g.lineTo(x, y) : g.moveTo(x, y);
+    const N=96, amp=15*S;
+    for(let i=0;i<=N;i++){
+      const f=i/N;
+      const s=o.wave[Math.floor(f*(o.wave.length-1))]||0;
+      const fall=Math.sin(f*Math.PI);
+      g[i?'lineTo':'moveTo'](x0+ux*(f*L)+px*s*amp*fall, y0+uy*(f*L)+py*s*amp*fall);
     }
-  } else {
-    g.moveTo(x0, y0); g.lineTo(x0 + ux * L, y0 + uy * L);
-  }
+  } else { g.moveTo(x0,y0); g.lineTo(x0+ux*L,y0+uy*L); }
   g.stroke();
   g.restore();
 }
-
 function drawObject(o){
   const col = FCOLOR[FAMILY[o.type]];
   const rb = R_BODY();
-  const outside = distC(o) > TABLE_R - 8;
+  const outside = distC(o) > TABLE_R-8;
+  const now = audio ? audio.ctx.currentTime : 0;
+  const flash = Math.max(0, 1-(now-o.flashAt)*4);
   g.save();
-  g.globalAlpha = outside ? 0.35 : 1;
+  g.globalAlpha = outside?0.35:1;
 
   // rotation ring + notch
-  g.strokeStyle = COL.rim; g.lineWidth = 2;
-  g.beginPath(); g.arc(o.x, o.y, (R_RING0() + R_RING1()) / 2, 0, TAU); g.stroke();
-  g.strokeStyle = col; g.lineWidth = 3; g.lineCap = 'round';
-  const na = o.angle;
+  g.strokeStyle=COL.rim; g.lineWidth=2;
+  g.beginPath(); g.arc(o.x,o.y,(R_RING0()+R_RING1())/2,0,TAU); g.stroke();
+  g.strokeStyle=col; g.lineWidth=3; g.lineCap='round';
   g.beginPath();
-  g.moveTo(o.x + Math.cos(na) * R_RING0(), o.y + Math.sin(na) * R_RING0());
-  g.lineTo(o.x + Math.cos(na) * R_RING1(), o.y + Math.sin(na) * R_RING1());
+  g.moveTo(o.x+Math.cos(o.angle)*R_RING0(), o.y+Math.sin(o.angle)*R_RING0());
+  g.lineTo(o.x+Math.cos(o.angle)*R_RING1(), o.y+Math.sin(o.angle)*R_RING1());
   g.stroke();
 
   // arc fader
-  const am = (R_ARC0() + R_ARC1()) / 2;
-  g.lineWidth = 3.5; g.strokeStyle = COL.rim;
-  g.beginPath(); g.arc(o.x, o.y, am, ARC_START, ARC_START + ARC_SPAN); g.stroke();
-  g.strokeStyle = col; g.shadowColor = col; g.shadowBlur = 6;
-  g.beginPath(); g.arc(o.x, o.y, am, ARC_START, ARC_START + ARC_SPAN * o.arc); g.stroke();
-  g.shadowBlur = 0;
-  const ha = ARC_START + ARC_SPAN * o.arc;
-  g.fillStyle = COL.text;
-  g.beginPath(); g.arc(o.x + Math.cos(ha) * am, o.y + Math.sin(ha) * am, 4 * S, 0, TAU); g.fill();
+  const am=(R_ARC0()+R_ARC1())/2;
+  g.lineWidth=3.5; g.strokeStyle=COL.rim;
+  g.beginPath(); g.arc(o.x,o.y,am,ARC_START,ARC_START+ARC_SPAN); g.stroke();
+  g.strokeStyle=col; g.shadowColor=col; g.shadowBlur=6;
+  g.beginPath(); g.arc(o.x,o.y,am,ARC_START,ARC_START+ARC_SPAN*o.arc); g.stroke();
+  g.shadowBlur=0;
+  const ha=ARC_START+ARC_SPAN*o.arc;
+  g.fillStyle=COL.text;
+  g.beginPath(); g.arc(o.x+Math.cos(ha)*am, o.y+Math.sin(ha)*am, 4*S, 0, TAU); g.fill();
+
+  // sequencer step pads
+  if(o.type==='seq'){
+    const cs = currentStep();
+    const playIdx = cs>=0 ? (cs%16 + seqOffset(o))%16 : -1;
+    const maxDeg = scaleSteps().length*2 - 1;
+    for(let i=0;i<16;i++){
+      const a=-Math.PI/2 + i/16*TAU;
+      const st=o.steps[i];
+      const r0=R_PAD0();
+      const rr = st.on ? r0 + 6*S + st.deg/maxDeg*(R_PAD1()-r0-10*S) : r0+3*S;
+      g.strokeStyle = st.on ? col : COL.rim;
+      g.lineWidth = i===playIdx ? 5 : 3.2;
+      if(i===playIdx && st.on){ g.shadowColor=col; g.shadowBlur=10; }
+      g.beginPath();
+      g.moveTo(o.x+Math.cos(a)*r0, o.y+Math.sin(a)*r0);
+      g.lineTo(o.x+Math.cos(a)*rr, o.y+Math.sin(a)*rr);
+      g.stroke();
+      g.shadowBlur=0;
+    }
+  }
 
   // body
-  g.shadowColor = col; g.shadowBlur = 16;
-  g.fillStyle = '#0d1626'; g.strokeStyle = col; g.lineWidth = 2;
+  g.shadowColor=col; g.shadowBlur=16+flash*14;
+  g.fillStyle='#0d1626'; g.strokeStyle=col; g.lineWidth=2+flash*1.5;
   g.beginPath();
-  if(o.type === 'osc'){
-    const r = rb * 0.92, rr = 7 * S;
-    g.roundRect(o.x - r, o.y - r, r * 2, r * 2, rr);
-  } else if(o.type === 'lfo'){
-    g.save(); g.translate(o.x, o.y); g.rotate(Math.PI / 4);
-    const r = rb * 0.8;
-    g.roundRect(-r, -r, r * 2, r * 2, 5 * S);
+  if(o.type==='osc' || o.type==='sampler'){
+    const r=rb*0.92, cr=7*S;
+    g.roundRect(o.x-r,o.y-r,r*2,r*2,cr);
+  } else if(o.type==='lfo'){
+    g.save(); g.translate(o.x,o.y); g.rotate(Math.PI/4);
+    const r=rb*0.8; g.roundRect(-r,-r,r*2,r*2,5*S);
     g.restore();
-    g.translate(0, 0);
   } else {
-    g.arc(o.x, o.y, rb * 0.92, 0, TAU);
+    g.arc(o.x,o.y,rb*0.92,0,TAU);
   }
   g.fill(); g.stroke();
-  g.shadowBlur = 0;
+  g.shadowBlur=0;
 
   // icon
-  if(o.type === 'osc' || o.type === 'lfo') drawWaveGlyph(o.x, o.y, rb * 1.05, OSC_WAVES[o.option], col);
-  else if(o.type === 'filter'){
-    g.fillStyle = col;
-    g.font = `600 ${11 * S}px "Chakra Petch", sans-serif`;
-    g.textAlign = 'center'; g.textBaseline = 'middle';
-    g.fillText(FILTER_TAGS[FILTER_MODES[o.option]], o.x, o.y + 1);
-  } else if(o.type === 'delay'){
-    g.strokeStyle = col; g.lineWidth = 1.6;
-    for(const rr of [0.28, 0.52]){ g.beginPath(); g.arc(o.x, o.y, rb * rr, 0, TAU); g.stroke(); }
+  g.textAlign='center'; g.textBaseline='middle';
+  if(o.type==='osc' || o.type==='lfo') drawWaveGlyph(o.x,o.y,rb*1.05,OSC_WAVES[o.option],col);
+  else if(o.type==='sampler'){
+    g.fillStyle=col; g.font=`600 ${8.5*S}px "Chakra Petch", sans-serif`;
+    g.fillText(LOOPS[samplerLoop(o)], o.x, o.y+1);
+  } else if(o.type==='filter'){
+    g.fillStyle=col; g.font=`600 ${11*S}px "Chakra Petch", sans-serif`;
+    g.fillText(FILTER_TAGS[FILTER_MODES[o.option]], o.x, o.y+1);
+  } else if(o.type==='delay'){
+    g.strokeStyle=col; g.lineWidth=1.6;
+    for(const rr of [0.28,0.52]){ g.beginPath(); g.arc(o.x,o.y,rb*rr,0,TAU); g.stroke(); }
+  } else if(o.type==='mod'){
+    g.strokeStyle=col; g.lineWidth=1.6;
+    g.beginPath();
+    g.moveTo(o.x-rb*0.4,o.y-rb*0.4); g.lineTo(o.x+rb*0.4,o.y+rb*0.4);
+    g.moveTo(o.x+rb*0.4,o.y-rb*0.4); g.lineTo(o.x-rb*0.4,o.y+rb*0.4);
+    g.stroke();
+  } else if(o.type==='seq'){
+    g.fillStyle=col;
+    for(let i=0;i<4;i++){
+      g.beginPath();
+      g.arc(o.x + Math.cos(i/4*TAU-Math.PI/2)*rb*0.4, o.y + Math.sin(i/4*TAU-Math.PI/2)*rb*0.4, 2.4*S, 0, TAU);
+      g.fill();
+    }
   }
 
   // readout
-  const [l1, l2] = readout(o);
-  g.textAlign = 'center'; g.textBaseline = 'top';
-  g.font = `600 ${9.5 * S}px "Chakra Petch", sans-serif`;
-  g.fillStyle = col; g.fillText(l1, o.x, o.y + R_ARC1() + 6 * S);
-  g.font = `500 ${9.5 * S}px "Chakra Petch", sans-serif`;
-  g.fillStyle = COL.text; g.fillText(l2, o.x, o.y + R_ARC1() + 19 * S);
+  const [l1,l2] = readout(o);
+  const ry = o.type==='seq' ? R_PAD1()+6*S : R_ARC1()+6*S;
+  g.textAlign='center'; g.textBaseline='top';
+  g.font=`600 ${9.5*S}px "Chakra Petch", sans-serif`;
+  g.fillStyle=col; g.fillText(l1, o.x, o.y+ry);
+  g.font=`500 ${9.5*S}px "Chakra Petch", sans-serif`;
+  g.fillStyle=COL.text; g.fillText(l2, o.x, o.y+ry+13*S);
   g.restore();
 }
-
 function frame(){
-  g.setTransform(DPR, 0, 0, DPR, 0, 0);
-  g.fillStyle = COL.ground; g.fillRect(0, 0, W, H);
+  g.setTransform(DPR,0,0,DPR,0,0);
+  g.fillStyle=COL.ground; g.fillRect(0,0,W,H);
 
-  // table disc
-  const grad = g.createRadialGradient(CX, CY, TABLE_R * 0.1, CX, CY, TABLE_R);
-  grad.addColorStop(0, '#101a2c'); grad.addColorStop(1, '#0a1220');
-  g.fillStyle = grad;
-  g.beginPath(); g.arc(CX, CY, TABLE_R, 0, TAU); g.fill();
-  g.strokeStyle = COL.rim; g.lineWidth = 1.5;
-  g.beginPath(); g.arc(CX, CY, TABLE_R, 0, TAU); g.stroke();
-  g.globalAlpha = 0.35;
-  for(const f of [0.38, 0.68]){
-    g.beginPath(); g.arc(CX, CY, TABLE_R * f, 0, TAU);
-    g.setLineDash([1, 7]); g.stroke(); g.setLineDash([]);
+  const grad = g.createRadialGradient(CX,CY,TABLE_R*0.1,CX,CY,TABLE_R);
+  grad.addColorStop(0,'#101a2c'); grad.addColorStop(1,'#0a1220');
+  g.fillStyle=grad;
+  g.beginPath(); g.arc(CX,CY,TABLE_R,0,TAU); g.fill();
+  g.strokeStyle=COL.rim; g.lineWidth=1.5;
+  g.beginPath(); g.arc(CX,CY,TABLE_R,0,TAU); g.stroke();
+  g.globalAlpha=0.35;
+  for(const f of [0.38,0.68]){
+    g.beginPath(); g.arc(CX,CY,TABLE_R*f,0,TAU);
+    g.setLineDash([1,7]); g.stroke(); g.setLineDash([]);
   }
-  g.globalAlpha = 1;
+  g.globalAlpha=1;
 
-  // connections under objects
-  for(const o of objects) if(o.type !== 'lfo' || o.hop !== 'C') drawConnection(o);
+  for(const o of objects) drawConnection(o);
 
-  // centre: master output, pulsing on the beat
-  const ph = beatPhase();
-  const ease = Math.pow(1 - ph, 2.2);
+  const ph = ((beatPhase()%1)+1)%1;
+  const ease = Math.pow(1-ph,2.2);
   g.save();
-  g.fillStyle = '#ffffff'; g.shadowColor = COL.line; g.shadowBlur = 22;
-  g.beginPath(); g.arc(CX, CY, (6 + (REDUCED ? 0 : 3.5 * ease)) * S, 0, TAU); g.fill();
+  g.fillStyle='#ffffff'; g.shadowColor=COL.line; g.shadowBlur=22;
+  g.beginPath(); g.arc(CX,CY,(6+(REDUCED?0:3.5*ease))*S,0,TAU); g.fill();
   if(!REDUCED){
-    g.strokeStyle = COL.line; g.globalAlpha = ease * 0.5; g.lineWidth = 1.5;
-    g.beginPath(); g.arc(CX, CY, (10 + 42 * ph) * S, 0, TAU); g.stroke();
+    g.strokeStyle=COL.line; g.globalAlpha=ease*0.5; g.lineWidth=1.5;
+    g.beginPath(); g.arc(CX,CY,(10+42*ph)*S,0,TAU); g.stroke();
   }
   g.restore();
 
   for(const o of objects) drawObject(o);
   requestAnimationFrame(frame);
 }
-requestAnimationFrame(frame);
 
 /* ================= boot ================= */
-document.getElementById('bpmv').textContent = BPM;
-document.getElementById('begin').addEventListener('click', () => {
+addEventListener('resize', resize);
+resize();
+if(!loadScene()) demoScene();
+syncChips();
+requestAnimationFrame(frame);
+document.getElementById('begin').addEventListener('click', ()=>{
   startAudio();
-  document.getElementById('overlay').remove();
-  // opening scene: an oscillator through a filter, with an LFO on the filter
-  const f = spawn('filter', CX + TABLE_R * 0.30, CY - TABLE_R * 0.02);
-  f.angle = TAU * 0.66; applyParams(f);
-  const o1 = spawn('osc', CX + TABLE_R * 0.60, CY - TABLE_R * 0.20);
-  o1.angle = (24 / 48) * TAU; applyParams(o1);            // A3
-  const l = spawn('lfo', CX + TABLE_R * 0.06, CY - TABLE_R * 0.30);
-  l.angle = TAU * 0.42; l.arc = 0.35; applyParams(l);
+  for(const o of objects) buildNodes(o);
   computePatch();
+  for(const o of objects){ rewireAudio(o); rewireCtl(o); applyParams(o); }
+  startTransport();
+  document.getElementById('overlay').remove();
+  const q = new URLSearchParams(location.search).get('tuio');
+  if(q) tuioConnect(q);
 });
 </script>
 </body>

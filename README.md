@@ -32,13 +32,26 @@ synthesiser.
 
 ## Status
 
-Research complete, and the Phase 0 "proof of feel" prototype is built:
-[`prototype/index.html`](prototype/index.html), a self-contained page with no dependencies
-or build step (open it in any browser). It implements the circular stage with the
-tempo-pulsing centre output, draggable virtual objects (oscillator, filter, delay, LFO),
-proximity-based dynamic patching, rotation and arc-fader parameter control, live waveforms
-rendered on the connection lines, tap-to-mute connections, and real-time Web Audio
-synthesis. Multi-touch works on touchscreens via Pointer Events.
+The virtual instrument is built and playable: [`prototype/index.html`](prototype/index.html),
+a self-contained page with no dependencies or build step (open it in any browser; multi-touch
+works via Pointer Events). Beyond the Phase 0 core (circular stage, tempo-pulsing centre
+output, proximity-based dynamic patching with hysteresis, rotation and arc-fader control,
+live waveforms drawn on connection lines, tap-to-mute), it now covers the full Phase 1 and
+most of Phase 2 of the plan:
 
-Next step: Phase 1 of the rebuild plan (connection hysteresis polish, volume object, scene
-save/load), then the sequencer and sampler in Phase 2.
+- **Objects**: oscillator, loop sampler, 16-step sequencer with radial pitch pads, filter,
+  tempo-synced delay, ring modulator, and LFO.
+- **Global musicality** (the Tonalizer made global): a key and scale system (pentatonic,
+  major, minor, blues) quantises every pitch, and a global transport locks loops, sequencer
+  and delay times to the beat, so nothing can sound wrong — playable by an eight-year-old,
+  with real control (BPM, key, scale, semitone-accurate readouts) for a musician.
+- **Loop material is synthesised at startup** (kick, beat, hats, bass, chord, arp — the
+  tonal loops regenerate when key or scale changes), so the file stays dependency-free.
+- **Scenes persist** in the browser between visits, with demo and clear controls.
+- **Physical-table ready**: open the page with `?tuio=ws://localhost:8765` and run
+  [`prototype/tuio-bridge.js`](prototype/tuio-bridge.js) to drive it from reacTIVision's
+  TUIO stream instead of the mouse (fiducial class IDs map to object types in blocks of
+  eight). Untested against real hardware, by definition, but the seam is in place.
+
+Remaining from the plan: sample import for the sampler, a melodic note picker as an
+alternative to the radial pads, and the hardware build itself (docs/03, Phase B).
