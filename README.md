@@ -61,6 +61,9 @@ most of Phase 2 of the plan:
 - **Modern I/O**: record the performance to a file, and Web MIDI clock + note output to
   drive external gear or a DAW. See [docs/05-feature-parity.md](docs/05-feature-parity.md)
   for the full parity ledger against the original.
+- **GPU renderer**: the crisp 2D scene is composited through a WebGL post pipeline (two-scale
+  bloom, glass caustics, a beat-synced light wash, vignette and grain) with every CPU
+  `shadowBlur` removed from the hot path; a Canvas-2D fallback keeps it running without WebGL.
 - **Polyphonic voice engine**: oscillators play chords and overlapping notes, driven by the
   sequencer, a MIDI keyboard, the on-screen piano, or the A-L computer keys. Eight scales,
   chorus and bitcrusher effects, a master VU ring, and undo (Ctrl/Cmd+Z).

@@ -60,6 +60,7 @@ excluded, with reason.
 | Undo | **done** | 40-deep snapshot stack; chip + Ctrl/Cmd+Z |
 | Tempo-synced everything | **done** | Loops, delay, LFO, sequencer share one clock |
 | Swing / groove | **done** | Off/lite/full, baked into loops and sequencer |
+| GPU-lit rendering | **done** | WebGL bloom, glass caustics, beat light, vignette, grain; CPU glows gone from the hot path |
 
 ## Still open (genuine diminishing returns, not blockers)
 
