@@ -61,6 +61,9 @@ most of Phase 2 of the plan:
 - **Modern I/O**: record the performance to a file, and Web MIDI clock + note output to
   drive external gear or a DAW. See [docs/05-feature-parity.md](docs/05-feature-parity.md)
   for the full parity ledger against the original.
+- **Polyphonic voice engine**: oscillators play chords and overlapping notes, driven by the
+  sequencer, a MIDI keyboard, the on-screen piano, or the A-L computer keys. Eight scales,
+  chorus and bitcrusher effects, a master VU ring, and undo (Ctrl/Cmd+Z).
 - **Physical-table ready**: open the page with `?tuio=ws://localhost:8765` and run
   [`prototype/tuio-bridge.js`](prototype/tuio-bridge.js) to drive it from reacTIVision's
   TUIO stream instead of the mouse (fiducial class IDs map to object types in blocks of

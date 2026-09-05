@@ -116,7 +116,7 @@
 </header>
 <div id="hint">
   drag blocks onto the disc · turn rings · slide arcs · tap sequencer pads, pull them out for higher notes · swipe across a line to cut it<br>
-  tap an osc for its piano · double-tap to change mode (rec: record) · draw a shape near an osc to become its waveform · push two oscs together for FM
+  tap an osc for its piano · double-tap to change mode (rec: record) · draw a shape near an osc to become its waveform · push two oscs together for FM · play the A–L keys or a MIDI keyboard
 </div>
 <div id="dock" aria-label="object tray">
   <button class="spawn" data-type="osc"><span class="chipico sq"></span>osc</button>
@@ -170,7 +170,11 @@ const SCALES = [
   { name:'penta', steps:[0,2,4,7,9] },
   { name:'major', steps:[0,2,4,5,7,9,11] },
   { name:'minor', steps:[0,2,3,5,7,10] },
+  { name:'dorian', steps:[0,2,3,5,7,9,10] },
+  { name:'mixo', steps:[0,2,4,5,7,9,10] },
+  { name:'harmo', steps:[0,2,3,5,7,8,11] },
   { name:'blues', steps:[0,3,5,6,7,10] },
+  { name:'chroma', steps:[0,1,2,3,4,5,6,7,8,9,10,11] },
 ];
 const LOOPS = ['KICK','BEAT','HATS','BASS','CHORD','ARP'];   // 'MINE' appended on import
 const SWINGS = [ {n:'off',v:0}, {n:'lite',v:0.18}, {n:'full',v:0.30} ];
@@ -253,6 +257,11 @@ function destroyObject(o){
   if(audio){
     try{ if(o.src) o.src.stop(); }catch(e){}
     try{ if(o.src2) o.src2.stop(); }catch(e){}
+    if(o.activeVoices) for(const v of o.activeVoices){
+      for(const os of v.oscs){ try{ os.stop(); }catch(e){} }
+      try{ v.g.disconnect(); }catch(e){}
+    }
+    o.activeVoices = null; o.midiHeld = null;
     if(o.micStream){ try{ o.micStream.getTracks().forEach(tr=>tr.stop()); }catch(e){} }
     for(const c of [...audio.captures]) if(c.obj===o) audio.captures.delete(c);
     try{ if(o.chLfo) o.chLfo.stop(); }catch(e){}
@@ -609,7 +618,46 @@ function applyDrawnWave(o){
     real[h] = re*2/N; imag[h] = im*2/N;
   }
   const wave = audio.ctx.createPeriodicWave(real, imag);
+  o._periodic = wave;                       // cached so polyphonic voices share the tone
   o.src.setPeriodicWave(wave); o.src2.setPeriodicWave(wave);
+}
+function setOscWave(node, o){
+  if(o.option===4 && o._periodic) node.setPeriodicWave(o._periodic);
+  else node.type = OSC_WAVES[o.option] || 'sine';
+}
+/* ---- polyphonic voice engine: one oscillator can now sound several notes ---- */
+function startVoice(o, midiN, t){
+  if(!audio || !o.out) return null;
+  const g = audio.ctx.createGain(); g.connect(o.out);
+  const oscs = [], f = midiToF(midiN);
+  for(const det of [-4, 9]){
+    const os = audio.ctx.createOscillator();
+    setOscWave(os, o);
+    os.frequency.value = f; os.detune.value = det;
+    os.connect(g); os.start(t);
+    oscs.push(os);
+  }
+  const peak = Math.max(0.05, o.arc*0.30);
+  g.gain.setValueAtTime(0.0001, t);
+  g.gain.linearRampToValueAtTime(peak, t+0.012);
+  const voice = { g, oscs, peak, released:false,
+    release(rt){
+      if(this.released) return; this.released = true;
+      rt = Math.max(rt||0, audio.ctx.currentTime);
+      g.gain.cancelScheduledValues(rt);
+      g.gain.setValueAtTime(this.peak, rt);
+      g.gain.setTargetAtTime(0.0001, rt, 0.10);
+      const stopAt = rt + 0.7;
+      for(const os of oscs){ try{ os.stop(stopAt); }catch(e){} }
+      setTimeout(()=>{ try{ g.disconnect(); }catch(e){} o.activeVoices && o.activeVoices.delete(voice); },
+        Math.max(60, (stopAt - audio.ctx.currentTime + 0.1)*1000));
+    }};
+  (o.activeVoices = o.activeVoices || new Set()).add(voice);
+  return voice;
+}
+function pluckVoice(o, midiN, t, len){
+  const v = startVoice(o, midiN, t);
+  if(v) v.release(t + Math.max(0.05, len));
 }
 /* proximity FM: an outer oscillator silently modulates a nearer one */
 function applyFm(o){
@@ -838,39 +886,40 @@ function initMidi(){
     acc.onstatechange = e => { if(e.port.type==='input' && e.port.state==='connected') e.port.onmidimessage = onMidiIn; };
   }).catch(()=>{});
 }
-// MIDI note-in retunes every ungated oscillator to the exact played pitch
+// MIDI note-in: polyphonic. Held notes play voices on every free oscillator,
+// ducking its drone; releasing the last note restores the drone.
+function midiDuck(o, on){
+  if(!o.gate || !audio) return;
+  o.gate.gain.setTargetAtTime((on || o.gated) ? 0 : 1, audio.ctx.currentTime, 0.02);
+}
 function onMidiIn(ev){
   const [status, d1, d2] = ev.data;
   const cmd = status & 0xf0;
+  const now = audio ? audio.ctx.currentTime : 0;
   if(cmd===0x90 && d2>0){
-    const f = midiToF(d1);
-    const t = audio ? audio.ctx.currentTime : 0;
     for(const o of objects) if(o.type==='osc' && !o.gated && o.src){
-      o.midiNote = d1;
-      o.src.frequency.setTargetAtTime(f, t, 0.008);
-      o.src2.frequency.setTargetAtTime(f, t, 0.008);
-      o.amp.gain.cancelScheduledValues(t);
-      o.amp.gain.setValueAtTime(o.arc*0.34, t);
-      o.amp.gain.setTargetAtTime(o.arc*0.22, t+0.02, 0.12);
-      o.flashAt = t;
+      o.midiHeld = o.midiHeld || {};
+      if(o.midiHeld[d1]) o.midiHeld[d1].release(now);
+      if(Object.keys(o.midiHeld).length===0) midiDuck(o, true);
+      o.midiHeld[d1] = startVoice(o, d1, now);
+      o.midiNote = d1; o.flashAt = now;
+    }
+  } else if(cmd===0x80 || (cmd===0x90 && d2===0)){
+    for(const o of objects) if(o.type==='osc' && o.midiHeld && o.midiHeld[d1]){
+      o.midiHeld[d1].release(now);
+      delete o.midiHeld[d1];
+      if(Object.keys(o.midiHeld).length===0){ midiDuck(o, false); o.midiNote = null; }
+      else o.midiNote = +Object.keys(o.midiHeld).slice(-1)[0];
     }
   }
 }
 function noteOn(osc, deg, t, len){
-  if(!osc.src || !osc.gate) return;
+  if(!osc.src) return;
   const m = quantMidi(oscMidi(osc) + degSemis(deg));
   if(midi && state.midiOn && m>=0 && m<=127){
     try{ midi.send([0x90, m, 100], perfTime(t)); midi.send([0x80, m, 64], perfTime(t+len)); }catch(e){}
   }
-  try{
-    osc.src.frequency.setValueAtTime(midiToF(m), t);
-    if(osc.src2) osc.src2.frequency.setValueAtTime(midiToF(m), t);
-    const gn = osc.gate.gain;
-    gn.cancelScheduledValues(t);
-    gn.setValueAtTime(0, t);
-    gn.linearRampToValueAtTime(1, t+0.008);
-    gn.setTargetAtTime(0, t+Math.max(0.02,len), 0.045);
-  }catch(e){}
+  pluckVoice(osc, m, t, len);   // polyphonic: overlapping steps stack
 }
 function setBpm(v){
   state.bpm = Math.max(60, Math.min(180, Math.round(v)));
@@ -1004,12 +1053,12 @@ canvas.addEventListener('pointerdown', e=>{
     const r = pianoRect(o);
     if(x>=r.x && x<=r.x+r.w && y>=r.y && y<=r.y+r.h){
       const k = Math.min(12, Math.floor((x-r.x)/(r.w/13)));
-      const midi = r.baseC + k;
-      const rel = ((midi-state.key)%12+12)%12;
-      if(midi>=33 && midi<=81 && scaleSteps().includes(rel)){
-        o.angle = ((midi-33)/48)*TAU;
-        applyParams(o);
-        if(audio && o.gated) noteOn(o, 0, audio.ctx.currentTime+0.005, 0.3);
+      const note = r.baseC + k;
+      const rel = ((note-state.key)%12+12)%12;
+      if(note>=33 && note<=81 && scaleSteps().includes(rel)){
+        o.angle = ((note-33)/48)*TAU;
+        applyParams(o);                                  // retune the drone to follow
+        if(audio) pluckVoice(o, note, audio.ctx.currentTime+0.005, 0.45);  // audible, polyphonic
       }
       return;
     }
@@ -1361,8 +1410,23 @@ $('shareChip').addEventListener('click', async ()=>{
 $('demoChip').addEventListener('click', ()=>{ pushUndo(); demoScene(); });
 $('clearChip').addEventListener('click', ()=>{ pushUndo(); for(const o of [...objects]) destroyObject(o); });
 $('undoChip').addEventListener('click', doUndo);
+
+/* computer-keyboard playing: the home row plays the current scale into every
+   free oscillator, polyphonically, like a MIDI keyboard without the hardware */
+const KEY_DEGREES = { a:0, s:1, d:2, f:3, g:4, h:5, j:6, k:7, l:8, ';':9 };
+const keyHeld = {};
 addEventListener('keydown', e=>{
-  if((e.ctrlKey||e.metaKey) && e.key.toLowerCase()==='z'){ e.preventDefault(); doUndo(); }
+  if((e.ctrlKey||e.metaKey) && e.key.toLowerCase()==='z'){ e.preventDefault(); doUndo(); return; }
+  if(e.ctrlKey||e.metaKey||e.altKey) return;
+  const k = e.key.toLowerCase();
+  if(!audio || !(k in KEY_DEGREES) || keyHeld[k] || e.repeat) return;
+  const n = Math.max(0, Math.min(108, 48 + state.key + degSemis(KEY_DEGREES[k])));
+  keyHeld[k] = n;
+  onMidiIn({ data:[0x90, n, 100] });
+});
+addEventListener('keyup', e=>{
+  const k = e.key.toLowerCase();
+  if(keyHeld[k]!=null){ onMidiIn({ data:[0x80, keyHeld[k], 0] }); delete keyHeld[k]; }
 });
 $('midiChip').addEventListener('click', ()=>{
   state.midiOn = !state.midiOn;

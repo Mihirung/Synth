@@ -12,7 +12,7 @@ excluded, with reason.
 
 | Object | Status | Notes |
 |---|---|---|
-| Oscillator | **done** | Dual detuned voices, 4 waveforms + a finger-drawn wave, scale-quantised, little piano, proximity FM |
+| Oscillator | **done** | Dual detuned voices, 4 waveforms + a finger-drawn wave, scale-quantised, little piano, proximity FM, **polyphonic** (chords from sequencer / MIDI / keys) |
 | Sampler / loop player | **done** | Six synthesised loops + your own imports; bar-synced; rotate to change loop |
 | Sequencer | **done** | 16 radial pitch pads; drives oscillators, and slices samplers/recorders |
 | Filter | **done** | LP/HP/BP, cutoff by rotation, resonance by arc |
@@ -52,7 +52,10 @@ excluded, with reason.
 | Audio file import | **done** | Any file becomes a bar-fitted loop |
 | Record performance to a file | **done** | MediaRecorder → downloads capability (WebM/Opus) |
 | Web MIDI clock + note out | **done** | Drives external gear/DAW when a MIDI output exists |
-| Web MIDI note in | **done** | A MIDI keyboard retunes the ungated oscillators live |
+| Web MIDI note in | **done** | A MIDI keyboard plays the oscillators polyphonically (voices), ducking the drone while held |
+| Computer-keyboard playing | **done** | The A-L home row plays the current scale into every free oscillator |
+| Polyphony | **done** | Per-oscillator voice engine: sequencer, MIDI and keys all play chords / overlapping notes |
+| Scales | **done** | Pentatonic, major, minor, dorian, mixolydian, harmonic minor, blues, chromatic |
 | Master output level (VU) | **done** | A level-driven ring around the centre output |
 | Undo | **done** | 40-deep snapshot stack; chip + Ctrl/Cmd+Z |
 | Tempo-synced everything | **done** | Loops, delay, LFO, sequencer share one clock |
@@ -65,10 +68,11 @@ excluded, with reason.
   could add a WAV encoder. Low value.
 - **MIDI clock in** (slaving the table's transport to external clock) and **MIDI CC out**
   for parameters: useful in a studio rig, fiddly to get glitch-free, niche for this audience.
-- **Polyphonic oscillators**: each osc is monophonic (as the original's were); chords come
-  from multiple oscillators or the chord loop.
 - **Named multi-slot scene saving**: today there is one autosaved scene plus unlimited
   shareable jam links, which covers most of the need.
+- **Polyphonic chord *steps* in the sequencer**: the sequencer is now polyphonic-capable
+  (voices overlap and stack), but each step still holds one note; multi-note steps would be
+  a UI addition, not an engine one.
 
 ## Genuinely impossible here (environment limits, not design)
 
