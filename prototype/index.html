@@ -216,15 +216,23 @@ s+=(texture2D(t,v+d*1.3846).rgb+texture2D(t,v-d*1.3846).rgb)*.3162162;
 s+=(texture2D(t,v+d*3.2308).rgb+texture2D(t,v-d*3.2308).rgb)*.0702703;
 gl_FragColor=vec4(s,1.);}`;
 const FS_COMP = `precision mediump float;varying vec2 v;
-uniform sampler2D scene,b1,b2;uniform vec2 res,cen;uniform float rad,time,beat,level,amt;
+uniform sampler2D scene,b1,b2;uniform vec2 res,cen;uniform float rad,time,beat,level,amt;uniform vec4 rip[6];
 float hash(vec2 p){return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453);}
 float noise(vec2 p){vec2 i=floor(p),f=fract(p);f=f*f*(3.-2.*f);
 return mix(mix(hash(i),hash(i+vec2(1.,0.)),f.x),mix(hash(i+vec2(0.,1.)),hash(i+vec2(1.,1.)),f.x),f.y);}
 void main(){
- vec3 c=texture2D(scene,v).rgb;
  float asp=res.x/res.y;
  vec2 q=(v-cen)*vec2(asp,1.);
  float dc=length(q)/rad;
+ vec2 disp=vec2(0.); float rl=0.;
+ for(int i=0;i<6;i++){
+   vec4 r=rip[i]; if(r.w<=0.) continue;
+   vec2 d=(v-r.xy)*vec2(asp,1.);
+   float dist=length(d); float age=time-r.z;
+   float band=exp(-pow((dist-age*.55)*22.,2.))*exp(-age*2.2)*r.w;
+   disp+=normalize(d+1e-5)*band*.008; rl+=band;
+ }
+ vec3 c=texture2D(scene,v+disp*vec2(1./asp,1.)).rgb;
  float inD=1.-smoothstep(.985,1.0,dc);
  float n=noise(q*7.+vec2(time*.05,-time*.03))*.6+noise(q*15.-vec2(time*.07,time*.04))*.4;
  float caust=pow(n,3.)*.14*inD*(1.-.5*smoothstep(.7,1.,dc));
@@ -237,6 +245,11 @@ void main(){
  vec3 bl2=texture2D(b2,v).rgb;
  vec3 bloom=bl*.85+bl2*1.15;
  c=1.-(1.-c)*(1.-bloom*amt);
+ c+=tint*rl*.14*(1.-.6*smoothstep(1.,1.08,dc));
+ float outD=smoothstep(.98,1.08,dc);
+ float an=noise(q*1.6+vec2(time*.02,time*.015));
+ float an2=noise(q*3.1-vec2(time*.01,time*.025));
+ c+=mix(vec3(.16,.36,.55),vec3(.42,.26,.55),an2)*pow(an,2.)*.16*outD;
  float vg=smoothstep(1.45,.5,length((v-.5)*vec2(asp,1.))*1.15);
  c*=mix(.7,1.,vg);
  c+=(hash(v*res+fract(time*7.))-.5)*.012;
@@ -297,6 +310,13 @@ function glPass(pr, srcTex, dst, setU){
   if(setU) setU();
   gl.drawArrays(gl.TRIANGLES,0,3);
 }
+const ripples = [];
+function addRipple(x,y,s){
+  if(!G || REDUCED) return;
+  ripples.push({ x:x/W, y:1-y/H, t0:(performance.now()-G.t0)/1000, s });
+  if(ripples.length>6) ripples.shift();
+}
+const ripArr = new Float32Array(24);
 function glPost(beatPh, level){
   gl.activeTexture(gl.TEXTURE0); gl.bindTexture(gl.TEXTURE_2D,G.sceneTex);
   if(G.sceneW!==scene.width || G.sceneH!==scene.height){
@@ -329,6 +349,10 @@ function glPost(beatPh, level){
   gl.uniform1f(u.beat,beatPh);
   gl.uniform1f(u.level,level);
   gl.uniform1f(u.amt,REDUCED?0.6:0.95);
+  const tnow=(performance.now()-G.t0)/1000;
+  for(let i=0;i<6;i++){ const r=ripples[i]; const live=r && tnow-r.t0<2.6;
+    ripArr[i*4]=live?r.x:0; ripArr[i*4+1]=live?r.y:0; ripArr[i*4+2]=live?r.t0:0; ripArr[i*4+3]=live?r.s:0; }
+  gl.uniform4fv(u['rip[0]'], ripArr);
   gl.drawArrays(gl.TRIANGLES,0,3);
 }
 
@@ -348,10 +372,12 @@ const GLOW = !gl;
 function glow(color, px){ if(GLOW){ g.shadowColor=color; g.shadowBlur=px; } }
 function noGlow(){ if(GLOW) noGlow(); }
 let discGrad = null;
+let RES_SCALE = 1, ftAcc = 0, ftN = 0, lastFrameT = 0, lastResChange = 0;
+const RES_LOCK = /lockres/.test(location.search);
 let W=0, H=0, DPR=1, CX=0, CY=0, TABLE_R=300, S=1;
 function resize(){
   const oCX=CX, oCY=CY, oR=TABLE_R, had = TABLE_R > 0 && objects.length;
-  DPR = Math.min(devicePixelRatio || 1, 2);
+  DPR = Math.min(devicePixelRatio || 1, 2) * RES_SCALE;
   W = innerWidth; H = innerHeight;
   canvas.width = W*DPR; canvas.height = H*DPR;
   canvas.style.width = W+'px'; canvas.style.height = H+'px';
@@ -1235,6 +1261,7 @@ canvas.addEventListener('pointerdown', e=>{
       }
       lastTap = { t:now, x, y, id:o.id };
       drags.set(e.pointerId, { mode:'move', obj:o, dx:o.x-x, dy:o.y-y, sx:x, sy:y, moved:false });
+      addRipple(o.x,o.y,0.5);
     } else if(d <= R_RING1()){
       drags.set(e.pointerId, { mode:'rotate', obj:o, off:pAngle(o,x,y)-o.angle });
     } else {
@@ -1347,7 +1374,7 @@ function endDrag(e){
   }
   if(dr.mode==='pad' && !dr.moved){
     const st = dr.obj.steps[dr.idx];
-    st.on = !st.on;
+    st.on = !st.on; addRipple(dr.obj.x,dr.obj.y,0.35);
     saveSoon();
   }
   if(dr.mode==='stroke'){
@@ -1389,7 +1416,7 @@ for(const btn of document.querySelectorAll('.spawn[data-type]')){
       btn.removeEventListener('pointermove', move);
       btn.removeEventListener('pointerup', up);
       btn.removeEventListener('pointercancel', up);
-      if(distC(o) > TABLE_R-8) destroyObject(o); else saveSoon();
+      if(distC(o) > TABLE_R-8) destroyObject(o); else { saveSoon(); addRipple(o.x,o.y,0.75); }
     };
     btn.addEventListener('pointermove', move);
     btn.addEventListener('pointerup', up);
@@ -1720,7 +1747,7 @@ function drawConnection(o){
   } else { g.moveTo(x0,y0); g.lineTo(x0+ux*L,y0+uy*L); }
   if(GLOW){ g.strokeStyle=COL.line; g.lineWidth=1.8; glow(COL.line, 9); g.stroke(); }
   else {
-    g.strokeStyle=COL.line; g.lineWidth=3.6; g.globalAlpha=0.62; g.stroke();  // soft body the bloom picks up
+    g.strokeStyle=COL.line; g.lineWidth=3+(o.lv||0)*7; g.globalAlpha=0.45+(o.lv||0)*0.5; g.stroke();  // lit by its own signal
     g.strokeStyle='#eafcff'; g.lineWidth=1.3; g.globalAlpha=1; g.stroke();   // crisp neon core
   }
   g.restore();
@@ -1731,8 +1758,17 @@ function drawObject(o){
   const outside = distC(o) > TABLE_R-8;
   const now = audio ? audio.ctx.currentTime : 0;
   const flash = Math.max(0, 1-(now-o.flashAt)*4);
+  if(audio && o.an && FAMILY[o.type]!=='ctl'){
+    o.an.getFloatTimeDomainData(o.wave);
+    let sum=0; for(let i=0;i<o.wave.length;i+=4) sum+=o.wave[i]*o.wave[i];
+    o.lv = (o.lv||0)*0.7 + Math.min(1, Math.sqrt(sum/(o.wave.length/4))*2.6)*0.3;
+  } else o.lv = 0;
   g.save();
   g.globalAlpha = outside?0.35:1;
+  if(!outside && !GLOW){   // contact shadow: the block rests on the glass
+    g.save(); g.globalAlpha=0.42; g.fillStyle='#02050a';
+    g.beginPath(); g.ellipse(o.x+3*S,o.y+6*S,rb*1.06,rb*0.96,0,0,TAU); g.fill(); g.restore();
+  }
 
   // rotation ring + notch
   g.strokeStyle=COL.rim; g.lineWidth=2;
@@ -1810,6 +1846,11 @@ function drawObject(o){
   // glass specular: a faint highlight along the lit edge
   g.save(); g.globalAlpha=(outside?0.35:1)*0.35; g.strokeStyle='#dff6ff'; g.lineWidth=1.2;
   g.beginPath(); g.arc(o.x,o.y,rb*0.78,Math.PI*1.1,Math.PI*1.55); g.stroke(); g.restore();
+  if(o.lv>0.02){   // the block is lit by its own signal
+    g.save(); g.globalAlpha=(outside?0.35:1)*Math.min(0.95,o.lv*1.5);
+    g.strokeStyle=col; g.lineWidth=2.5+o.lv*3.5;
+    g.beginPath(); g.arc(o.x,o.y,rb*0.98,0,TAU); g.stroke(); g.restore();
+  }
 
   // icon
   g.textAlign='center'; g.textBaseline='middle';
@@ -1921,7 +1962,48 @@ function drawObject(o){
   }
   g.restore();
 }
+const motes = [];
+let lastBeat = -1, lastStep16 = -1;
+function drawMotes(dt){
+  if(REDUCED) return;
+  for(let i=motes.length-1;i>=0;i--){
+    const m=motes[i]; const o=objects.find(z=>z.id===m.id);
+    const seg = (o && !o.muted && !o.fmTo && FAMILY[o.type]!=='ctl') ? connEnds(o) : null;
+    if(!seg){ motes.splice(i,1); continue; }
+    m.f += m.spd*dt*(state.bpm/112);
+    if(m.f>=1){ motes.splice(i,1); continue; }
+    const x=seg.x1+(seg.x2-seg.x1)*m.f, y=seg.y1+(seg.y2-seg.y1)*m.f;
+    const fade=Math.sin(m.f*Math.PI);
+    g.globalAlpha=0.35*fade; g.fillStyle=COL.line;
+    g.beginPath(); g.arc(x,y,m.sz*2.4,0,TAU); g.fill();
+    g.globalAlpha=fade; g.fillStyle='#eafcff';
+    g.beginPath(); g.arc(x,y,m.sz,0,TAU); g.fill();
+  }
+  g.globalAlpha=1;
+}
 function frame(){
+  const nowMs=performance.now();
+  const dt = lastFrameT ? Math.min(0.1,(nowMs-lastFrameT)/1000) : 0.016;
+  if(lastFrameT){ ftAcc+=nowMs-lastFrameT; ftN++; }
+  lastFrameT=nowMs;
+  if(gl && !RES_LOCK && ftN>=90){            // adaptive resolution: trade pixels for frames
+    const avg=ftAcc/ftN; ftAcc=0; ftN=0;
+    if(nowMs-lastResChange>2500){
+      if(avg>24 && RES_SCALE>0.5){ RES_SCALE=Math.max(0.5,RES_SCALE-0.25); resize(); lastResChange=nowMs; }
+      else if(avg<13 && RES_SCALE<1){ RES_SCALE=Math.min(1,RES_SCALE+0.25); resize(); lastResChange=nowMs; }
+    }
+  }
+  const stepNow = currentStep();
+  if(stepNow>=0 && stepNow!==lastStep16){
+    lastStep16=stepNow;
+    if(!REDUCED && motes.length<240) for(const o of objects){
+      if(FAMILY[o.type]==='ctl' || o.muted || o.fmTo || o.hop===undefined) continue;
+      const lv=o.lv||0; if(lv>0.04 && Math.random()<0.25+lv)
+        motes.push({ id:o.id, f:0, spd:0.35+Math.random()*0.3, sz:(1.1+Math.random()*1.3)*S });
+    }
+    const b=Math.floor(stepNow/4);
+    if(b!==lastBeat){ lastBeat=b; addRipple(CX,CY,0.3); }
+  }
   g.setTransform(DPR,0,0,DPR,0,0);
   g.fillStyle=COL.ground; g.fillRect(0,0,W,H);
 
@@ -1951,6 +2033,7 @@ function frame(){
   g.globalAlpha=1;
 
   for(const o of objects) drawConnection(o);
+  drawMotes(dt);
 
   // proximity-FM links: a jagged thread between the two oscillators
   for(const o of objects) if(o.type==='osc' && o.fmTo){
