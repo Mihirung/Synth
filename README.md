@@ -53,6 +53,14 @@ most of Phase 2 of the plan:
 - **Swing** (off/lite/full, baked into the generated loops and the sequencer), a
   dual-detuned oscillator voice for a warmer virtual-analog tone, and **audio import**:
   load any audio file as a bar-fitted loop on a sampler cube.
+- **Full original-Reactable object set and gestures**: distortion and reverb effects,
+  oscillator-to-oscillator FM by proximity, a live-input mic object, a loop recorder that
+  captures the table's own output and loops it, a tangible tempo puck, a sequencer that
+  also slices samplers, tempo-synced LFOs, swipe-to-cut connections, and finger-drawn
+  oscillator waveforms.
+- **Modern I/O**: record the performance to a file, and Web MIDI clock + note output to
+  drive external gear or a DAW. See [docs/05-feature-parity.md](docs/05-feature-parity.md)
+  for the full parity ledger against the original.
 - **Physical-table ready**: open the page with `?tuio=ws://localhost:8765` and run
   [`prototype/tuio-bridge.js`](prototype/tuio-bridge.js) to drive it from reacTIVision's
   TUIO stream instead of the mouse (fiducial class IDs map to object types in blocks of
