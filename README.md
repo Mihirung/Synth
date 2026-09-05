@@ -62,8 +62,11 @@ most of Phase 2 of the plan:
   drive external gear or a DAW. See [docs/05-feature-parity.md](docs/05-feature-parity.md)
   for the full parity ledger against the original.
 - **GPU renderer**: the crisp 2D scene is composited through a WebGL post pipeline (two-scale
-  bloom, glass caustics, a beat-synced light wash, vignette and grain) with every CPU
-  `shadowBlur` removed from the hot path; a Canvas-2D fallback keeps it running without WebGL.
+  bloom, glass caustics, physical beat-and-touch ripples via UV displacement, a faint aurora,
+  vignette and grain) with every CPU `shadowBlur` removed from the hot path. Every block and
+  line is lit by its own live signal level, motes of light travel the connections in time,
+  and adaptive resolution trades pixels for frames on slow devices. A Canvas-2D fallback keeps
+  it running without WebGL; all motion respects `prefers-reduced-motion`.
 - **Polyphonic voice engine**: oscillators play chords and overlapping notes, driven by the
   sequencer, a MIDI keyboard, the on-screen piano, or the A-L computer keys. Eight scales,
   chorus and bitcrusher effects, a master VU ring, and undo (Ctrl/Cmd+Z).
