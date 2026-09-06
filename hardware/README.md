@@ -1,9 +1,11 @@
 # Lumatable printed kit
 
 Everything in this folder is generated: run `python3 make_parts.py` to rebuild the
-meshes, and the two marker sheets and the cards come straight out of the instrument
+meshes (and `render_preview.py` for the picture), and the two marker sheets and the cards come straight out of the instrument
 (`markers` in the header, or the `markerSheetHTML()` / `cardsHTML()` functions in
 `prototype/index.html`).
+
+![the three parts](preview.png)
 
 ## Parts (`print/`)
 
