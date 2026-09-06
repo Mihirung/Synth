@@ -182,11 +182,12 @@
   <ul>
     <li>Drag blocks from the tray onto the disc; drag one off the disc to remove it.</li>
     <li>Turn a block's inner ring for its main control; slide the outer arc for the second.</li>
+    <li>Tap a block to change its mode (waveform, filter type, loop…). On a real cube, turn it to another face.</li>
+    <li>Place a <b>Rec</b> block to record the next bars and loop them; tap it to record again. Turn it to set the length.</li>
+    <li>A <b>Mic</b> block is live input as soon as it is on the table.</li>
     <li>Tap a sequencer's pads to switch steps on; pull a pad outward for a higher note.</li>
-    <li>Double-tap a block to change its mode (a Rec block: double-tap to record).</li>
-    <li>Tap an oscillator for its little piano; draw a shape beside one to become its waveform.</li>
-    <li>Push two oscillators together for FM; swipe across a line to cut it.</li>
-    <li>Play the A–L keys, or a MIDI keyboard.</li>
+    <li>Tap the small keys button above an oscillator for its piano; draw a shape beside one to become its waveform.</li>
+    <li>Push two oscillators together for FM; swipe across a line to cut it. Play the A–L keys or a MIDI keyboard.</li>
   </ul>
 </div>
 <div id="dock" aria-label="object tray">
@@ -1625,7 +1626,6 @@ function setHop(o, hop){
 
 /* ================= surface input: pointers ================= */
 const drags = new Map();
-let lastTap = { t:0, x:0, y:0, id:0 };
 function objectAt(x,y){
   for(let i=objects.length-1;i>=0;i--){
     const o = objects[i], d = Math.hypot(x-o.x, y-o.y);
@@ -1648,6 +1648,7 @@ function padIndexAt(o,x,y){
   const a = ((pAngle(o,x,y) + Math.PI/2) % TAU + TAU) % TAU;
   return Math.round(a/TAU*16) % 16;
 }
+function pianoBtn(o){ return { x:o.x, y:o.y - (R_ARC1()+13*S), r:12*S }; }
 function pianoRect(o){
   const w=156*S, h=44*S;
   return { x:o.x-w/2, y:o.y+R_ARC1()+36*S, w, h, baseC:Math.floor(oscMidi(o)/12)*12 };
@@ -1669,6 +1670,10 @@ canvas.addEventListener('pointerdown', e=>{
       return;
     }
   }
+  for(const o of objects) if(o.type==='osc'){   // the little-piano toggle: a key button above the osc
+    const b=pianoBtn(o);
+    if(Math.hypot(x-b.x,y-b.y)<=b.r+4){ o.piano=!o.piano; saveSoon(); return; }
+  }
   const hit = objectAt(x,y);
   if(hit){
     const { o, d } = hit;
@@ -1678,11 +1683,6 @@ canvas.addEventListener('pointerdown', e=>{
       return;
     }
     if(d <= R_BODY()){
-      const now = performance.now();
-      if(now-lastTap.t < 320 && lastTap.id===o.id && Math.hypot(x-lastTap.x,y-lastTap.y)<14){
-        cycleOption(o); o.piano=false; lastTap.t=0; return;
-      }
-      lastTap = { t:now, x, y, id:o.id };
       drags.set(e.pointerId, { mode:'move', obj:o, dx:o.x-x, dy:o.y-y, sx:x, sy:y, moved:false });
       addRipple(o.x,o.y,0.5);
     } else if(d <= R_RING1()){
@@ -1793,7 +1793,7 @@ function endDrag(e){
   if(!dr) return;
   if(dr.mode==='move'){
     if(distC(dr.obj) > TABLE_R-8){ pushUndo(); destroyObject(dr.obj); }
-    else if(!dr.moved && dr.obj.type==='osc') dr.obj.piano = !dr.obj.piano;
+    else if(!dr.moved) cycleOption(dr.obj);   // single tap = flip the cube to its next face
   }
   if(dr.mode==='pad' && !dr.moved){
     const st = dr.obj.steps[dr.idx];
@@ -1839,7 +1839,7 @@ for(const btn of document.querySelectorAll('.spawn[data-type]')){
       btn.removeEventListener('pointermove', move);
       btn.removeEventListener('pointerup', up);
       btn.removeEventListener('pointercancel', up);
-      if(distC(o) > TABLE_R-8) destroyObject(o); else { saveSoon(); addRipple(o.x,o.y,0.75); }
+      if(distC(o) > TABLE_R-8) destroyObject(o); else { saveSoon(); addRipple(o.x,o.y,0.75); if(o.type==='rec' && audio) armRec(o); }
     };
     btn.addEventListener('pointermove', move);
     btn.addEventListener('pointerup', up);
@@ -2112,7 +2112,7 @@ function camFrame(meta){
       else if(type==='filter') o.option=variant%FILTER_MODES.length;
       else if(type==='sampler') o.angle=((variant+0.5)/LOOPS.length)*TAU;
       else if(type==='seq'){ o.option=variant; o.steps=SEQ_PATTERNS[variant].map(s=>s?{on:true,deg:s[0]}:{on:false,deg:0}); }
-      if(audio){ rewireAudio(o); rewireCtl(o); applyParams(o); }
+      if(audio){ rewireAudio(o); rewireCtl(o); applyParams(o); if(type==='rec') armRec(o); }
       e={obj:o,last:tnow,ang}; cam.markers.set(m.id,e);
       addRipple(p.x,p.y,0.7);
     }
@@ -2803,6 +2803,15 @@ function drawObject(o){
   g.font=`500 ${9.5*S}px "Chakra Petch", sans-serif`;
   g.fillStyle=COL.text; g.fillText(l2, o.x, o.y+ry+13*S);
 
+  // the little-piano toggle button (a small keyboard glyph above the osc)
+  if(o.type==='osc'){
+    const b=pianoBtn(o); g.save(); g.globalAlpha=(outside?0.35:1);
+    g.strokeStyle=o.piano?COL.line:col; g.lineWidth=1.6; glow(o.piano?COL.line:col, o.piano?8:0);
+    g.beginPath(); g.arc(b.x,b.y,b.r,0,TAU); g.stroke(); noGlow();
+    g.strokeStyle=o.piano?COL.line:col; g.lineWidth=1;
+    for(const dx of [-4,0,4]){ g.beginPath(); g.moveTo(b.x+dx*S, b.y-4*S); g.lineTo(b.x+dx*S, b.y+4*S); g.stroke(); }
+    g.restore();
+  }
   // the "little piano" note picker
   if(o.type==='osc' && o.piano){
     const r=pianoRect(o), kw=r.w/13, cur=oscMidi(o);

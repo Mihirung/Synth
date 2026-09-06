@@ -89,6 +89,36 @@ Total: typically **£30 to £100** on top of a TV and phone you already have.
 Tap the small camera preview to hide it once everything is aligned. The **camera** chip
 turns tracking off again; **calibrate** re-runs the four dots if you move the phone or TV.
 
+## 4.3a Playing with physical cubes: the interaction model
+
+A puck or cube can do only four things a camera can read, so those four *are* the controls,
+and the on-screen version mirrors each so the two behave identically:
+
+- **Presence** — a cube on the disc is its object; lift it off and the object is gone. A
+  **Rec** cube arms and records the moment it is placed; a **Mic** cube is live input the
+  moment it is on the table.
+- **Position** — where a cube sits drives the patching (nearer the centre, or nearer another
+  cube, connects it), exactly as on screen.
+- **Rotation** — turning a cube sets its one main parameter (an oscillator's pitch, a
+  filter's cutoff, a loop choice, the tempo, the recorder's bar-length).
+- **Which face is up** — each face of a cube carries a different marker, so turning the cube
+  over selects the mode or voice (an oscillator's waveform, a filter's LP/HP/BP, a
+  sampler's loop, a sequencer's pattern). On screen the same thing is a **single tap** on the
+  block: it flips to the next face. There are no double-taps anywhere.
+
+Anything finer than those four has no cube gesture, so it is done with a **finger** — on the
+physical table a thumb-and-forefinger pinch (tracked by the phone), on screen a touch or the
+mouse, and they are the same gesture: sliding the outer arc for a second parameter, tapping a
+sequencer's step pads (pull a pad outward for a higher note), opening an oscillator's little
+keyboard from its keys button, drawing a shape beside an oscillator to become its waveform,
+and swiping across a connection to cut it. So a cube gives you place, move, turn and flip;
+your hands do the rest.
+
+A practical consequence for cube design: put four object-faces on a cube and leave two blank,
+or make a single-purpose puck with the same marker on enough faces that it never matters which
+way up it lands. Because flipping is a real gesture, group the four faces so the ones you
+switch between mid-performance are easy to reach.
+
 ## 4.4 Lighting, glare and other tuning
 
 - Aim for **even, soft room light**. The detector adapts to local brightness, but a hard
