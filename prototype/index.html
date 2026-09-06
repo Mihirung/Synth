@@ -115,6 +115,7 @@
     <button class="chip" id="bpmUp" aria-label="faster">+</button>
     <button class="chip" id="keyChip">key <b id="keyv">C</b></button>
     <button class="chip" id="scaleChip"><b id="scalev">penta</b></button>
+    <button class="chip" id="soundChip" title="sound engine">sound <b id="soundv">original</b></button>
     <button class="chip" id="swingChip">swing <b id="swingv">off</b></button>
     <button class="chip" id="recChip">⏺ record</button>
     <button class="chip" id="midiChip" hidden>midi <b id="midiv">off</b></button>
@@ -197,7 +198,8 @@ const SEQ_PATTERNS = [
   [[0,0],[2,0],[4,0],[7,0],[9,0],[7,0],[4,0],[2,0],[0,0],[2,0],[4,0],[7,0],[9,0],[7,0],[4,0],[2,0]],
   [[0,0],null,[0,0],null,[1,0],null,[0,0],null,[3,0],null,[0,0],null,[4,0],[3,0],[1,0],null],
 ];
-const state = { bpm:112, key:0, scaleIdx:0, swingIdx:0 };
+const state = { bpm:112, key:0, scaleIdx:0, swingIdx:0, soundMode:'original' };
+const ANALOG = () => state.soundMode!=='original';
 const swingAmt = () => SWINGS[state.swingIdx].v;
 const scaleSteps = () => SCALES[state.scaleIdx].steps;
 
@@ -440,8 +442,9 @@ function spawn(type, x, y){
   computePatch();
   return o;
 }
-function destroyObject(o){
-  if(audio){
+function teardownNodes(o){
+  if(!audio) return;
+  {
     try{ if(o.src) o.src.stop(); }catch(e){}
     try{ if(o.src2) o.src2.stop(); }catch(e){}
     if(o.activeVoices) for(const v of o.activeVoices){
@@ -452,10 +455,14 @@ function destroyObject(o){
     if(o.micStream){ try{ o.micStream.getTracks().forEach(tr=>tr.stop()); }catch(e){} }
     for(const c of [...audio.captures]) if(c.obj===o) audio.captures.delete(c);
     try{ if(o.chLfo) o.chLfo.stop(); }catch(e){}
-    for(const k of ['src','src2','preF','fmGain','amp','gate','out','an','biq','inG','dl','fb','dry','wet','depthG','carrier','ring','dryG','shaper','conv','micSrc','chDelay','chLfo','chDepth'])
-      if(o[k]){ try{ o[k].disconnect(); }catch(e){} }
+    for(const k of ['src','src2','preF','fmGain','amp','gate','out','an','biq','inG','dl','fb','fbSat','fbLP','dry','wet','depthG','carrier','ring','dryG','shaper','conv','micSrc','chDelay','chLfo','chDepth'])
+      if(o[k]){ try{ o[k].disconnect(); }catch(e){} o[k]=null; }
+    if(o.ana){ try{ o.ana.node.disconnect(); }catch(e){} if(o.ana.node.onaudioprocess) o.ana.node.onaudioprocess=null; o.ana=null; }
     if(o.playing){ try{ o.playing.stop(); }catch(e){} o.playing = null; }
   }
+}
+function destroyObject(o){
+  teardownNodes(o);
   const i = objects.indexOf(o);
   if(i>=0) objects.splice(i,1);
   computePatch(); saveSoon();
@@ -529,6 +536,277 @@ function readout(o){
   }
 }
 
+/* ================= analogue sound engines =================
+   Real per-sample DSP, built from the published models rather than Web Audio
+   primitives, and selectable at runtime so rival theories can be compared:
+     moog : Stilson–Smith ladder with Huovilainen-style tanh saturation, 2x oversampled
+     zdf  : Zavalishin zero-delay-feedback (TPT) nonlinear ladder, 2x oversampled
+     sem  : Simper/Cytomic TPT state-variable filter (Oberheim SEM character)
+     ms20 : TPT SVF with a saturated resonance path (Korg MS-20 character)
+   Oscillators: PolyBLEP saw/pulse/tri, two drifting cores + sub, exponential RC
+   envelopes, transistor asymmetry. Output: asymmetric valve stage, transformer
+   roll-off, DC block, a whisper of hiss and mains hum.
+   Runs in an AudioWorklet; falls back to a ScriptProcessor on the main thread. */
+const SOUND_MODES = ['original','moog','zdf','sem','ms20'];
+const MODE_CFG = {
+  moog:{ label:'MOOG', osc:{drift:1.0,sub:0.35,pw:0.5,pwm:0.0,att:0.006,rel:0.16,glide:0.005,sat:1.25,asym:0.12},
+         filt:{model:'moog',drive:1.1,comp:0.35}, out:{drive:1.25,bias:0.12,tone:12500,hiss:0.00035,hum:0.00012,mix:0.85} },
+  zdf: { label:'ZDF LADDER', osc:{drift:0.5,sub:0.2,pw:0.5,pwm:0.01,att:0.004,rel:0.12,glide:0.003,sat:1.1,asym:0.06},
+         filt:{model:'zdf',drive:1.0,comp:0.3}, out:{drive:1.1,bias:0.07,tone:16000,hiss:0.00025,hum:0.00008,mix:0.7} },
+  sem: { label:'SEM', osc:{drift:0.7,sub:0,pw:0.48,pwm:0.04,att:0.005,rel:0.14,glide:0.004,sat:1.15,asym:0.1},
+         filt:{model:'sem',drive:1.0,comp:0}, out:{drive:1.15,bias:0.1,tone:14000,hiss:0.0003,hum:0.0001,mix:0.75} },
+  ms20:{ label:'MS-20', osc:{drift:1.3,sub:0.25,pw:0.5,pwm:0.0,att:0.003,rel:0.1,glide:0.002,sat:1.6,asym:0.25},
+         filt:{model:'ms20',drive:1.3,comp:0}, out:{drive:1.5,bias:0.18,tone:11000,hiss:0.0005,hum:0.00018,mix:0.9} },
+};
+const DSP_CORE = String.raw`
+const TAU=Math.PI*2;
+function th(x){ if(x>4.5) return 1; if(x<-4.5) return -1; const e=Math.exp(2*x); return (e-1)/(e+1); }
+function blep(t,dt){ if(t<dt){ t/=dt; return t+t-t*t-1; } if(t>1-dt){ t=(t-1)/dt; return t*t+t+t+1; } return 0; }
+class Rng{ constructor(s){ this.s=(s>>>0)||1; } next(){ this.s=(this.s*1664525+1013904223)>>>0; return this.s/4294967296; } }
+class Core1{
+  constructor(rng){ this.ph=rng.next(); this.tri=0; this.drift=0; this.dv=0; this.rng=rng; }
+  step(dt, wave, pw, custom){
+    const t=this.ph; let y;
+    if(wave===1){ y=2*t-1-blep(t,dt); }
+    else if(wave===2){ y=(t<pw?1:-1)+blep(t,dt)-blep((t+1-pw)%1,dt); }
+    else if(wave===3){ const sq=(t<0.5?1:-1)+blep(t,dt)-blep((t+0.5)%1,dt); this.tri=this.tri*0.9995+sq*4*dt; y=this.tri*0.98; }
+    else if(wave===4 && custom){ y=0; for(let h=1;h<=custom.n;h++){ if(h*dt>0.5) break; const a=TAU*h*t; y+=custom.re[h]*Math.cos(a)+custom.im[h]*Math.sin(a); } }
+    else { y=Math.sin(TAU*t)+0.03*Math.sin(2*TAU*t); }
+    this.ph=t+dt; if(this.ph>=1) this.ph-=1;
+    return y;
+  }
+  wander(amt){ this.dv+=(this.rng.next()-0.5)*0.9*amt; this.dv*=0.97; this.drift=this.drift*0.995+this.dv*0.05; }
+}
+class Voice{
+  constructor(id, f, sr, cfg, rng){
+    this.id=id; this.f=f; this.tf=f; this.gate=true; this.env=0; this.dead=false;
+    this.a=new Core1(rng); this.b=new Core1(rng); this.sub=new Core1(rng);
+    this.detA=-4-rng.next()*3; this.detB=6+rng.next()*5;
+    this.aC=1-Math.exp(-1/(cfg.att*sr)); this.rC=Math.exp(-1/(cfg.rel*sr));
+    this.lvl=0.95+rng.next()*0.1;
+  }
+}
+class AnalogOsc{
+  constructor(sr){ this.sr=sr; this.rng=new Rng(Math.floor(Math.random()*1e9)); this.voices=[]; this.ev=[];
+    this.cfg={wave:0,pw:0.5,drift:1,sub:0.3,att:0.006,rel:0.14,glide:0.004,sat:1.2,pwm:0.02,asym:0.1};
+    this.custom=null; this.drone=null; this.droneF=220; this.x1=0; this.y1=0; this.pwPh=0; this.blk=0; }
+  handle(m){
+    if(m.type==='cfg') Object.assign(this.cfg,m.cfg);
+    else if(m.type==='wave'){ this.cfg.wave=m.wave;
+      if(m.custom){ const re=[0],im=[0]; for(let i=0;i<m.custom.re.length;i++){ re.push(m.custom.re[i]); im.push(m.custom.im[i]); } this.custom={n:m.custom.re.length,re,im}; } }
+    else if(m.type==='on'||m.type==='off'){ this.ev.push(m); this.ev.sort((a,b)=>a.t-b.t); }
+    else if(m.type==='drone'){
+      if(m.on){ if(!this.drone||this.drone.dead){ this.drone=new Voice(-1,this.droneF,this.sr,this.cfg,this.rng); this.voices.push(this.drone); } this.drone.gate=true; }
+      else if(this.drone) this.drone.gate=false; }
+    else if(m.type==='dronefreq'){ this.droneF=m.f; if(this.drone) this.drone.tf=m.f; }
+  }
+  fire(m){
+    if(m.type==='on'){
+      const v=new Voice(m.id,440*Math.pow(2,(m.midi-69)/12),this.sr,this.cfg,this.rng); this.voices.push(v);
+      if(this.voices.length>10){ const old=this.voices.find(x=>x!==this.drone&&!x.gate)||this.voices.find(x=>x!==this.drone);
+        if(old){ old.gate=false; old.rC=Math.exp(-1/(0.01*this.sr)); } }
+    } else { for(const v of this.voices) if(v.id===m.id) v.gate=false; }
+  }
+  process(out, n, t0, fm){
+    const sr=this.sr, cfg=this.cfg, inv=1/sr, ev=this.ev; let e=0;
+    if((++this.blk&3)===0) for(const v of this.voices){ v.a.wander(cfg.drift); v.b.wander(cfg.drift); }
+    this.pwPh+=n*inv*0.13; const pw=cfg.pw+Math.sin(this.pwPh*TAU)*cfg.pwm;
+    const gl=1-Math.exp(-1/(Math.max(0.0005,cfg.glide)*sr));
+    const norm=0.7/th(cfg.sat);
+    for(let i=0;i<n;i++){
+      const ti=t0+i*inv;
+      while(e<ev.length && ev[e].t<=ti){ this.fire(ev[e]); e++; }
+      const fmv = fm ? (fm.length>1?fm[i]:fm[0]) : 0;
+      let s=0;
+      for(let k=0;k<this.voices.length;k++){
+        const v=this.voices[k]; if(v.dead) continue;
+        if(v.gate){ v.env+=(1-v.env)*v.aC; } else { v.env*=v.rC; if(v.env<1e-4){ v.dead=true; continue; } }
+        v.f+=(v.tf-v.f)*gl;
+        const f=Math.max(1,v.f+fmv);
+        const fa=f*Math.pow(2,(v.detA+v.a.drift)/1200), fb=f*Math.pow(2,(v.detB+v.b.drift)/1200);
+        let y=v.a.step(fa*inv,cfg.wave,pw,this.custom)*0.5+v.b.step(fb*inv,cfg.wave,pw,this.custom)*0.5;
+        if(cfg.sub>0) y+=v.sub.step(f*0.5*inv,2,0.5,null)*cfg.sub;
+        s+=y*v.env*v.lvl;
+      }
+      s=th((s+cfg.asym*s*s)*cfg.sat)*norm;
+      const yd=s-this.x1+0.995*this.y1; this.x1=s; this.y1=yd;
+      out[i]=yd;
+    }
+    if(e>0) ev.splice(0,e);
+    if((this.blk&15)===0) this.voices=this.voices.filter(v=>!v.dead);
+  }
+}
+class AnalogFilter{
+  constructor(sr){ this.sr=sr; this.cfg={model:'moog',type:0,cut:1000,res:0.2,drive:1.0,comp:0.3};
+    this.s=[0,0,0,0]; this.o=[0,0,0,0]; this.ic1=0; this.ic2=0; this.px=0; this.y1=0; this.y2=0; this.y3=0; this.cnt=0;
+    this.f=0; this.kk=0; this.p=0; this.r=0; this.g=0; this.G=0; this.kd=0; this.k=0; this.a1=0; this.a2=0; this.a3=0; this.coef(1000); }
+  handle(m){ if(m.type==='cfg'){ Object.assign(this.cfg,m.cfg); this.coef(Math.max(20,Math.min(this.sr*0.45,this.cfg.cut))); } }
+  coef(fc){
+    const c=this.cfg, sr2=this.sr*2;
+    if(c.model==='moog'){ const f=Math.min(0.99,2*fc/sr2); this.f=f; const k=3.6*f-1.6*f*f-1; this.kk=k; this.p=(k+1)*0.5;
+      const scale=Math.exp((1-this.p)*1.386249); this.r=c.res*scale*1.06; }
+    else if(c.model==='zdf'){ const g=Math.tan(Math.PI*Math.min(fc,sr2*0.45)/sr2); this.g=g; this.G=g/(1+g); this.kd=4.18*c.res; }
+    else { const g=Math.tan(Math.PI*Math.min(fc,this.sr*0.45)/this.sr); const k=2-(c.model==='ms20'?2.06:2.03)*c.res; this.g=g; this.k=k;
+      this.a1=1/(1+g*(g+k)); this.a2=g*this.a1; this.a3=g*this.a2; }
+  }
+  process(inp,out,n,cutArr){
+    const c=this.cfg;
+    for(let i=0;i<n;i++){
+      if((this.cnt++&7)===0){ const off=cutArr?(cutArr.length>1?cutArr[i]:cutArr[0]):0;
+        this.coef(Math.max(20,Math.min(this.sr*0.45,c.cut+off))); }
+      let x=inp[i]*c.drive, y;
+      if(c.model==='moog'){
+        const s=this.s, o=this.o, p=this.p, k=this.kk; let lp=0;
+        for(let os=0;os<2;os++){
+          const xin = os===0 ? (this.px+x)*0.5 : x;
+          const u=th(xin-this.r*s[3]);
+          s[0]=u*p+o[0]*p-k*s[0];
+          s[1]=s[0]*p+o[1]*p-k*s[1];
+          s[2]=s[1]*p+o[2]*p-k*s[2];
+          s[3]=s[2]*p+o[3]*p-k*s[3];
+          s[3]-=(s[3]*s[3]*s[3])/6;
+          o[0]=u; o[1]=s[0]; o[2]=s[1]; o[3]=s[2];
+          lp=s[3];
+        }
+        this.px=x;
+        y = c.type===0 ? lp : c.type===1 ? x-lp : (s[1]-s[3]);
+        y*=(1+c.comp*c.res);
+      } else if(c.model==='zdf'){
+        const s=this.s, G=this.G, g=this.g, k=this.kd; let lp=0,u=0;
+        for(let os=0;os<2;os++){
+          const xin = os===0 ? (this.px+x)*0.5 : x;
+          const S=(G*G*G*s[0]+G*G*s[1]+G*s[2]+s[3])/(1+g);
+          u=th((xin-k*S)/(1+k*G*G*G*G));
+          let v=(u-s[0])*G; const y1=v+s[0]; s[0]=y1+v;
+          v=(y1-s[1])*G; const y2=v+s[1]; s[1]=y2+v;
+          v=(y2-s[2])*G; const y3=v+s[2]; s[2]=y3+v;
+          v=(y3-s[3])*G; const y4=v+s[3]; s[3]=y4+v;
+          lp=y4; this.y1=y1; this.y2=y2; this.y3=y3;
+        }
+        this.px=x;
+        y = c.type===0 ? lp : c.type===1 ? (u-4*this.y1+6*this.y2-4*this.y3+lp) : (4*this.y2-8*this.y3+4*lp);
+        y*=(1+c.comp*c.res);
+      } else {
+        if(c.model==='ms20'){ this.ic1=th(this.ic1*1.8)/1.8; x=th(x*1.4)/1.4; } else { this.ic1=th(this.ic1*0.7)/0.7; x=th(x*0.8)/0.8; }
+        const v3=x-this.ic2, v1=this.a1*this.ic1+this.a2*v3, v2=this.ic2+this.a2*this.ic1+this.a3*v3;
+        this.ic1=2*v1-this.ic1; this.ic2=2*v2-this.ic2;
+        y = c.type===0 ? v2 : c.type===1 ? (x-this.k*v1-v2) : v1;
+      }
+      out[i]=y;
+    }
+  }
+}
+class AnalogOut{
+  constructor(sr){ this.sr=sr; this.cfg={drive:1.2,bias:0.12,tone:12000,hiss:0.0004,hum:0.00015,mix:0.8};
+    this.rng=new Rng(7); this.lp=0; this.hx=0; this.hy=0; this.t=0; this.nz=0; this.tc=1-Math.exp(-TAU*12000/sr); }
+  handle(m){ if(m.type==='cfg'){ Object.assign(this.cfg,m.cfg); this.tc=1-Math.exp(-TAU*this.cfg.tone/this.sr); } }
+  process(inp,out,n){
+    const c=this.cfg, b=c.bias, tb=th(b), g0=1/(1-tb*tb), inv=1/this.sr;
+    for(let i=0;i<n;i++){
+      const x=inp[i]*c.drive;
+      let y=(th(x+b)-tb)*g0;
+      y=x*(1-c.mix)+y*c.mix;
+      this.nz=this.nz*0.93+(this.rng.next()*2-1)*0.07;
+      this.t+=inv; if(this.t>1) this.t-=1;
+      y+=this.nz*c.hiss*14+(Math.sin(TAU*50*this.t)+0.35*Math.sin(TAU*100*this.t))*c.hum;
+      this.lp+=(y-this.lp)*this.tc; y=this.lp;
+      const d=y-this.hx+0.9975*this.hy; this.hx=y; this.hy=d;
+      out[i]=d;
+    }
+  }
+}
+`;
+const WORKLET_SRC = DSP_CORE + `
+class LumaAnalog extends AudioWorkletProcessor{
+  constructor(o){ super(); this.kind=o.processorOptions.kind;
+    this.core=new (this.kind==='osc'?AnalogOsc:this.kind==='filter'?AnalogFilter:AnalogOut)(sampleRate);
+    this.port.onmessage=e=>this.core.handle(e.data); }
+  static get parameterDescriptors(){ return [
+    {name:'fm',defaultValue:0,automationRate:'a-rate'},
+    {name:'cutoff',defaultValue:0,automationRate:'a-rate'} ]; }
+  process(inputs,outputs,params){
+    const out=outputs[0][0]; if(!out) return true;
+    if(this.kind==='osc'){ this.core.process(out,out.length,currentTime,params.fm); return true; }
+    const inp=(inputs[0]&&inputs[0][0])||this.zero(out.length);
+    if(this.kind==='filter') this.core.process(inp,out,out.length,params.cutoff);
+    else this.core.process(inp,out,out.length);
+    return true;
+  }
+  zero(n){ if(!this.z||this.z.length!==n) this.z=new Float32Array(n); return this.z; }
+}
+registerProcessor('luma-analog',LumaAnalog);`;
+const analogState = { ready:null, mode:null, Core:null };
+function ensureAnalog(){
+  if(analogState.ready) return analogState.ready;
+  analogState.ready = (async()=>{
+    try{
+      if(!audio.ctx.audioWorklet) throw new Error('no AudioWorklet');
+      const url = URL.createObjectURL(new Blob([WORKLET_SRC],{type:'application/javascript'}));
+      await audio.ctx.audioWorklet.addModule(url);
+      analogState.mode='worklet';
+    }catch(e){
+      analogState.Core = new Function(DSP_CORE+'\nreturn {AnalogOsc,AnalogFilter,AnalogOut};')();
+      analogState.mode='sp';
+    }
+    return analogState.mode;
+  })();
+  return analogState.ready;
+}
+function makeAnalog(kind){
+  const ctx=audio.ctx;
+  if(analogState.mode==='worklet'){
+    const node=new AudioWorkletNode(ctx,'luma-analog',{ numberOfInputs:kind==='osc'?0:1, numberOfOutputs:1,
+      outputChannelCount:[1], processorOptions:{kind} });
+    return { node, send:m=>node.port.postMessage(m), param:n=>node.parameters.get(n) };
+  }
+  const C=analogState.Core;
+  const core=new (kind==='osc'?C.AnalogOsc:kind==='filter'?C.AnalogFilter:C.AnalogOut)(ctx.sampleRate);
+  const node=ctx.createScriptProcessor(512,1,1);
+  node.onaudioprocess=e=>{ const out=e.outputBuffer.getChannelData(0), inp=e.inputBuffer.getChannelData(0);
+    if(kind==='osc') core.process(out,out.length,e.playbackTime,null);
+    else if(kind==='filter') core.process(inp,out,out.length,null);
+    else core.process(inp,out,out.length); };
+  return { node, send:m=>core.handle(m), param:()=>null, core };
+}
+let voiceSeq=0;
+function drawnHarm(o){
+  const y=o.customWave, N=y.length, H=24, re=[], im=[];
+  for(let h=1;h<=H;h++){ let a=0,b=0; for(let i=0;i<N;i++){ const ph=TAU*h*i/N; a+=y[i]*Math.cos(ph); b+=y[i]*Math.sin(ph); }
+    re.push(a*2/N); im.push(b*2/N); }
+  return {re,im};
+}
+function oscSetDrone(o,on){
+  if(o.ana) o.ana.send({type:'drone',on:!!on});
+  else if(audio && o.gate) o.gate.gain.setTargetAtTime(on?1:0, audio.ctx.currentTime, 0.05);
+}
+function freqParams(o){
+  if(!audio) return [];
+  if(o.ana){ const p=o.ana.param('fm'); return p?[p]:[]; }
+  return o.src ? [o.src.frequency, o.src2.frequency] : [];
+}
+function wireMaster(){
+  const a=audio; if(!a) return;
+  try{ a.master.disconnect(); }catch(e){}
+  if(a.outStage){ try{ a.outStage.node.disconnect(); }catch(e){} }
+  if(ANALOG() && analogState.mode){
+    if(!a.outStage) a.outStage=makeAnalog('out');
+    a.outStage.send({type:'cfg',cfg:MODE_CFG[state.soundMode].out});
+    a.master.connect(a.outStage.node); a.outStage.node.connect(a.comp);
+    a.wowG.gain.value=0.0028;
+  } else { a.master.connect(a.comp); a.wowG.gain.value=0; }
+}
+async function setSoundMode(m){
+  if(!SOUND_MODES.includes(m)) return;
+  state.soundMode=m; syncChips(); saveSoon();
+  if(!audio) return;
+  if(m!=='original') await ensureAnalog();
+  if(state.soundMode!==m) return;
+  for(const o of objects) teardownNodes(o);
+  for(const o of objects) buildNodes(o);
+  wireMaster();
+  for(const o of objects){ if(FAMILY[o.type]!=='ctl') rewireAudio(o); if(o.type==='lfo') rewireCtl(o); if(o.type==='osc') applyFm(o); applyParams(o); }
+}
+
 /* ================= audio engine ================= */
 function startAudio(){
   const ctx = new (window.AudioContext || window.webkitAudioContext)();
@@ -544,8 +822,10 @@ function startAudio(){
   comp.connect(tap); tap.connect(sink); sink.connect(ctx.destination);
   const mediaDest = ctx.createMediaStreamDestination();
   comp.connect(mediaDest);
-  audio = { ctx, master, comp, tap, mediaDest, masterAn, masterWave:new Float32Array(1024),
-            buffers:{}, captures:new Set() };
+  const wow=ctx.createOscillator(); wow.frequency.value=0.45; const wowG=ctx.createGain(); wowG.gain.value=0;
+  wow.connect(wowG); wow.start();
+  audio = { ctx, master, comp, tap, mediaDest, masterAn, masterWave:new Float32Array(1024), wowG,
+            buffers:{}, captures:new Set(), outStage:null };
   tap.onaudioprocess = e => {
     if(!audio.captures.size) return;
     const t0 = e.playbackTime !== undefined ? e.playbackTime : ctx.currentTime;
@@ -583,7 +863,16 @@ function buildNodes(o){
   o.an = ctx.createAnalyser(); o.an.fftSize=512;
   o.wave = new Float32Array(o.an.fftSize);
   o.out.connect(o.an);
-  if(o.type==='osc'){
+  if(o.type==='osc' && ANALOG() && analogState.mode){
+    o.ana = makeAnalog('osc');
+    o.ana.send({type:'cfg', cfg:MODE_CFG[state.soundMode].osc});
+    o.ana.send({type:'wave', wave:o.option, custom:(o.option===4&&o.customWave)?drawnHarm(o):null});
+    o.ana.send({type:'dronefreq', f:oscFreq(o)});
+    o.ana.send({type:'drone', on:!o.gated});
+    o.amp = ctx.createGain(); o.amp.gain.value = o.arc*0.32;
+    o.gate = ctx.createGain(); o.gate.gain.value = 1;
+    o.ana.node.connect(o.amp); o.amp.connect(o.gate); o.gate.connect(o.out);
+  } else if(o.type==='osc'){
     // two lightly detuned voices through a gentle lowpass = warmer VA tone
     const f = oscFreq(o);
     const wtype = OSC_WAVES[o.option] || 'sine';
@@ -653,10 +942,16 @@ function buildNodes(o){
   } else if(o.type==='tempo'){
     /* global object: no audio path */
   } else if(o.type==='filter'){
-    o.biq = ctx.createBiquadFilter();
-    o.biq.type = FILTER_MODES[o.option];
-    o.biq.frequency.value = filtCut(o); o.biq.Q.value = filtQ(o);
-    o.biq.connect(o.out);
+    if(ANALOG() && analogState.mode){
+      o.ana = makeAnalog('filter');
+      o.ana.send({type:'cfg', cfg:Object.assign({}, MODE_CFG[state.soundMode].filt, {type:o.option, cut:filtCut(o), res:o.arc})});
+      o.ana.node.connect(o.out);
+    } else {
+      o.biq = ctx.createBiquadFilter();
+      o.biq.type = FILTER_MODES[o.option];
+      o.biq.frequency.value = filtCut(o); o.biq.Q.value = filtQ(o);
+      o.biq.connect(o.out);
+    }
   } else if(o.type==='delay'){
     o.inG = ctx.createGain();
     o.dl = ctx.createDelay(4); o.dl.delayTime.value = delayTime(o);
@@ -664,7 +959,12 @@ function buildNodes(o){
     o.dry = ctx.createGain(); o.dry.gain.value = 0.9;
     o.wet = ctx.createGain(); o.wet.gain.value = 0.85;
     o.inG.connect(o.dry); o.dry.connect(o.out);
-    o.inG.connect(o.dl); o.dl.connect(o.fb); o.fb.connect(o.dl);
+    o.inG.connect(o.dl); o.dl.connect(o.fb);
+    if(ANALOG()){   // bucket-brigade / tape feel: the repeats saturate and darken
+      o.fbSat = ctx.createWaveShaper(); o.fbSat.curve = makeDistCurve(2.2); o.fbSat.oversample='2x';
+      o.fbLP = ctx.createBiquadFilter(); o.fbLP.type='lowpass'; o.fbLP.frequency.value = 3600; o.fbLP.Q.value = 0.5;
+      o.fb.connect(o.fbSat); o.fbSat.connect(o.fbLP); o.fbLP.connect(o.dl);
+    } else o.fb.connect(o.dl);
     o.dl.connect(o.wet); o.wet.connect(o.out);
   } else if(o.type==='mod'){
     o.inG = ctx.createGain();
@@ -687,14 +987,17 @@ function buildNodes(o){
 }
 function inputOf(t){
   if(t==='C') return audio.master;
-  if(t.type==='filter') return t.biq;
+  if(t.type==='filter') return t.biq || (t.ana && t.ana.node);
   if(['delay','mod','dist','reverb','chorus','crush'].includes(t.type)) return t.inG;
   return null;
 }
 function ctlParamOf(t){
   if(!t) return null;
-  if(t.type==='osc') return { params:[t.src.frequency, t.src2.frequency], scale:oscFreq(t)*0.5 };
-  if(t.type==='filter') return { params:[t.biq.frequency], scale:filtCut(t)*0.9 };
+  if(t.type==='osc'){ const ps=freqParams(t); return ps.length ? { params:ps, scale:oscFreq(t)*0.5 } : null; }
+  if(t.type==='filter'){
+    if(t.biq) return { params:[t.biq.frequency], scale:filtCut(t)*0.9 };
+    const p=t.ana && t.ana.param('cutoff'); return p ? { params:[p], scale:filtCut(t)*0.9 } : null;
+  }
   if(t.type==='delay') return { params:[t.dl.delayTime], scale:0.08 };
   return null;
 }
@@ -722,11 +1025,14 @@ function applyParams(o){
   const t = audio.ctx.currentTime;
   if(o.type==='osc'){
     o.midiNote = null;                 // a manual change reclaims the pitch from MIDI
-    if(!o.gated){
-      o.src.frequency.setTargetAtTime(oscFreq(o), t, 0.02);
-      o.src2.frequency.setTargetAtTime(oscFreq(o), t, 0.02);
+    if(o.ana){ o.ana.send({type:'dronefreq', f:oscFreq(o)}); o.amp.gain.setTargetAtTime(o.arc*0.32, t, 0.02); }
+    else {
+      if(!o.gated){
+        o.src.frequency.setTargetAtTime(oscFreq(o), t, 0.02);
+        o.src2.frequency.setTargetAtTime(oscFreq(o), t, 0.02);
+      }
+      o.amp.gain.setTargetAtTime(o.arc*0.22, t, 0.02);
     }
-    o.amp.gain.setTargetAtTime(o.arc*0.22, t, 0.02);
   } else if(o.type==='sampler' || o.type==='rec' || o.type==='mic'){
     o.amp.gain.setTargetAtTime(o.arc, t, 0.02);
   } else if(o.type==='dist'){
@@ -749,8 +1055,11 @@ function applyParams(o){
   } else if(o.type==='tempo'){
     setBpm(tempoBpm(o)); syncChips();
   } else if(o.type==='filter'){
-    o.biq.frequency.setTargetAtTime(filtCut(o), t, 0.02);
-    o.biq.Q.setTargetAtTime(filtQ(o), t, 0.02);
+    if(o.ana) o.ana.send({type:'cfg', cfg:{cut:filtCut(o), res:o.arc, type:o.option}});
+    else {
+      o.biq.frequency.setTargetAtTime(filtCut(o), t, 0.02);
+      o.biq.Q.setTargetAtTime(filtQ(o), t, 0.02);
+    }
   } else if(o.type==='delay'){
     o.dl.delayTime.setTargetAtTime(delayTime(o), t, 0.06);
     o.fb.gain.setTargetAtTime(delayFb(o), t, 0.02);
@@ -765,6 +1074,7 @@ function applyParams(o){
 function cycleOption(o){
   if(o.type==='osc'){
     o.option = o.option>=3 ? 0 : o.option+1;   // leaves a drawn wave (option 4) too
+    if(o.ana) o.ana.send({type:'wave', wave:o.option, custom:null});
     if(o.src) o.src.type = OSC_WAVES[o.option];
     if(o.src2) o.src2.type = OSC_WAVES[o.option];
   } else if(o.type==='lfo'){
@@ -776,6 +1086,7 @@ function cycleOption(o){
   } else if(o.type==='filter'){
     o.option = (o.option+1)%FILTER_MODES.length;
     if(o.biq) o.biq.type = FILTER_MODES[o.option];
+    if(o.ana) o.ana.send({type:'cfg', cfg:{type:o.option}});
   } else if(o.type==='sampler'){
     o.angle = (o.angle + TAU/LOOPS.length) % TAU; applyParams(o);
   } else if(o.type==='delay'){
@@ -796,7 +1107,9 @@ function updateOutGain(o){
 }
 /* a finger-drawn waveform becomes the oscillator's tone (64 samples -> harmonics) */
 function applyDrawnWave(o){
-  if(!audio || !o.customWave || !o.src) return;
+  if(!audio || !o.customWave) return;
+  if(o.ana){ o.ana.send({type:'wave', wave:4, custom:drawnHarm(o)}); return; }
+  if(!o.src) return;
   const y = o.customWave, N = y.length, H = 24;
   const real = new Float32Array(H+1), imag = new Float32Array(H+1);
   for(let h=1; h<=H; h++){
@@ -815,6 +1128,11 @@ function setOscWave(node, o){
 /* ---- polyphonic voice engine: one oscillator can now sound several notes ---- */
 function startVoice(o, midiN, t){
   if(!audio || !o.out) return null;
+  if(o.ana){   // analogue engine: the voice lives inside the oscillator model
+    const id=++voiceSeq, a=o.ana;
+    a.send({type:'on', id, midi:midiN, t});
+    return { released:false, release(rt){ if(this.released) return; this.released=true; a.send({type:'off', id, t:Math.max(rt||0, audio.ctx.currentTime)}); } };
+  }
   const g = audio.ctx.createGain(); g.connect(o.out);
   const oscs = [], f = midiToF(midiN);
   for(const det of [-4, 9]){
@@ -848,11 +1166,12 @@ function pluckVoice(o, midiN, t, len){
 }
 /* proximity FM: an outer oscillator silently modulates a nearer one */
 function applyFm(o){
-  if(!audio || !o.src) return;
-  if(!o.fmGain){ o.fmGain = audio.ctx.createGain(); o.fmGain.gain.value = 0; o.src.connect(o.fmGain); }
+  if(!audio || !(o.src || o.ana)) return;
+  if(!o.fmGain){ o.fmGain = audio.ctx.createGain(); o.fmGain.gain.value = 0; (o.src || o.ana.node).connect(o.fmGain); }
   try{ o.fmGain.disconnect(); }catch(e){}
   const t = o.fmTo && objects.find(x=>x.id===o.fmTo);
-  if(t && t.src){ o.fmGain.connect(t.src.frequency); o.fmGain.connect(t.src2.frequency); }
+  const ps = t ? freqParams(t) : [];
+  if(ps.length){ for(const p of ps) o.fmGain.connect(p); }
   else o.fmTo = null;
   updateOutGain(o);
   updateFmGain(o);
@@ -1006,6 +1325,7 @@ function scheduleBar(o, t, barAbs){
   const src = audio.ctx.createBufferSource();
   src.buffer = entry.buffer;
   src.playbackRate.value = entry.buffer.duration / (entry.beats * 60/state.bpm);
+  audio.wowG.connect(src.playbackRate);
   src.connect(o.amp);
   src.start(t);
   src.stop(t + bars*16*stepDur() + 0.03);
@@ -1076,15 +1396,15 @@ function initMidi(){
 // MIDI note-in: polyphonic. Held notes play voices on every free oscillator,
 // ducking its drone; releasing the last note restores the drone.
 function midiDuck(o, on){
-  if(!o.gate || !audio) return;
-  o.gate.gain.setTargetAtTime((on || o.gated) ? 0 : 1, audio.ctx.currentTime, 0.02);
+  if(!audio) return;
+  oscSetDrone(o, !(on || o.gated));
 }
 function onMidiIn(ev){
   const [status, d1, d2] = ev.data;
   const cmd = status & 0xf0;
   const now = audio ? audio.ctx.currentTime : 0;
   if(cmd===0x90 && d2>0){
-    for(const o of objects) if(o.type==='osc' && !o.gated && o.src){
+    for(const o of objects) if(o.type==='osc' && !o.gated && (o.src||o.ana)){
       o.midiHeld = o.midiHeld || {};
       if(o.midiHeld[d1]) o.midiHeld[d1].release(now);
       if(Object.keys(o.midiHeld).length===0) midiDuck(o, true);
@@ -1101,7 +1421,7 @@ function onMidiIn(ev){
   }
 }
 function noteOn(osc, deg, t, len){
-  if(!osc.src) return;
+  if(!osc.src && !osc.ana) return;
   const m = quantMidi(oscMidi(osc) + degSemis(deg));
   if(midi && state.midiOn && m>=0 && m<=127){
     try{ midi.send([0x90, m, 100], perfTime(t)); midi.send([0x80, m, 64], perfTime(t+len)); }catch(e){}
@@ -1186,7 +1506,10 @@ function computePatch(){
       o.gated = bound;
       if(audio){
         const t = audio.ctx.currentTime;
-        if(o.type==='osc' && o.gate){
+        if(o.type==='osc' && o.ana){
+          o.ana.send({type:'dronefreq', f:oscFreq(o)});
+          o.ana.send({type:'drone', on:!bound});
+        } else if(o.type==='osc' && o.gate){
           o.gate.gain.cancelScheduledValues(t);
           o.gate.gain.setTargetAtTime(bound?0:1, t, 0.05);
           if(!bound) o.src.frequency.setTargetAtTime(oscFreq(o), t, 0.02);
@@ -1485,7 +1808,7 @@ function oscParse(v, off, end){
 let saveTimer = null;
 function sceneJSON(){
   return {
-    v:4, bpm:state.bpm, key:state.key, scaleIdx:state.scaleIdx, swingIdx:state.swingIdx,
+    v:4, bpm:state.bpm, key:state.key, scaleIdx:state.scaleIdx, swingIdx:state.swingIdx, soundMode:state.soundMode,
     objects: objects.map(o=>({
       type:o.type, nx:(o.x-CX)/TABLE_R, ny:(o.y-CY)/TABLE_R,
       angle:o.angle, arc:o.arc, option:o.option, muted:o.muted,
@@ -1504,6 +1827,7 @@ function loadSceneFrom(sc){
   if(!sc || ![2,3,4].includes(sc.v) || !Array.isArray(sc.objects)) return false;
   state.bpm = sc.bpm||112; state.key = sc.key||0; state.scaleIdx = sc.scaleIdx||0;
   state.swingIdx = sc.swingIdx||0;
+  if(SOUND_MODES.includes(sc.soundMode)) state.soundMode = sc.soundMode;
   for(const so of sc.objects){
     if(!FAMILY[so.type]) continue;
     const o = spawn(so.type, CX+so.nx*TABLE_R, CY+so.ny*TABLE_R);
@@ -1566,6 +1890,7 @@ function syncChips(){
   $('keyv').textContent = NOTE_NAMES[state.key];
   $('scalev').textContent = SCALES[state.scaleIdx].name;
   $('swingv').textContent = SWINGS[state.swingIdx].n;
+  $('soundv').textContent = state.soundMode==='original' ? 'original' : MODE_CFG[state.soundMode].label;
 }
 $('bpmDn').addEventListener('click', ()=>setBpm(state.bpm-4));
 $('bpmUp').addEventListener('click', ()=>setBpm(state.bpm+4));
@@ -1579,6 +1904,10 @@ $('scaleChip').addEventListener('click', ()=>{
   state.scaleIdx = (state.scaleIdx+1)%SCALES.length; syncChips(); buildTonalBuffers();
   for(const o of objects) if(o.type==='osc') applyParams(o);
   saveSoon();
+});
+$('soundChip').addEventListener('click', ()=>{
+  const i=(SOUND_MODES.indexOf(state.soundMode)+1)%SOUND_MODES.length;
+  setSoundMode(SOUND_MODES[i]);
 });
 $('swingChip').addEventListener('click', ()=>{
   state.swingIdx = (state.swingIdx+1)%SWINGS.length; syncChips();
@@ -2107,6 +2436,7 @@ document.getElementById('begin').addEventListener('click', ()=>{
   for(const o of objects){ rewireAudio(o); rewireCtl(o); applyParams(o); }
   startTransport();
   initMidi();
+  if(ANALOG()) setSoundMode(state.soundMode);
   document.getElementById('overlay').remove();
   const q = new URLSearchParams(location.search).get('tuio');
   if(q) tuioConnect(q);

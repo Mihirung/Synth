@@ -29,6 +29,9 @@ synthesiser.
 | [docs/01-what-it-was.md](docs/01-what-it-was.md) | Identification, history, Björk's use, company timeline, where the documentation survives |
 | [docs/02-how-it-worked.md](docs/02-how-it-worked.md) | The original architecture: hardware, reacTIVision, TUIO, dynamic patching, the object set and interaction model |
 | [docs/03-rebuild-plan.md](docs/03-rebuild-plan.md) | Proposed architecture, technology choices, phased plan with effort estimates, hardware path, legal notes |
+| [docs/04-hardware-build.md](docs/04-hardware-build.md) | Phase B: building the physical camera-tracked table |
+| [docs/05-feature-parity.md](docs/05-feature-parity.md) | Parity ledger against the original Reactable |
+| [docs/06-sound-engines.md](docs/06-sound-engines.md) | The analogue sound engines and the theory behind each |
 
 ## Status
 
@@ -67,6 +70,12 @@ most of Phase 2 of the plan:
   line is lit by its own live signal level, motes of light travel the connections in time,
   and adaptive resolution trades pixels for frames on slow devices. A Canvas-2D fallback keeps
   it running without WebGL; all motion respects `prefers-reduced-motion`.
+- **Analogue sound engines**: a *sound* chip switches between the original Web Audio engine
+  and four analogue models built as real per-sample DSP in an AudioWorklet: Stilson–Smith/
+  Huovilainen Moog ladder, Zavalishin zero-delay-feedback ladder, Simper TPT state-variable
+  (Oberheim SEM) and a saturated-feedback MS-20. PolyBLEP drifting oscillators with a sub,
+  RC envelopes, a valve/transformer output stage with hiss and hum, tape-style delays.
+  See [docs/06-sound-engines.md](docs/06-sound-engines.md).
 - **Polyphonic voice engine**: oscillators play chords and overlapping notes, driven by the
   sequencer, a MIDI keyboard, the on-screen piano, or the A-L computer keys. Eight scales,
   chorus and bitcrusher effects, a master VU ring, and undo (Ctrl/Cmd+Z).

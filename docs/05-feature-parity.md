@@ -60,6 +60,7 @@ excluded, with reason.
 | Undo | **done** | 40-deep snapshot stack; chip + Ctrl/Cmd+Z |
 | Tempo-synced everything | **done** | Loops, delay, LFO, sequencer share one clock |
 | Swing / groove | **done** | Off/lite/full, baked into loops and sequencer |
+| Analogue sound engines | **done** | Four selectable per-sample models (Moog ladder, ZDF ladder, SEM SVF, MS-20) with PolyBLEP drifting oscillators and a valve output stage; see docs/06 |
 | GPU-lit rendering | **done** | WebGL bloom, glass caustics, beat/touch ripples, aurora, vignette, grain; per-object audio-reactive light and signal motes; adaptive resolution; CPU glows gone from the hot path |
 
 ## Still open (genuine diminishing returns, not blockers)
