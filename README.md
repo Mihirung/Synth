@@ -34,6 +34,7 @@ synthesiser.
 | [docs/06-sound-engines.md](docs/06-sound-engines.md) | The analogue sound engines and the theory behind each |
 | [docs/07-advanced.md](docs/07-advanced.md) | The advanced pucks: tuning, envelopes, expression, chance, scenes, motion, warp, sends, stems, and the physical kit |
 | [hardware/README.md](hardware/README.md) | The printed kit: STL/OBJ parts, marker sheets and cards |
+| [tests/README.md](tests/README.md) | Headless end-to-end tests of the instrument (Playwright) |
 
 ## Status
 

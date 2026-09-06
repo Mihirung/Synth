@@ -3540,7 +3540,6 @@ function drawObject(o){
   // stems recorder: a red progress ring like the loop recorder's
   if(o.type==='stems' && audio){
     if(o.stemState==='armed' && now>=o.stemFrom) o.stemState='recording';
-    if(o.stemState==='recording' && now>=o.stemUntil+0.3 && o.stems===null) o.stemState = o.stemState;   // finishStems flips it
     if(o.stemState==='armed' || o.stemState==='recording'){
       const f = o.stemState==='recording' ? Math.min(1,(now-o.stemFrom)/Math.max(0.01,o.stemUntil-o.stemFrom)) : 0;
       g.strokeStyle='#ff5d5d'; g.lineWidth=3; glow('#ff5d5d', 8);
