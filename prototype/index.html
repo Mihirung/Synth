@@ -184,6 +184,12 @@
 
 <script>
 'use strict';
+if(typeof CanvasRenderingContext2D!=='undefined' && !CanvasRenderingContext2D.prototype.roundRect){
+  CanvasRenderingContext2D.prototype.roundRect = function(x,y,w,h,r){
+    r = Math.min(Array.isArray(r)?r[0]:r, w/2, h/2);
+    this.moveTo(x+r,y); this.arcTo(x+w,y,x+w,y+h,r); this.arcTo(x+w,y+h,x,y+h,r);
+    this.arcTo(x,y+h,x,y,r); this.arcTo(x,y,x+w,y,r); this.closePath(); return this; };
+}
 /* ================================================================
    Lumatable — a Reactable rebuild study.
    Layers: surface input (pointer / TUIO) → instrument model
@@ -236,15 +242,30 @@ const scaleSteps = () => SCALES[state.scaleIdx].steps;
    Without WebGL the scene draws straight to screen with CPU glows. */
 let gl = null, G = null;
 const VS = 'attribute vec2 p;varying vec2 v;void main(){v=p*.5+.5;gl_Position=vec4(p,0.,1.);}';
-const FS_BRIGHT = `precision mediump float;varying vec2 v;uniform sampler2D t;uniform float th;
+const FS_BRIGHT = `#ifdef GL_FRAGMENT_PRECISION_HIGH
+precision highp float;
+#else
+precision mediump float;
+#endif
+varying vec2 v;uniform sampler2D t;uniform float th;
 void main(){vec3 c=texture2D(t,v).rgb;float l=dot(c,vec3(.299,.587,.114));
 float k=smoothstep(th,th+.45,l);gl_FragColor=vec4(c*k,1.);}`;
-const FS_BLUR = `precision mediump float;varying vec2 v;uniform sampler2D t;uniform vec2 d;
+const FS_BLUR = `#ifdef GL_FRAGMENT_PRECISION_HIGH
+precision highp float;
+#else
+precision mediump float;
+#endif
+varying vec2 v;uniform sampler2D t;uniform vec2 d;
 void main(){vec3 s=texture2D(t,v).rgb*.227027;
 s+=(texture2D(t,v+d*1.3846).rgb+texture2D(t,v-d*1.3846).rgb)*.3162162;
 s+=(texture2D(t,v+d*3.2308).rgb+texture2D(t,v-d*3.2308).rgb)*.0702703;
 gl_FragColor=vec4(s,1.);}`;
-const FS_COMP = `precision mediump float;varying vec2 v;
+const FS_COMP = `#ifdef GL_FRAGMENT_PRECISION_HIGH
+precision highp float;
+#else
+precision mediump float;
+#endif
+varying vec2 v;
 uniform sampler2D scene,b1,b2;uniform vec2 res,cen;uniform float rad,time,beat,level,amt;uniform vec4 rip[6];uniform float rw[6];
 float hash(vec2 p){return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453);}
 float noise(vec2 p){vec2 i=floor(p),f=fract(p);f=f*f*(3.-2.*f);
@@ -349,6 +370,7 @@ function addRipple(x,y,s,w){
 }
 const ripArr = new Float32Array(24), ripW = new Float32Array(6);
 function glPost(beatPh, level){
+  if(!gl||!G) return;
   gl.activeTexture(gl.TEXTURE0); gl.bindTexture(gl.TEXTURE_2D,G.sceneTex);
   if(G.sceneW!==scene.width || G.sceneH!==scene.height){
     gl.texImage2D(gl.TEXTURE_2D,0,gl.RGBA,gl.RGBA,gl.UNSIGNED_BYTE,scene);
@@ -399,11 +421,12 @@ const canvas = document.getElementById('stage');
   }catch(e){ ctx=null; }
   if(ctx) glSetup(ctx);
 })();
+if(canvas.addEventListener) canvas.addEventListener('webglcontextlost', e=>{ try{ e.preventDefault(); }catch(_){}; if(typeof glFallback==='function') glFallback(); });
 const scene = gl ? document.createElement('canvas') : canvas;
 const g = scene.getContext('2d');
 const GLOW = !gl;
 function glow(color, px){ if(GLOW){ g.shadowColor=color; g.shadowBlur=px; } }
-function noGlow(){ if(GLOW) noGlow(); }
+function noGlow(){ if(GLOW) g['shadowBlur']=0; }
 let discGrad = null;
 let RES_SCALE = 1, ftAcc = 0, ftN = 0, lastFrameT = 0, lastResChange = 0;
 const RES_LOCK = /lockres/.test(location.search);
@@ -2764,10 +2787,29 @@ function drawMotes(dt){
   }
   g.globalAlpha=1;
 }
+let frameErrors = 0;
+function glFallback(){   // the GPU path failed at runtime: show the fully-drawn 2D scene directly
+  gl=null; G=null;                                   // disable the GPU FIRST, whatever happens next
+  try{
+    if(scene!==canvas && scene.parentNode!==document.body){
+      scene.style.cssText='position:fixed;inset:0;width:100%;height:100%;z-index:0';
+      document.body.insertBefore(scene, canvas);
+      canvas.style.opacity='0';
+    }
+  }catch(e){}
+}
 function frame(){
+  try{ frameBody(); }
+  catch(e){
+    if(++frameErrors<=3) console.warn('frame error', e);
+    if(gl){ try{ glFallback(); }catch(_){ gl=null; G=null; } }   // any failure while on GL drops to the 2D scene
+  }
+  requestAnimationFrame(frame);
+}
+function frameBody(){
   if(sync.flash && performance.now()<sync.flash.until){   // the measurement flash: a white frame the camera can't miss
     g.setTransform(DPR,0,0,DPR,0,0); g.fillStyle='#fff'; g.fillRect(0,0,W,H);
-    if(gl) glPost(0,0); requestAnimationFrame(frame); return;
+    if(gl) glPost(0,0); return;
   }
   if(cam.calib){   // calibration: a black screen with one bright dot at a time
     g.setTransform(DPR,0,0,DPR,0,0); g.fillStyle='#000'; g.fillRect(0,0,W,H);
@@ -2776,7 +2818,7 @@ function frame(){
     g.fillStyle='#8a97a8'; g.font=`500 ${12*S}px "Chakra Petch", sans-serif`; g.textAlign='center';
     g.fillText(`CALIBRATING ${cam.calib.step+1} / 4  ·  keep the camera still`, CX, CY);
     if(gl) glPost(0,0);
-    requestAnimationFrame(frame); return;
+    return;
   }
   const nowMs=performance.now();
   const dt = lastFrameT ? Math.min(0.1,(nowMs-lastFrameT)/1000) : 0.016;
@@ -2891,7 +2933,6 @@ function frame(){
     g.save(); g.strokeStyle=h.pinch?COL.gen:COL.ctl; g.lineWidth=2; g.globalAlpha=0.9;
     g.beginPath(); g.arc(p.x,p.y,(h.pinch?10:16)*S,0,TAU); g.stroke(); g.restore(); }
   if(gl) glPost(ph, level);
-  requestAnimationFrame(frame);
 }
 
 /* ================= boot ================= */
