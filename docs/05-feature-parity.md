@@ -26,8 +26,8 @@ excluded, with reason.
 | Input (live audio) | **done** | "Mic" object via getUserMedia |
 | Loop recorder | **done** | Captures the table's own output for 1/2/4/8 bars, loops it |
 | Tempo (global) | **done** | Tangible "tempo" puck (rotate to set BPM), plus a header chip |
-| Tonalizer (scale) | **done** | Global key + scale (penta/major/minor/blues); a global rather than a puck |
-| Volume / accents | **partial** | Per-object arc acts as level; no dedicated master-volume object (master gain + limiter are automatic) |
+| Tonalizer (scale) | **done** | Global key + scale chips, and a tangible *key* puck (turn = key, slide = scale, faces = octave); a *tuning* puck adds eleven temperaments |
+| Volume / accents | **done** | Per-object arc as level, a *master* puck (volume + glue), and sequencer accents (three-state pads with an *express* puck) |
 | Containers / groups | **out of scope** | A power-user grouping feature; low value for the target audience |
 
 ## Original interactions
@@ -40,7 +40,7 @@ excluded, with reason.
 | Live waveform on connections | **done** | Real per-connection AnalyserNode |
 | Cut a connection | **done** | Swipe across the line (robust crossing test) |
 | Finger-drawn waveform absorbed by oscillator | **done** | Draw a shape near an osc; becomes its tone |
-| Cube-face flipping for presets/sounds | **partial** | Double-tap cycles modes on screen; true per-face banks arrive with physical cubes (**hardware**) |
+| Cube-face flipping for presets/sounds | **done** | A single tap flips to the next face on screen; every object's modes are faces; sequencers keep a four-pattern bank, scenes four snapshots; the printed cubes carry four faces |
 | Multi-touch, many hands | **partial** | Multi-touch works on one screen; several people around one table is the physical build (**hardware**), which is how the original did it too |
 
 ## Modern additions (what they'd build today)
@@ -62,6 +62,18 @@ excluded, with reason.
 | Swing / groove | **done** | Off/lite/full, baked into loops and sequencer |
 | Analogue sound engines | **done** | Four selectable per-sample models (Moog ladder, ZDF ladder, SEM SVF, MS-20) with PolyBLEP drifting oscillators and a valve output stage; see docs/06 |
 | GPU-lit rendering | **done** | WebGL bloom, glass caustics, beat/touch ripples, aurora, vignette, grain; per-object audio-reactive light and signal motes; adaptive resolution; CPU glows gone from the hot path |
+| Microtonal tuning | **done** | *Tuning* puck: just, Pythagorean, meantone, Werckmeister III, Kirnberger III, 19/31-EDO, neutral, slendro, pelog; reference A slider; loops retune on face 2 |
+| Envelopes | **done** | *Envelope* puck: ADSR per oscillator in both engines, or a velocity-driven filter envelope |
+| Velocity / pressure / aftertouch | **done** | *Express* puck: accents, MIDI velocity and aftertouch, pitch wheel, pen pressure, pinch pressure, cube lift and tilt; destinations vibrato/bright/tremolo/bend |
+| Sequencer depth | **done** | *Steps* (length, rate, direction), *euclid* (Bjorklund), *chance* (probability, ratchets, fills, skips, humanise), *chain* (pattern arrangement) |
+| Scenes and morphing | **done** | *Scene* puck: four snapshots as faces, morph by turning, crossfade by the slider, lift-and-replace to store |
+| Gesture recording | **done** | *Motion* puck loops any movement of any object on the grid |
+| Time-stretch / pitch-shift | **done** | *Warp* puck: granular pitch without tempo change, half/double speed, reverse |
+| Effect sends | **done** | *Send* puck: proximity-scaled sends into any effect, pre or post |
+| Stereo | **done** | *Space* puck: position, orbit or radial width |
+| Stems export | **done** | *Stems* puck: a multichannel WAV, a channel per object plus master (hosted build) |
+| Persistent imports | **done** | Imports live in IndexedDB and return after a reload, up to six, all warpable |
+| Printed kit | **done** | STL/OBJ cube and pucks with marker pockets, 8-bit marker sheets, printable cards |
 
 ## Still open (genuine diminishing returns, not blockers)
 
@@ -70,11 +82,11 @@ excluded, with reason.
   could add a WAV encoder. Low value.
 - **MIDI clock in** (slaving the table's transport to external clock) and **MIDI CC out**
   for parameters: useful in a studio rig, fiddly to get glitch-free, niche for this audience.
-- **Named multi-slot scene saving**: today there is one autosaved scene plus unlimited
-  shareable jam links, which covers most of the need.
-- **Polyphonic chord *steps* in the sequencer**: the sequencer is now polyphonic-capable
-  (voices overlap and stack), but each step still holds one note; multi-note steps would be
-  a UI addition, not an engine one.
+- **Polyphonic chord *steps* in the sequencer**: the sequencer is polyphonic-capable
+  (voices overlap and stack), but each step still holds one note; stacking two sequencers
+  on one oscillator gives chords today.
+- **Tilt direction**: a tilted cube's disc says how far, not which way, so tilt bends up
+  only (docs/07).
 
 ## Genuinely impossible here (environment limits, not design)
 
@@ -97,5 +109,6 @@ excluded, with reason.
 
 The short version: every sound object and interaction the original Reactable had now exists
 here, plus the recorder, mic, and tangible tempo it had that we previously lacked, plus modern
-sharing, import, recording and MIDI. What remains is either polish, or belongs to the physical
-table.
+sharing, import, recording and MIDI, plus an advanced drawer of fifteen pucks for the serious
+player. What remains is either polish, or belongs to the physical table, whose parts are now in
+`hardware/`.

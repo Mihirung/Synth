@@ -32,6 +32,8 @@ synthesiser.
 | [docs/04-hardware-build.md](docs/04-hardware-build.md) | Phase B: building the physical camera-tracked table |
 | [docs/05-feature-parity.md](docs/05-feature-parity.md) | Parity ledger against the original Reactable |
 | [docs/06-sound-engines.md](docs/06-sound-engines.md) | The analogue sound engines and the theory behind each |
+| [docs/07-advanced.md](docs/07-advanced.md) | The advanced pucks: tuning, envelopes, expression, chance, scenes, motion, warp, sends, stems, and the physical kit |
+| [hardware/README.md](hardware/README.md) | The printed kit: STL/OBJ parts, marker sheets and cards |
 
 ## Status
 
@@ -80,13 +82,25 @@ most of Phase 2 of the plan:
   sequencer, a MIDI keyboard, the on-screen piano, or the A-L computer keys. Eight scales,
   chorus and bitcrusher effects, a master VU ring, and undo (Ctrl/Cmd+Z).
 - **Camera table (no PC)**: tap *camera* and an Android phone mounted above a flat TV tracks
-  printed dot-markers on cubes in-page (position, rotation and a 6-bit ID), calibrates itself
+  printed dot-markers on cubes in-page (position, rotation and an 8-bit ID), calibrates itself
   with four dots, and turns a thumb-and-forefinger pinch into a touch via on-device hand
   tracking. *markers* prints the sheet. See [docs/04-hardware-build.md](docs/04-hardware-build.md).
+- **The advanced drawer**: fifteen further pucks behind a *more* button, so the main tray
+  stays a child's tray. Tuning systems (just, Pythagorean, meantone, Werckmeister,
+  Kirnberger, 19- and 31-EDO, neutral thirds, slendro, pelog), a key puck, ADSR and filter
+  envelopes, velocity and aftertouch (sequencer accents, MIDI, pen pressure, pinch
+  pressure, and a lifted or tilted cube), pattern length/rate/direction, Euclidean rhythms,
+  probability with ratchets and fills, pattern chaining, four-slot scene snapshots with a
+  morph, gesture loops, granular warp for loops, proximity sends, the table as a stereo
+  field, a master puck, and a stems recorder that writes every object to one multichannel
+  WAV. Imports persist. See [docs/07-advanced.md](docs/07-advanced.md).
+- **Printed kit**: [`hardware/print/`](hardware/print/) has a 60 mm cube and round and
+  hexagonal 70 mm pucks as STL and OBJ with marker pockets, plus printable marker sheets
+  (256 eight-bit ids) and a card per object. See [hardware/README.md](hardware/README.md).
 - **Physical-table ready** (PC route): open the page with `?tuio=ws://localhost:8765` and run
   [`prototype/tuio-bridge.js`](prototype/tuio-bridge.js) to drive it from reacTIVision's
   TUIO stream instead of the mouse (fiducial class IDs map to object types in blocks of
   eight). Untested against real hardware, by definition, but the seam is in place.
 
-Remaining from the plan: sample import for the sampler, a melodic note picker as an
-alternative to the radial pads, and the hardware build itself (docs/03, Phase B).
+Remaining from the plan: the hardware build itself (docs/03 and 04, Phase B), which now
+has its parts, markers and cards ready to print.

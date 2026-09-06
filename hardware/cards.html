@@ -1,0 +1,66 @@
+<!doctype html><html><head><meta charset="utf-8"><title>Lumatable cards</title><style>
+  @page{size:A4;margin:10mm} body{margin:0;font:9.5pt sans-serif;color:#222}
+  main{display:grid;grid-template-columns:repeat(2,1fr);gap:4mm}
+  article{border:0.4mm solid #333;border-radius:4mm;padding:4mm 5mm;height:55mm;box-sizing:border-box;page-break-inside:avoid;position:relative}
+  article.adv{border-style:dashed}
+  h3{margin:0 0 2mm;font-size:12pt;letter-spacing:.12em} h3 span{float:right;font-size:7pt;letter-spacing:.2em;color:#777;font-weight:normal;margin-top:1.5mm}
+  dl{margin:0 0 2mm;display:grid;grid-template-columns:12mm 1fr;gap:.6mm 2mm} dt{color:#777;text-transform:uppercase;font-size:7pt;letter-spacing:.15em;padding-top:.6mm} dd{margin:0}
+  p{margin:0;color:#444;line-height:1.35;font-size:8.5pt}</style></head><body><main><article class=""><h3>OSC</h3>
+      <dl><dt>turn</dt><dd>pitch (in key)</dd><dt>slide</dt><dd>level</dd><dt>faces</dt><dd>SINE · SAW · SQUARE · TRIANGLE</dd></dl>
+      <p>A tone in the current key. Push two together for FM. Tap the small key button for a piano; draw a shape beside it to become its waveform.</p></article><article class=""><h3>LOOPS</h3>
+      <dl><dt>turn</dt><dd>which loop</dd><dt>slide</dt><dd>level</dd><dt>faces</dt><dd>KICK · BEAT · HATS · BASS</dd></dl>
+      <p>A loop locked to the beat. Turn to choose; imports appear as extra loops.</p></article><article class=""><h3>SEQ</h3>
+      <dl><dt>turn</dt><dd>shift the pattern</dd><dt>slide</dt><dd>gate length</dd><dt>faces</dt><dd>pattern A · pattern B · pattern C · pattern D</dd></dl>
+      <p>Sixteen pads around the ring; tap for a note, pull outward for a higher one. Sits by an oscillator to play it, by a loop to slice it.</p></article><article class=""><h3>FILTER</h3>
+      <dl><dt>turn</dt><dd>cutoff</dd><dt>slide</dt><dd>resonance</dd><dt>faces</dt><dd>LOW-PASS · HIGH-PASS · BAND-PASS · LOW-PASS</dd></dl>
+      <p>Cutoff by turning, resonance by sliding. Sits between a sound and the centre.</p></article><article class=""><h3>DELAY</h3>
+      <dl><dt>turn</dt><dd>time (beat divisions)</dd><dt>slide</dt><dd>feedback</dd><dt>faces</dt><dd>1/16 · 1/8 · 1/4 · 1/2</dd></dl>
+      <p>Repeats in time with the beat. Feedback on the slider.</p></article><article class=""><h3>MOD</h3>
+      <dl><dt>turn</dt><dd>ring frequency</dd><dt>slide</dt><dd>mix</dd><dt>faces</dt><dd>RING</dd></dl>
+      <p>Ring modulation: metallic, bell-like tones.</p></article><article class=""><h3>LFO</h3>
+      <dl><dt>turn</dt><dd>rate</dd><dt>slide</dt><dd>depth</dd><dt>faces</dt><dd>SINE · SAW · SQUARE · TRIANGLE</dd></dl>
+      <p>Wobbles the nearest oscillator, filter or delay. The last four faces lock to the beat.</p></article><article class=""><h3>DRIVE</h3>
+      <dl><dt>turn</dt><dd>drive</dd><dt>slide</dt><dd>mix</dd><dt>faces</dt><dd>DRIVE</dd></dl>
+      <p>Warm to filthy.</p></article><article class=""><h3>VERB</h3>
+      <dl><dt>turn</dt><dd>decay</dd><dt>slide</dt><dd>mix</dd><dt>faces</dt><dd>VERB</dd></dl>
+      <p>A room, a hall, a cathedral.</p></article><article class=""><h3>REC</h3>
+      <dl><dt>turn</dt><dd>bars 1 · 2 · 4 · 8</dd><dt>slide</dt><dd>level</dd><dt>faces</dt><dd>REC</dd></dl>
+      <p>Records the whole table for a few bars, then loops it. Place it (or lift and replace it) to record again.</p></article><article class=""><h3>MIC</h3>
+      <dl><dt>turn</dt><dd>—</dd><dt>slide</dt><dd>level</dd><dt>faces</dt><dd>MIC</dd></dl>
+      <p>Live input, as soon as it is on the table.</p></article><article class=""><h3>TEMPO</h3>
+      <dl><dt>turn</dt><dd>BPM 60–180</dd><dt>slide</dt><dd>—</dd><dt>faces</dt><dd>TEMPO</dd></dl>
+      <p>Turn to set the tempo for everything.</p></article><article class=""><h3>CHORUS</h3>
+      <dl><dt>turn</dt><dd>rate</dd><dt>slide</dt><dd>mix</dd><dt>faces</dt><dd>CHORUS</dd></dl>
+      <p>Thickens and widens.</p></article><article class=""><h3>CRUSH</h3>
+      <dl><dt>turn</dt><dd>bits 12 → 2</dd><dt>slide</dt><dd>mix</dd><dt>faces</dt><dd>CRUSH</dd></dl>
+      <p>Lo-fi bit reduction.</p></article><article class="adv"><h3>KEY<span>advanced</span></h3>
+      <dl><dt>turn</dt><dd>key (C…B)</dd><dt>slide</dt><dd>scale</dd><dt>faces</dt><dd>octave 0 · octave +1 · octave −1 · octave +2</dd></dl>
+      <p>The key and scale as an object. Faces shift everything an octave.</p></article><article class="adv"><h3>TUNING<span>advanced</span></h3>
+      <dl><dt>turn</dt><dd>tuning system</dd><dt>slide</dt><dd>reference A (415–466 Hz)</dd><dt>faces</dt><dd>oscillators · oscillators + loops</dd></dl>
+      <p>Retunes every note to a historical or world tuning: just intonation, meantone, Werckmeister, 19- and 31-EDO, neutral thirds, slendro, pelog. The second face retunes the generated loops too.</p></article><article class="adv"><h3>ENVELOPE<span>advanced</span></h3>
+      <dl><dt>turn</dt><dd>attack 1 ms – 2 s</dd><dt>slide</dt><dd>release 20 ms – 4 s</dd><dt>faces</dt><dd>PLUCK · KEYS · PAD · SWELL</dd></dl>
+      <p>By an oscillator: an ADSR for its notes. By a filter: the cutoff opens on every note the table plays.</p></article><article class="adv"><h3>EXPRESS<span>advanced</span></h3>
+      <dl><dt>turn</dt><dd>velocity depth</dd><dt>slide</dt><dd>velocity curve soft–hard</dd><dt>faces</dt><dd>VIBRATO · BRIGHT · TREMOLO · BEND</dd></dl>
+      <p>Velocity from sequencer accents, MIDI and pressure. Its face decides where aftertouch, pinch pressure and a lifted cube go.</p></article><article class="adv"><h3>STEPS<span>advanced</span></h3>
+      <dl><dt>turn</dt><dd>pattern length 1–16</dd><dt>slide</dt><dd>rate 1/32 · 1/16 · 1/8 · 1/4</dd><dt>faces</dt><dd>FORWARD · REVERSE · PING-PONG · RANDOM</dd></dl>
+      <p>Pattern length, step rate and direction for the sequencer it sits by. Odd lengths make polymetres.</p></article><article class="adv"><h3>EUCLID<span>advanced</span></h3>
+      <dl><dt>turn</dt><dd>hits 1–16</dd><dt>slide</dt><dd>rotate the pattern</dd><dt>faces</dt><dd>ROOT · ALTERNATE · RISING · RANDOM</dd></dl>
+      <p>Writes a Euclidean rhythm into the sequencer: hits spread as evenly as possible. Faces pick the pitches.</p></article><article class="adv"><h3>CHANCE<span>advanced</span></h3>
+      <dl><dt>turn</dt><dd>probability 100 → 5 %</dd><dt>slide</dt><dd>humanise</dd><dt>faces</dt><dd>DICE · RATCHET · FILL · SKIP</dd></dl>
+      <p>Each step fires with a probability; faces add ratchets, generative fills and skips. Slide to humanise timing and level.</p></article><article class="adv"><h3>CHAIN<span>advanced</span></h3>
+      <dl><dt>turn</dt><dd>every 1 · 2 · 4 · 8 bars</dd><dt>slide</dt><dd>patterns 2–4</dd><dt>faces</dt><dd>LOOP · PING-PONG · RANDOM · SONG</dd></dl>
+      <p>Walks the sequencer through its A–D patterns every few bars: an arrangement.</p></article><article class="adv"><h3>SCENE<span>advanced</span></h3>
+      <dl><dt>turn</dt><dd>morph live → snapshot</dd><dt>slide</dt><dd>crossfade 0–4 bars</dd><dt>faces</dt><dd>A · B · C · D</dd></dl>
+      <p>Four snapshots of the whole table, one per face. Turn to morph from what is playing toward the snapshot; the slider sets the crossfade. Lift and replace, or tap the save dot, to keep the current state.</p></article><article class="adv"><h3>MOTION<span>advanced</span></h3>
+      <dl><dt>turn</dt><dd>loop 1 · 2 · 4 · 8 bars</dd><dt>slide</dt><dd>smoothing</dd><dt>faces</dt><dd>TURN · SLIDE · MOVE · ALL</dd></dl>
+      <p>Records how you move its target and replays that gesture in a loop, on the beat. Turn a filter for a bar; the table keeps turning it.</p></article><article class="adv"><h3>WARP<span>advanced</span></h3>
+      <dl><dt>turn</dt><dd>pitch −12 … +12 st</dd><dt>slide</dt><dd>grain 20–200 ms</dd><dt>faces</dt><dd>PITCH · HALF · DOUBLE · REVERSE</dd></dl>
+      <p>Reads a loop as a cloud of grains: pitch it up or down without changing tempo, play it at half or double speed, or backwards.</p></article><article class="adv"><h3>SEND<span>advanced</span></h3>
+      <dl><dt>turn</dt><dd>send level</dd><dt>slide</dt><dd>reach</dd><dt>faces</dt><dd>POST · PRE</dd></dl>
+      <p>The effect it sits by becomes a send bus. Every sound feeds it by how close it sits to this puck.</p></article><article class="adv"><h3>SPACE<span>advanced</span></h3>
+      <dl><dt>turn</dt><dd>stereo width</dd><dt>slide</dt><dd>orbit speed</dd><dt>faces</dt><dd>POSITION · ORBIT · RADIAL</dd></dl>
+      <p>The table becomes the stereo field: left is left. Faces orbit the sounds or widen with distance from the centre.</p></article><article class="adv"><h3>MASTER<span>advanced</span></h3>
+      <dl><dt>turn</dt><dd>volume</dd><dt>slide</dt><dd>glue</dd><dt>faces</dt><dd>CLEAN · GLUE · PUMP · LIMIT</dd></dl>
+      <p>Volume and glue compression for the whole table.</p></article><article class="adv"><h3>STEMS<span>advanced</span></h3>
+      <dl><dt>turn</dt><dd>1 · 2 · 4 · 8 · 16 · 32 bars</dd><dt>slide</dt><dd>—</dd><dt>faces</dt><dd>ARM</dd></dl>
+      <p>Records every object on the table, plus the master, into one multichannel WAV for the DAW.</p></article></main></body></html>

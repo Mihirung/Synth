@@ -36,8 +36,8 @@ Total: typically **£30 to £100** on top of a TV and phone you already have.
 - **The phone's browser runs Lumatable** and casts its screen to the TV (Google Cast / screen
   mirroring, built into Android and most TVs). The phone's own screen shows the same table.
 - **Markers are white discs with black dots**: a centre dot (position), a heading dot at
-  the rim (rotation), and up to six inner dots (a 6-bit ID: 64 IDs, 14 object types × 4
-  faces). The page's own detector finds bright discs on the dark screen at quarter
+  the rim (rotation), and up to eight inner dots on 45° slots (an 8-bit ID: 256 IDs, 29
+  object types × 4 faces, both trays). The page's own detector finds bright discs on the dark screen at quarter
   resolution, then decodes the dots at full resolution inside each disc. Nothing is
   downloaded; there is no library. Because the TV's picture is dark and the markers are
   bright white, detection is unusually robust, and the moving UI under the cubes does not
@@ -74,8 +74,9 @@ Total: typically **£30 to £100** on top of a TV and phone you already have.
    the table.
 2. **Print the markers.** Tap **markers** in the header; print the sheet at 100 % on matte
    card. Cut out the discs with a small white margin and stick them on the tops of cubes and
-   pucks. One object type per cube: its four faces are four variants (oscillator waveforms,
-   filter modes, loop slots, sequencer patterns); the remaining two faces stay blank.
+   pucks (or drop them into the pockets of the printed parts in `hardware/`). One object type
+   per cube: its four faces are four variants (oscillator waveforms, filter modes, loop slots,
+   sequencer patterns, scene snapshots); the remaining two faces stay blank.
 3. **Mount the phone** above the screen, camera down, roughly centred. Higher is better for
    coverage and for fewer hand occlusions; 1.0 to 1.4 m suits a 43 to 55 in screen with the
    phone's main camera. Lock the phone's screen rotation.
@@ -118,6 +119,19 @@ A practical consequence for cube design: put four object-faces on a cube and lea
 or make a single-purpose puck with the same marker on enough faces that it never matters which
 way up it lands. Because flipping is a real gesture, group the four faces so the ones you
 switch between mid-performance are easy to reach.
+
+Two more gestures fall out of the camera for free, and the advanced pucks (docs/07) use them:
+
+- **Lift and replace** — take an object off and put it straight back (within four seconds)
+  and it comes back exactly as it was, and does its thing "again": a Rec cube records again,
+  the stems puck arms again, the scene puck stores the current state on its face.
+- **Lift and tilt as expression** — a cube raised toward the camera grows in the image; the
+  instrument reads that as pressure and routes it where the express puck says (vibrato,
+  brightness, tremolo, bend). A tilted cube's disc becomes an ellipse, read as a pitch bend.
+  The cube needs no electronics; the camera is the sensor.
+
+The printed parts for all of this are in `hardware/` (a 60 mm cube and round and hexagonal
+70 mm pucks with marker pockets, marker sheets and cards); see `hardware/README.md`.
 
 ## 4.4 Lighting, glare and other tuning
 
