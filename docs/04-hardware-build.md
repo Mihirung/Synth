@@ -1,89 +1,115 @@
-# 4. Building the physical table (Phase B)
+# 4. Building the physical table: a flat TV, a phone above it, no PC, no cables
 
-The software is ready for this today: the prototype accepts a live TUIO stream
-(`?tuio=ws://localhost:8765` plus `prototype/tuio-bridge.js`), so the hardware project is
-purely about getting reacTIVision a clean infrared view of markers on a surface, and
-getting the interface projected onto that same surface. This is the classic
-diffused-illumination (DI) build the multi-touch community documented extensively in the
-2008 to 2012 era; every part is still cheap and available.
-
-## 4.1 How the sandwich works
+The design here is the one Lumatable now supports natively: a television lying flat is the
+table, an **Android phone mounted above it** is the camera *and* the computer, printed
+markers on cubes are tracked by the page itself, and a thumb-and-forefinger **pinch** is a
+touch. Nothing runs on a PC and nothing is wired except the TV's mains lead.
 
 ```
-        cubes and pucks with printed fiducials on their faces
-  ══════════════════════════════════════════════════════  acrylic + diffuser
-       ↑ IR floodlight (850 nm) reflects off markers          (the table top)
-       │ and fingertips touching the surface
-   [IR LEDs]      [camera + 850 nm band-pass filter]
-                          [projector] → [mirror] → back-projects the UI
-                     (all inside a light-tight cabinet)
+                 [ Android phone, camera down ]  ── casts its screen ──▶ (TV)
+                              │  sees markers + hands
+                              ▼
+   ══════════════════════════════════════════════════  TV lying flat (the table)
+        cubes with printed dot-markers on top faces      your hands over it
 ```
 
-The diffuser is the trick: objects and fingers in contact with the surface are sharp to
-the camera, while everything above it blurs away. The camera wears an IR-pass filter so it
-never sees the projected image; the projector emits almost no IR, so the two share the
-surface without interfering.
+The original Reactable's rear-projection cabinet with a camera underneath is kept as an
+appendix; this layout is far more flexible (any TV, any room, five-minute setup) and it
+restores the original's cube-face semantics exactly: whatever face is **up** is the sound.
 
-## 4.2 Bill of materials (realistic 2026 prices)
+## 4.1 Bill of materials
 
-| Part | Spec | Guide price |
+| Part | Notes | Guide price |
 |---|---|---|
-| Surface | 8 to 10 mm clear acrylic, circle 700 to 900 mm diameter | £60 to £120 |
-| Diffuser | Tracing paper / drafting film / Rosco Grey rear-projection film laminated under the acrylic | £10 to £60 |
-| IR illumination | 850 nm LED strip or 4 to 6 IR floodlight modules, angled for even coverage, diffused | £20 to £50 |
-| Camera (budget) | Sony PS3 Eye, IR-cut filter removed, 850 nm band-pass added; 640×480 at 60 fps | £15 to £25 |
-| Camera (better) | Global-shutter mono USB module (OV9281 class, 1280×800 at 120 fps) + M12 lens + 850 nm filter | £50 to £90 |
-| Projector | Short-throw or ultra-short-throw 1080p (the dominant cost; UST removes the mirror) | £300 to £700 |
-| Mirror | First-surface mirror if using a standard short-throw | £30 to £60 |
-| Cabinet | Plywood cylinder or box, matt black inside, ventilated | £50 to £150 |
-| Cubes and pucks | 3D-printed or laser-cut 40 to 50 mm cubes; matte white faces | £20 |
-| Computer | Anything that runs a browser and reacTIVision; a mini PC or the laptop you have | £0 to £250 |
+| TV or large monitor | 43 to 55 in, laid flat on a low table or a purpose-built frame. Matte or lightly anti-glare screens are easier for the camera; glossy works with the lighting tips below. Any model that can receive a cast from your phone. | you may own one |
+| Android phone | Recent mid-range or better (Chrome, a decent camera, enough CPU for audio + hand tracking). It runs the whole instrument. | you own one |
+| Phone mount | A boom or overhead arm holding the phone 1.0 to 1.4 m above the screen, camera pointing straight down at the centre. A microphone boom stand with a phone clamp, a ceiling hook and a gooseneck, or a light stand with a horizontal arm all work. | £15 to £40 |
+| Cubes / pucks | 50 to 70 mm cubes (wood, foam, 3D-printed) and a few flat pucks (coasters). Matte white top faces. | £10 to £30 |
+| Marker sheet | Printed from the app (the **markers** chip) on matte white card, 100 % scale. | £2 |
+| Speakers | Anything with a 3.5 mm or USB-C input; see the latency note below. | you may own some |
+| Lighting | Even room light. Optionally one soft lamp above and to the side. | £0 to £20 |
 
-Total: roughly **£550 to £1,500**, dominated by the projector. A "monitor build" (flat LCD
-panel instead of projection) does not work for this design: the camera must see through
-the surface from below, which an LCD blocks.
+Total: typically **£30 to £100** on top of a TV and phone you already have.
 
-## 4.3 Build steps
+## 4.2 How it works, and why it's reliable
 
-1. **Cabinet and surface.** Build the enclosure so the camera and projector both cover the
-   full disc: camera centred below, projector bounced off the mirror (or UST projector
-   direct). Blacken the interior; any internal IR reflection becomes tracking noise.
-2. **Projection first.** Get the projected image filling the disc and keystone-corrected.
-   Run the prototype full-screen (it scales its stage to the window); mask the projector
-   overshoot with the cabinet rim.
-3. **Camera and IR.** Remove the PS3 Eye's IR-cut filter (well-documented hack), fit an
-   850 nm band-pass (a piece of exposed, developed film negative works in a pinch;a proper
-   filter is £10). Mount the IR lights low and angled so illumination is even; diffuse them
-   (baking paper works) to avoid hotspots, which reacTIVision sees as blobs.
-4. **reacTIVision.** Run it, open its calibration grid (`c`), and align camera space to the
-   projected surface. Tune the thresholder (`t`) until fiducials read solidly at the rim.
-   Set the frame rate to the camera's real rate. It broadcasts TUIO on UDP 3333 out of the
-   box.
-5. **Bridge and browser.** `npm install ws && node prototype/tuio-bridge.js`, then open the
-   prototype with `?tuio=ws://localhost:8765`. Fiducial class IDs map to object types in
-   blocks of eight (0 to 7 oscillator, 8 to 15 sampler, 16 to 23 sequencer, 24 to 31
-   filter, 32 to 39 delay, 40 to 47 modulator, 48 to 55 LFO), so print accordingly.
-6. **Cubes.** Print the amoeba fiducials (shipped with reacTIVision, `symbols/` directory)
-   at 40 mm or larger, matte (gloss kills tracking), one per face. A cube whose six faces
-   carry six sampler-block IDs recreates the original's "turn the cube for a different
-   sound" exactly. Leave a white border of at least 8 mm around each symbol.
-7. **Fingers.** reacTIVision also tracks fingertips and sends TUIO cursor events. The
-   prototype currently takes touch from the browser's own pointer events; wiring TUIO
-   cursors into the same handlers is the one small software task left for Phase B, noted
-   below.
+- **The phone's browser runs Lumatable** and casts its screen to the TV (Google Cast / screen
+  mirroring, built into Android and most TVs). The phone's own screen shows the same table.
+- **Markers are white discs with black dots**: a centre dot (position), a heading dot at
+  the rim (rotation), and up to six inner dots (a 6-bit ID: 64 IDs, 14 object types × 4
+  faces). The page's own detector finds bright discs on the dark screen at quarter
+  resolution, then decodes the dots at full resolution inside each disc. Nothing is
+  downloaded; there is no library. Because the TV's picture is dark and the markers are
+  bright white, detection is unusually robust, and the moving UI under the cubes does not
+  confuse it.
+- **Calibration is four dots.** The first time the camera starts (and whenever you tap
+  *calibrate*), the screen goes black and shows one bright dot at a time in four corners of
+  the disc; the phone finds each, and computes the projective map from camera to screen. It
+  is stored on the phone, so you calibrate once per placement.
+- **Rotation is physical.** Turning a cube turns its ring: the heading dot's angle is
+  mapped through the same calibration, so it is correct however the phone is oriented.
+- **Occlusion is forgiven.** A hand passing over a cube hides its marker for a moment; the
+  object dims but stays put, and only disappears if unseen for 1.5 s. Lift a cube off the
+  table and it is gone after that grace.
+- **Pinch to touch.** On-device hand tracking (Google's MediaPipe Hands, loaded on demand)
+  finds your hands in the camera image; bring thumb and forefinger together over the table
+  and that point becomes a touch, exactly as a finger on a touchscreen would: drag a ring,
+  slide an arc, tap a sequencer pad, swipe to cut a line, draw a waveform. A small ring
+  follows each hand so you can see where the pinch will land. Hysteresis stops it fluttering.
 
-## 4.4 Remaining software work for Phase B
+## 4.3 Setting up
 
-- Map TUIO `2Dcur` (finger) events into the existing pointer pipeline (the object pipeline
-  is done). Small, isolated change in the TUIO client section of the prototype.
-- A calibration overlay (draw the four reacTIVision grid points from the browser side) to
-  make alignment quicker.
-- Optionally lock the on-screen dock away in table mode (`?tuio=` already implies physical
-  objects; hiding the tray is one CSS toggle).
+1. **Host the page over HTTPS.** Browsers only allow the camera on secure origins, so open
+   the app from a hosted URL rather than a local file. The simplest no-PC route is GitHub
+   Pages on this repository (Settings → Pages → deploy from the branch; the root
+   `index.html` forwards to the instrument), which gives a permanent HTTPS link you can
+   bookmark on the phone. The claude.ai artifact link also works for the instrument itself,
+   but its sandbox does not pass the camera through, so use Pages (or any static host) for
+   the table.
+2. **Print the markers.** Tap **markers** in the header; print the sheet at 100 % on matte
+   card. Cut out the discs with a small white margin and stick them on the tops of cubes and
+   pucks. One object type per cube: its four faces are four variants (oscillator waveforms,
+   filter modes, loop slots, sequencer patterns); the remaining two faces stay blank.
+3. **Mount the phone** above the screen, camera down, roughly centred. Higher is better for
+   coverage and for fewer hand occlusions; 1.0 to 1.4 m suits a 43 to 55 in screen with the
+   phone's main camera. Lock the phone's screen rotation.
+4. **Cast** the phone's screen to the TV. Then in Lumatable tap **camera**: the page goes
+   fullscreen, keeps the phone awake, opens the rear camera and starts calibration. Keep
+   the phone still for the four dots (about five seconds).
+5. **Place a cube.** Its object appears where it sits. Turn it, and its ring turns.
+6. **Pinch.** Hold a hand over the table; a ring follows it. Pinch over a block's ring or arc
+   and move; release to let go.
 
-## 4.5 References
+Tap the small camera preview to hide it once everything is aligned. The **camera** chip
+turns tracking off again; **calibrate** re-runs the four dots if you move the phone or TV.
 
-- reacTIVision and its calibration guide: https://reactivision.sourceforge.net/
-- TUIO protocol: https://tuio.org/
-- PS3 Eye IR conversion: https://cdm.link/trick-out-your-ps3-eye-webcam-best-cam-for-vision-augmented-reality/
-- The original hardware description: the TEI 2007 paper (see docs/01).
+## 4.4 Lighting, glare and other tuning
+
+- Aim for **even, soft room light**. The detector adapts to local brightness, but a hard
+  lamp reflecting in the TV glass makes a bright blob the calibration step can mistake for
+  its dot; move the lamp off the camera's axis or diffuse it.
+- **Marker size vs distance.** At 1280×720 the phone sees a 1.2 m wide screen at roughly
+  1 px per mm, so the 60 mm discs are 60 px and the ID dots about 6 px: comfortable. If the
+  phone must sit higher, print at 120 % (72 mm discs).
+- **Keep the tops matte.** Gloss laminate reflects the TV and kills the dots.
+- **Cubes 50 to 70 mm tall** lift the markers well above the glowing screen and are easy to
+  grab and turn.
+- If the TV is very bright, lower its backlight a little; the UI is designed for a dark disc.
+
+## 4.5 Latency and audio
+
+Casting adds 100 to 250 ms of video delay, which is fine for placing and turning objects.
+Audio should not go through the cast: take it from the phone's headphone/USB-C output to
+powered speakers (a wired link, the one cable worth keeping), or accept Bluetooth's extra
+delay for casual play. For a stage, a USB-C to HDMI adapter carries video *and* audio to
+the TV with a fraction of the delay, at the cost of one cable.
+
+## 4.6 Appendix: the classic rear-projection build
+
+The original Reactable used a translucent acrylic top with a projector and an infrared
+camera underneath, tracking markers on the *bottom* faces via reacTIVision and TUIO. That
+path still works with this software (`?tuio=ws://…` plus `prototype/tuio-bridge.js` on a
+PC), and gives finger tracking on the surface and no hand occlusion, at the price of a
+cabinet, a projector, IR illumination and a computer. The earlier bill of materials was
+roughly £550 to £1,500. Choose it for a permanent installation; choose the TV-and-phone
+build for anything you want to set up in an afternoon.

@@ -85,6 +85,12 @@
   .chipico.di{border:2px solid var(--ctl);border-radius:5px;transform:rotate(45deg) scale(.84)}
   .chipico.ri{border:2px solid var(--ctl);border-radius:50%}
   .chipico.ri::after{content:'';position:absolute;inset:9px;border-radius:50%;background:var(--ctl)}
+  #camWrap{position:fixed;right:14px;bottom:150px;width:200px;z-index:4;border:1px solid rgba(255,255,255,.12);
+    border-radius:10px;overflow:hidden;background:#000;box-shadow:0 8px 30px rgba(0,0,0,.5)}
+  #camWrap video{display:block;width:100%;height:auto}
+  #camWrap canvas{position:absolute;inset:0;width:100%;height:100%;pointer-events:none}
+  #camStat{position:absolute;left:0;right:0;bottom:0;font-size:9px;letter-spacing:.12em;text-transform:uppercase;
+    color:var(--text);background:rgba(6,10,18,.7);padding:4px 6px;pointer-events:none}
   #overlay{
     position:fixed;inset:0;z-index:10;display:flex;align-items:center;justify-content:center;
     background:rgba(4,7,13,.55);backdrop-filter:blur(3px);
@@ -119,6 +125,9 @@
     <button class="chip" id="swingChip">swing <b id="swingv">off</b></button>
     <button class="chip" id="recChip">⏺ record</button>
     <button class="chip" id="midiChip" hidden>midi <b id="midiv">off</b></button>
+    <button class="chip" id="camChip" title="track printed markers with this device's camera">camera <b id="camv">off</b></button>
+    <button class="chip" id="calChip" hidden>calibrate</button>
+    <button class="chip" id="markChip" title="printable marker sheet">markers</button>
     <button class="chip" id="shareChip">share</button>
     <button class="chip warn" id="undoChip">↶ undo</button>
     <button class="chip warn" id="demoChip">demo</button>
@@ -147,6 +156,7 @@
   <button class="spawn" id="importBtn" title="import an audio file as a loop"><span class="chipico sq dot" style="border-style:dashed"></span>import</button>
   <input type="file" id="importFile" accept="audio/*" hidden>
 </div>
+<div id="camWrap" hidden><video id="camVideo" playsinline muted></video><canvas id="camOv"></canvas><div id="camStat"></div></div>
 <div id="overlay">
   <div class="card">
     <h1>LUMA<span>TABLE</span></h1>
@@ -1576,7 +1586,7 @@ canvas.addEventListener('pointerdown', e=>{
   const hit = objectAt(x,y);
   if(hit){
     const { o, d } = hit;
-    canvas.setPointerCapture(e.pointerId);
+    try{ canvas.setPointerCapture(e.pointerId); }catch(err){}
     if(o.type==='seq' && d > R_ARC1()+4 && d <= R_PAD1()+4){
       drags.set(e.pointerId, { mode:'pad', obj:o, idx:padIndexAt(o,x,y), sx:x, sy:y, moved:false });
       return;
@@ -1598,7 +1608,7 @@ canvas.addEventListener('pointerdown', e=>{
     return;
   }
   // empty table: begin a stroke — a swipe cuts lines, a doodle can become a waveform
-  canvas.setPointerCapture(e.pointerId);
+  try{ canvas.setPointerCapture(e.pointerId); }catch(err){}
   drags.set(e.pointerId, { mode:'stroke', pts:[{x,y}], cuts:new Set() });
 });
 function connEnds(o){
@@ -1804,6 +1814,266 @@ function oscParse(v, off, end){
   }
 }
 
+
+/* ================= camera tracking: a phone above a flat TV =================
+   No PC, no reacTIVision. This device's rear camera looks down at the screen;
+   printed dot-fiducials on the cubes are found in-page (white disc, a centre dot
+   for position, a heading dot for rotation, six inner dots for a 6-bit ID), a
+   four-point calibration maps camera pixels to the screen, and on-device hand
+   tracking turns a thumb-and-forefinger pinch into a touch.                  */
+const cam = { on:false, video:null, cv:null, ctx:null, w:0, h:0, H:null, markers:new Map(), fps:0,
+              calib:null, hands:null, handState:[], cursors:[], preview:true, lastT:0, coarse:null };
+const MARK = { centre:0.11, headR:0.38, headDot:0.06, bitR:0.24, bitDot:0.05 };   // fractions of disc diameter
+function markerType(id){ return { type: TUIO_TYPES[(id>>2) % TUIO_TYPES.length], variant: id & 3 }; }
+
+/* ---- 4-point homography (DLT), camera px -> screen px ---- */
+function solveH(src, dst){
+  const A=[], b=[];
+  for(let i=0;i<4;i++){
+    const {x:u,y:v}=src[i], {x,y}=dst[i];
+    A.push([u,v,1,0,0,0,-u*x,-v*x]); b.push(x);
+    A.push([0,0,0,u,v,1,-u*y,-v*y]); b.push(y);
+  }
+  const n=8;
+  for(let c=0;c<n;c++){
+    let p=c; for(let r=c+1;r<n;r++) if(Math.abs(A[r][c])>Math.abs(A[p][c])) p=r;
+    [A[c],A[p]]=[A[p],A[c]]; [b[c],b[p]]=[b[p],b[c]];
+    if(Math.abs(A[c][c])<1e-12) return null;
+    for(let r=0;r<n;r++){ if(r===c) continue; const f=A[r][c]/A[c][c];
+      for(let k=c;k<n;k++) A[r][k]-=f*A[c][k]; b[r]-=f*b[c]; }
+  }
+  const h=b.map((v,i)=>v/A[i][i]); h.push(1);
+  return h;
+}
+function applyH(h,u,v){ const w=h[6]*u+h[7]*v+h[8]; return { x:(h[0]*u+h[1]*v+h[2])/w, y:(h[3]*u+h[4]*v+h[5])/w }; }
+
+/* ---- connected components on a binary mask (4-connected) ---- */
+function labelBlobs(mask, w, h, minArea){
+  const lab=new Int32Array(w*h).fill(-1), stack=new Int32Array(w*h), blobs=[];
+  for(let i=0;i<w*h;i++){
+    if(!mask[i] || lab[i]>=0) continue;
+    const id=blobs.length; let sp=0; stack[sp++]=i; lab[i]=id;
+    let area=0, sx=0, sy=0, x0=w, x1=0, y0=h, y1=0;
+    while(sp){ const k=stack[--sp]; const x=k%w, y=(k/w)|0;
+      area++; sx+=x; sy+=y; if(x<x0)x0=x; if(x>x1)x1=x; if(y<y0)y0=y; if(y>y1)y1=y;
+      if(x>0 && mask[k-1] && lab[k-1]<0){ lab[k-1]=id; stack[sp++]=k-1; }
+      if(x<w-1 && mask[k+1] && lab[k+1]<0){ lab[k+1]=id; stack[sp++]=k+1; }
+      if(y>0 && mask[k-w] && lab[k-w]<0){ lab[k-w]=id; stack[sp++]=k-w; }
+      if(y<h-1 && mask[k+w] && lab[k+w]<0){ lab[k+w]=id; stack[sp++]=k+w; } }
+    blobs.push({ area, cx:sx/area, cy:sy/area, x0,x1,y0,y1 });
+  }
+  return blobs.filter(b=>b.area>=minArea);
+}
+
+/* ---- detector: bright discs at quarter scale, dots decoded at full scale ---- */
+function detectMarkers(data, W, Hh){
+  const cw=W>>2, ch=Hh>>2, g=new Uint8Array(cw*ch);
+  for(let y=0;y<ch;y++) for(let x=0;x<cw;x++){ const i=((y*4+2)*W+(x*4+2))*4; g[y*cw+x]=(data[i]*77+data[i+1]*151+data[i+2]*28)>>8; }
+  // local mean by integral image (33px window at quarter scale)
+  const I=new Float64Array((cw+1)*(ch+1));
+  for(let y=1;y<=ch;y++){ let row=0; for(let x=1;x<=cw;x++){ row+=g[(y-1)*cw+x-1]; I[y*(cw+1)+x]=I[(y-1)*(cw+1)+x]+row; } }
+  const R=16, mask=new Uint8Array(cw*ch);
+  for(let y=0;y<ch;y++) for(let x=0;x<cw;x++){
+    const x0=Math.max(0,x-R), y0=Math.max(0,y-R), x1=Math.min(cw,x+R+1), y1=Math.min(ch,y+R+1);
+    const mean=(I[y1*(cw+1)+x1]-I[y0*(cw+1)+x1]-I[y1*(cw+1)+x0]+I[y0*(cw+1)+x0])/((x1-x0)*(y1-y0));
+    const v=g[y*cw+x]; mask[y*cw+x]=(v>mean+40 && v>110)?1:0; }
+  const discs=labelBlobs(mask,cw,ch,30).filter(b=>{
+    const bw=b.x1-b.x0+1, bh=b.y1-b.y0+1, fill=b.area/(bw*bh), asp=bw/bh;
+    return fill>0.55 && asp>0.6 && asp<1.66 && b.area<cw*ch/12; });
+  cam.coarse=discs;
+  const out=[];
+  for(const d of discs){
+    const Rf=Math.sqrt(d.area/Math.PI)*4, cx=d.cx*4+2, cy=d.cy*4+2;
+    const x0=Math.max(0,Math.floor(cx-Rf*1.1)), y0=Math.max(0,Math.floor(cy-Rf*1.1));
+    const x1=Math.min(W-1,Math.ceil(cx+Rf*1.1)), y1=Math.min(Hh-1,Math.ceil(cy+Rf*1.1));
+    const rw=x1-x0+1, rh=y1-y0+1; if(rw<12||rh<12) continue;
+    const gr=new Uint8Array(rw*rh); let white=0, wn=0;
+    for(let y=0;y<rh;y++) for(let x=0;x<rw;x++){ const i=((y0+y)*W+(x0+x))*4; const v=(data[i]*77+data[i+1]*151+data[i+2]*28)>>8; gr[y*rw+x]=v;
+      const dx=x0+x-cx, dy=y0+y-cy; if(dx*dx+dy*dy<Rf*Rf*0.9 && v>120){ white+=v; wn++; } }
+    if(wn<20) continue;
+    const thr=(white/wn)*0.55, dark=new Uint8Array(rw*rh);
+    for(let y=0;y<rh;y++) for(let x=0;x<rw;x++){ const dx=x0+x-cx, dy=y0+y-cy;
+      dark[y*rw+x]=(dx*dx+dy*dy<Rf*Rf*0.92 && gr[y*rw+x]<thr)?1:0; }
+    const dots=labelBlobs(dark,rw,rh,3).map(b=>({ area:b.area, x:b.cx+x0, y:b.cy+y0 }));
+    if(dots.length<2) continue;
+    let ctr=null; for(const b of dots){ const dd=Math.hypot(b.x-cx,b.y-cy); if(dd<Rf*0.16 && (!ctr||b.area>ctr.area)) ctr=b; }
+    if(!ctr) continue;
+    let head=null; const bits=[];
+    for(const b of dots){ if(b===ctr) continue; const dd=Math.hypot(b.x-ctr.x,b.y-ctr.y)/Rf;
+      if(dd>0.62 && dd<0.93){ if(!head||b.area>head.area) head=b; } else if(dd>0.32 && dd<0.62) bits.push(b); }   // radii in R units: heading 0.76R, bits 0.48R
+    if(!head) continue;
+    const ha=Math.atan2(head.y-ctr.y, head.x-ctr.x);
+    let id=0;
+    for(const b of bits){ const a=Math.atan2(b.y-ctr.y,b.x-ctr.x); let rel=(a-ha)/(Math.PI/3); rel=((Math.round(rel)%6)+6)%6; id|=1<<rel; }
+    out.push({ id, x:ctr.x, y:ctr.y, angle:ha, r:Rf });
+  }
+  return out;
+}
+
+/* ---- camera lifecycle ---- */
+async function camStart(){
+  if(cam.on) { camStop(); return; }
+  try{
+    const stream=await navigator.mediaDevices.getUserMedia({ video:{ facingMode:{ideal:'environment'}, width:{ideal:1280}, height:{ideal:720}, frameRate:{ideal:30} }, audio:false });
+    const v=$('camVideo'); v.srcObject=stream; await v.play();
+    cam.video=v; cam.w=v.videoWidth||1280; cam.h=v.videoHeight||720;
+    cam.cv=document.createElement('canvas'); cam.cv.width=cam.w; cam.cv.height=cam.h; cam.ctx=cam.cv.getContext('2d',{willReadFrequently:true});
+    $('camOv').width=cam.w; $('camOv').height=cam.h;
+    cam.on=true; $('camWrap').hidden=false; $('calChip').hidden=false;
+    try{ const st=localStorage.getItem('lumatable-camH'); if(st){ const o=JSON.parse(st); if(o.w===cam.w&&o.h===cam.h) cam.H=o.H; } }catch(e){}
+    try{ cam.wake=await navigator.wakeLock.request('screen'); }catch(e){}
+    if(!cam.H) camCalibrate();
+    if(new URLSearchParams(location.search).has('hands') || /Android|iPhone|iPad/.test(navigator.userAgent)) handsStart();
+    camLoop();
+  }catch(e){ $('camv').textContent='blocked'; }
+  syncChips();
+}
+function camStop(){
+  cam.on=false; if(cam.video&&cam.video.srcObject) cam.video.srcObject.getTracks().forEach(t=>t.stop());
+  $('camWrap').hidden=true; $('calChip').hidden=true; cam.calib=null;
+  if(cam.wake){ try{ cam.wake.release(); }catch(e){} cam.wake=null; }
+  for(const [id,m] of cam.markers){ destroyObject(m.obj); } cam.markers.clear();
+  syncChips();
+}
+function camCalibrate(){ cam.calib={ step:0, pts:[], stable:0, last:null }; syncChips(); }
+function calibTargets(){ const r=TABLE_R*0.78; return [{x:CX-r,y:CY-r},{x:CX+r,y:CY-r},{x:CX+r,y:CY+r},{x:CX-r,y:CY+r}]; }
+function camLoop(){
+  if(!cam.on) return;
+  const step=()=>{ camFrame(); if(cam.on){ if(cam.video.requestVideoFrameCallback) cam.video.requestVideoFrameCallback(step); else setTimeout(step,40); } };
+  step();
+}
+function camFrame(){
+  const v=cam.video; if(!v||v.readyState<2) return;
+  const now=performance.now(); cam.fps=cam.fps*0.9+(cam.lastT?1000/(now-cam.lastT):0)*0.1; cam.lastT=now;
+  cam.ctx.drawImage(v,0,0,cam.w,cam.h);
+  const data=cam.ctx.getImageData(0,0,cam.w,cam.h).data;
+  if(cam.calib){                       // find the one bright calibration dot on an otherwise dark screen
+    detectMarkers(data,cam.w,cam.h);   // populates cam.coarse with bright blobs
+    const big=(cam.coarse||[]).sort((a,b)=>b.area-a.area)[0];
+    const c=cam.calib;
+    if(big && big.area>25){ const p={x:big.cx*4+2,y:big.cy*4+2};
+      if(c.last && Math.hypot(p.x-c.last.x,p.y-c.last.y)<4) c.stable++; else c.stable=0;
+      c.last=p;
+      if(c.stable>=5){ c.pts.push(p); c.step++; c.stable=0; c.last=null;
+        if(c.step>=4){ cam.H=solveH(c.pts, calibTargets()); cam.calib=null;
+          try{ localStorage.setItem('lumatable-camH', JSON.stringify({w:cam.w,h:cam.h,H:cam.H})); }catch(e){} syncChips(); } }
+    } else c.stable=0;
+    camDrawPreview([]);
+    return;
+  }
+  const found=detectMarkers(data,cam.w,cam.h);
+  const tnow=performance.now(); const seen=new Set();
+  for(const m of found){
+    if(!cam.H) break;
+    const p=applyH(cam.H,m.x,m.y), q=applyH(cam.H,m.x+Math.cos(m.angle)*m.r*0.3,m.y+Math.sin(m.angle)*m.r*0.3);
+    const ang=((Math.atan2(q.y-p.y,q.x-p.x))%TAU+TAU)%TAU;
+    seen.add(m.id);
+    let e=cam.markers.get(m.id);
+    if(!e){
+      const {type,variant}=markerType(m.id);
+      const o=spawn(type,p.x,p.y);
+      if(type==='osc'||type==='lfo') o.option=variant;
+      else if(type==='filter') o.option=variant%FILTER_MODES.length;
+      else if(type==='sampler') o.angle=((variant+0.5)/LOOPS.length)*TAU;
+      else if(type==='seq'){ o.option=variant; o.steps=SEQ_PATTERNS[variant].map(s=>s?{on:true,deg:s[0]}:{on:false,deg:0}); }
+      if(audio){ rewireAudio(o); rewireCtl(o); applyParams(o); }
+      e={obj:o,last:tnow,ang}; cam.markers.set(m.id,e);
+      addRipple(p.x,p.y,0.7);
+    }
+    const o=e.obj; o.x=o.x*0.4+p.x*0.6; o.y=o.y*0.4+p.y*0.6;
+    let da=ang-e.ang; if(da>Math.PI) da-=TAU; if(da<-Math.PI) da+=TAU;
+    e.ang=((e.ang+da*0.6)%TAU+TAU)%TAU; e.last=tnow;
+    if(o.type!=='sampler' && Math.abs(da)>0.01){ o.angle=e.ang; applyParams(o); }
+    else if(o.type==='sampler' && Math.abs(da)>0.35){ o.angle=e.ang; applyParams(o); }
+  }
+  for(const [id,e] of [...cam.markers]){
+    e.obj.ghost = tnow-e.last>150;
+    if(tnow-e.last>1500){ cam.markers.delete(id); destroyObject(e.obj); }
+  }
+  if(found.length) computePatch();
+  camDrawPreview(found);
+}
+function camDrawPreview(found){
+  if(!cam.preview) return;
+  const c=$('camOv').getContext('2d'); c.clearRect(0,0,cam.w,cam.h);
+  c.lineWidth=4; c.strokeStyle='#7fd8e8'; c.fillStyle='#7fd8e8'; c.font='28px sans-serif';
+  for(const m of found){ c.beginPath(); c.arc(m.x,m.y,m.r,0,TAU); c.stroke();
+    c.beginPath(); c.moveTo(m.x,m.y); c.lineTo(m.x+Math.cos(m.angle)*m.r,m.y+Math.sin(m.angle)*m.r); c.stroke();
+    c.fillText(String(m.id), m.x+m.r+6, m.y); }
+  if(cam.calib && cam.calib.last){ c.strokeStyle='#ffb84d'; c.beginPath(); c.arc(cam.calib.last.x,cam.calib.last.y,20,0,TAU); c.stroke(); }
+  for(const h of cam.cursors){ c.strokeStyle=h.pinch?'#ffb84d':'#d98be0'; c.beginPath(); c.arc(h.cx,h.cy,h.pinch?26:16,0,TAU); c.stroke(); }
+  $('camStat').textContent=`${cam.fps|0} fps · ${found.length} marker${found.length===1?'':'s'}` + (cam.calib?` · calibrating ${cam.calib.step+1}/4`:(cam.H?'':' · not calibrated')) + (cam.hands?` · hands ${cam.cursors.length}`:'');
+}
+
+/* ---- pinch-to-touch via on-device hand tracking (MediaPipe Hands, loaded on demand) ---- */
+function handsStart(){
+  if(cam.hands || cam.handsTried) return; cam.handsTried=true;
+  const sc=document.createElement('script');
+  sc.src='https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js';
+  sc.onload=async()=>{
+    try{
+      const h=new Hands({ locateFile:f=>`https://cdn.jsdelivr.net/npm/@mediapipe/hands/${f}` });
+      h.setOptions({ maxNumHands:2, modelComplexity:0, minDetectionConfidence:0.6, minTrackingConfidence:0.5 });
+      h.onResults(onHands);
+      await h.initialize();
+      cam.hands=h;
+      const pump=async()=>{ if(!cam.on||!cam.hands) return; try{ await cam.hands.send({image:cam.video}); }catch(e){} setTimeout(pump,50); };
+      pump();
+    }catch(e){ cam.hands=null; $('camStat').textContent+=' · hands unavailable here'; }
+  };
+  sc.onerror=()=>{ cam.hands=null; };
+  document.head.appendChild(sc);
+}
+function onHands(res){
+  const lm=res.multiHandLandmarks||[]; cam.cursors=[];
+  const seen=new Set();
+  lm.forEach((pts,i)=>{
+    const t=pts[4], f=pts[8], w=pts[0], m=pts[9];
+    const scale=Math.hypot((m.x-w.x)*cam.w,(m.y-w.y)*cam.h)||1;
+    const d=Math.hypot((t.x-f.x)*cam.w,(t.y-f.y)*cam.h)/scale;
+    const cx=(t.x+f.x)/2*cam.w, cy=(t.y+f.y)/2*cam.h;
+    const st=cam.handState[i]||(cam.handState[i]={down:false,id:200+i});
+    const pinch = st.down ? d<0.55 : d<0.38;     // hysteresis
+    cam.cursors.push({cx,cy,pinch}); seen.add(i);
+    if(!cam.H) return;
+    const p=applyH(cam.H,cx,cy);
+    const ev=type=>canvas.dispatchEvent(new PointerEvent(type,{clientX:p.x,clientY:p.y,pointerId:st.id,pointerType:'touch',isPrimary:i===0,bubbles:true}));
+    if(pinch && !st.down){ st.down=true; ev('pointerdown'); }
+    else if(pinch && st.down) ev('pointermove');
+    else if(!pinch && st.down){ st.down=false; ev('pointerup'); }
+  });
+  cam.handState.forEach((st,i)=>{ if(st && st.down && !seen.has(i)){ st.down=false;
+    canvas.dispatchEvent(new PointerEvent('pointerup',{clientX:0,clientY:0,pointerId:st.id,pointerType:'touch',bubbles:true})); } });
+}
+
+/* ---- printable marker sheet (A4 pages, 60 mm discs, 3 x 4 per page) ---- */
+function markerSVG(id, mm){
+  const D=mm, R=D/2, c=x=>x*D; let dots=`<circle cx="${R}" cy="${R}" r="${c(MARK.centre)}" fill="#000"/>`;
+  dots+=`<circle cx="${R+c(MARK.headR)}" cy="${R}" r="${c(MARK.headDot)}" fill="#000"/>`;
+  for(let s=0;s<6;s++) if((id>>s)&1){ const a=s*Math.PI/3; dots+=`<circle cx="${R+Math.cos(a)*c(MARK.bitR)}" cy="${R+Math.sin(a)*c(MARK.bitR)}" r="${c(MARK.bitDot)}" fill="#000"/>`; }
+  return `<svg xmlns="http://www.w3.org/2000/svg" width="${D}mm" height="${D}mm" viewBox="0 0 ${D} ${D}"><circle cx="${R}" cy="${R}" r="${R-0.3}" fill="#fff" stroke="#bbb" stroke-width="0.3"/>${dots}</svg>`;
+}
+function markerSheetHTML(){
+  const ids=[]; for(let t=0;t<TUIO_TYPES.length;t++) for(let v=0;v<4;v++) ids.push(t*4+v);
+  let pages='';
+  for(let p=0;p<ids.length;p+=12){
+    pages+=`<section class="page">`+ids.slice(p,p+12).map(id=>{ const {type,variant}=markerType(id);
+      return `<figure><div class="m">${markerSVG(id,60)}</div><figcaption>${type.toUpperCase()} · face ${variant+1} · id ${id}</figcaption></figure>`; }).join('')+`</section>`;
+  }
+  return `<!doctype html><html><head><meta charset="utf-8"><title>Lumatable markers</title><style>
+  @page{size:A4;margin:12mm} body{margin:0;font:10pt sans-serif;color:#333}
+  .page{display:grid;grid-template-columns:repeat(3,1fr);grid-auto-rows:66mm;gap:2mm;page-break-after:always;padding:2mm}
+  figure{margin:0;text-align:center} .m{width:60mm;height:60mm;margin:0 auto} figcaption{margin-top:1mm;letter-spacing:.05em}
+  .note{padding:10mm;font-size:11pt;line-height:1.5}</style></head><body>
+  <section class="note"><h1>Lumatable marker sheet</h1><p>Print at 100% (no scaling) on matte white card. Cut each disc out with a 3 mm white margin, and stick it to the <b>top</b> of a 50–70 mm cube or a puck. The small offset dot is the heading: turning the object turns its ring. Each object type has four faces (variants); a cube can carry any four plus two blanks.</p><p>Heading dot at 0.38 D, ID dots at 0.24 D (six bits). Generated by Lumatable.</p></section>${pages}</body></html>`;
+}
+async function markerSheet(){
+  const html=markerSheetHTML(), filename='lumatable-markers.html';
+  let done=false;
+  try{ const dl=window.claude ? await window.claude.use('downloads') : null; if(dl){ await dl.save({filename, data:html}); done=true; } }catch(e){ done=e&&e.code==='declined'; }
+  if(!done){ try{ const a=document.createElement('a'); a.href=URL.createObjectURL(new Blob([html],{type:'text/html'})); a.download=filename; document.body.appendChild(a); a.click(); a.remove(); }catch(e){} }
+}
+
 /* ================= persistence ================= */
 let saveTimer = null;
 function sceneJSON(){
@@ -1891,6 +2161,7 @@ function syncChips(){
   $('scalev').textContent = SCALES[state.scaleIdx].name;
   $('swingv').textContent = SWINGS[state.swingIdx].n;
   $('soundv').textContent = state.soundMode==='original' ? 'original' : MODE_CFG[state.soundMode].label;
+  $('camv').textContent = !cam.on ? 'off' : cam.calib ? 'calibrating' : cam.H ? 'on' : 'uncalibrated';
 }
 $('bpmDn').addEventListener('click', ()=>setBpm(state.bpm-4));
 $('bpmUp').addEventListener('click', ()=>setBpm(state.bpm+4));
@@ -1905,6 +2176,12 @@ $('scaleChip').addEventListener('click', ()=>{
   for(const o of objects) if(o.type==='osc') applyParams(o);
   saveSoon();
 });
+$('camChip').addEventListener('click', ()=>{ if(!audio) return; camStart(); if(!cam.on) return;
+  try{ if(!document.fullscreenElement) document.documentElement.requestFullscreen(); }catch(e){} });
+$('calChip').addEventListener('click', ()=>{ if(cam.on) camCalibrate(); });
+$('markChip').addEventListener('click', markerSheet);
+$('camWrap').addEventListener('click', ()=>{ cam.preview=false; $('camWrap').hidden=true; });
+addEventListener('keydown', e=>{ if(e.key==='f' && !e.ctrlKey && !e.metaKey){ try{ document.fullscreenElement?document.exitFullscreen():document.documentElement.requestFullscreen(); }catch(err){} } });
 $('soundChip').addEventListener('click', ()=>{
   const i=(SOUND_MODES.indexOf(state.soundMode)+1)%SOUND_MODES.length;
   setSoundMode(SOUND_MODES[i]);
@@ -2088,7 +2365,7 @@ function drawConnection(o){
 function drawObject(o){
   const col = FCOLOR[FAMILY[o.type]];
   const rb = R_BODY();
-  const outside = distC(o) > TABLE_R-8;
+  const outside = distC(o) > TABLE_R-8 || !!o.ghost;
   const now = audio ? audio.ctx.currentTime : 0;
   const flash = Math.max(0, 1-(now-o.flashAt)*4);
   if(audio && o.an && FAMILY[o.type]!=='ctl'){
@@ -2315,6 +2592,15 @@ function drawMotes(dt){
   g.globalAlpha=1;
 }
 function frame(){
+  if(cam.calib){   // calibration: a black screen with one bright dot at a time
+    g.setTransform(DPR,0,0,DPR,0,0); g.fillStyle='#000'; g.fillRect(0,0,W,H);
+    const t=calibTargets()[cam.calib.step]; g.fillStyle='#fff';
+    g.beginPath(); g.arc(t.x,t.y,26*S,0,TAU); g.fill();
+    g.fillStyle='#8a97a8'; g.font=`500 ${12*S}px "Chakra Petch", sans-serif`; g.textAlign='center';
+    g.fillText(`CALIBRATING ${cam.calib.step+1} / 4  ·  keep the camera still`, CX, CY);
+    if(gl) glPost(0,0);
+    requestAnimationFrame(frame); return;
+  }
   const nowMs=performance.now();
   const dt = lastFrameT ? Math.min(0.1,(nowMs-lastFrameT)/1000) : 0.016;
   if(lastFrameT){ ftAcc+=nowMs-lastFrameT; ftN++; }
@@ -2419,6 +2705,9 @@ function frame(){
   g.restore();
 
   for(const o of objects) drawObject(o);
+  if(cam.on && cam.H) for(const h of cam.cursors){ const p=applyH(cam.H,h.cx,h.cy);
+    g.save(); g.strokeStyle=h.pinch?COL.gen:COL.ctl; g.lineWidth=2; g.globalAlpha=0.9;
+    g.beginPath(); g.arc(p.x,p.y,(h.pinch?10:16)*S,0,TAU); g.stroke(); g.restore(); }
   if(gl) glPost(ph, level);
   requestAnimationFrame(frame);
 }

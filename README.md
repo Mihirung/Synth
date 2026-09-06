@@ -79,7 +79,11 @@ most of Phase 2 of the plan:
 - **Polyphonic voice engine**: oscillators play chords and overlapping notes, driven by the
   sequencer, a MIDI keyboard, the on-screen piano, or the A-L computer keys. Eight scales,
   chorus and bitcrusher effects, a master VU ring, and undo (Ctrl/Cmd+Z).
-- **Physical-table ready**: open the page with `?tuio=ws://localhost:8765` and run
+- **Camera table (no PC)**: tap *camera* and an Android phone mounted above a flat TV tracks
+  printed dot-markers on cubes in-page (position, rotation and a 6-bit ID), calibrates itself
+  with four dots, and turns a thumb-and-forefinger pinch into a touch via on-device hand
+  tracking. *markers* prints the sheet. See [docs/04-hardware-build.md](docs/04-hardware-build.md).
+- **Physical-table ready** (PC route): open the page with `?tuio=ws://localhost:8765` and run
   [`prototype/tuio-bridge.js`](prototype/tuio-bridge.js) to drive it from reacTIVision's
   TUIO stream instead of the mouse (fiducial class IDs map to object types in blocks of
   eight). Untested against real hardware, by definition, but the seam is in place.
