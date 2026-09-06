@@ -31,6 +31,10 @@ what an object is. The shapes are for hands and eyes:
 - **Hex pucks** for the advanced modifiers, so they read as a different family on the
   table, matching their hexagonal outline on screen: envelope, express, steps, euclid,
   chance, chain, motion, warp, send.
+- **The play tray** (theremin, air drums, harp, marbles, hum, conductor, air knob) has its
+  own section on the marker sheets. Cubes suit the ones with four faces (drums, harp,
+  marbles, hum); round pucks suit the theremin and the conductor. Their pads, strings and
+  fields are drawn on the screen around the object, so leave space around them.
 
 ## Print settings
 

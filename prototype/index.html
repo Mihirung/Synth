@@ -107,16 +107,26 @@
   .chipico.hx::after{content:attr(data-g);position:absolute;inset:2px;background:var(--ground);
     clip-path:polygon(25% 2%,75% 2%,98% 50%,75% 98%,25% 98%,2% 50%);display:flex;align-items:center;justify-content:center;
     color:var(--ctl);font-size:9px;font-weight:600;letter-spacing:0;font-family:var(--font)}
+  .chipico.pl{border:2px solid var(--gen);border-radius:7px}
+  .chipico.pl::after{content:attr(data-g);position:absolute;inset:0;display:flex;align-items:center;justify-content:center;
+    color:var(--gen);font-size:9px;font-weight:600;letter-spacing:0;font-family:var(--font)}
+  .chipico.pl.c{border-color:var(--ctl)} .chipico.pl.c::after{color:var(--ctl)}
+  #playBtn .chipico{border:2px dashed var(--gen);border-radius:7px;opacity:.85}
+  #playBtn .chipico::after{content:'+';position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:var(--gen);font-size:15px;line-height:1}
+  #playBtn.open .chipico::after{content:'−'}
+  #dock3 .lbl{color:#a08a5a}
+  #dock3{border-color:rgba(255,184,77,.28);background:rgba(30,22,12,.55)}
+  #camWrap.mirror video,#camWrap.mirror canvas{transform:scaleX(-1)}
   #advBtn .chipico{border:2px dashed var(--ctl);border-radius:50%;opacity:.8}
   #advBtn .chipico::after{content:'+';position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:var(--ctl);font-size:15px;line-height:1}
   #advBtn.open .chipico::after{content:'−'}
-  #dock2{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(var(--dockH,96px) + 8px);z-index:3;
+  #dock2,#dock3{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(var(--dockH,96px) + 8px);z-index:3;
     display:flex;gap:2px;padding:6px 10px 7px;border:1px solid rgba(217,139,224,.28);border-radius:14px;
     background:rgba(16,12,30,.58);touch-action:none;max-width:96vw;flex-wrap:wrap;justify-content:center;
     backdrop-filter:blur(16px) saturate(1.3);-webkit-backdrop-filter:blur(16px) saturate(1.3);
     box-shadow:inset 0 1px 0 rgba(255,255,255,.05),0 12px 44px rgba(0,0,0,.5)}
-  #dock2[hidden]{display:none}
-  #dock2 .lbl{width:100%;text-align:center;font-size:8px;letter-spacing:.3em;text-transform:uppercase;color:#8f7fa6;padding:0 0 3px}
+  #dock2[hidden],#dock3[hidden]{display:none}
+  #dock2 .lbl,#dock3 .lbl{width:100%;text-align:center;font-size:8px;letter-spacing:.3em;text-transform:uppercase;color:#8f7fa6;padding:0 0 3px}
   #syncPanel{position:fixed;top:54px;right:16px;z-index:5;width:300px;padding:14px 16px;border-radius:14px;
     background:rgba(10,17,30,.72);border:1px solid rgba(255,255,255,.1);
     backdrop-filter:blur(16px) saturate(1.3);-webkit-backdrop-filter:blur(16px) saturate(1.3);
@@ -164,7 +174,7 @@
     .spawn .chipico{ width:22px; height:22px; }
     .spawn{ font-size:8.5px; letter-spacing:.1em; }
     #syncPanel{ width:calc(100vw - 24px); right:12px; left:12px; top:auto; bottom:88px; }
-    #dock2{ left:6px; right:6px; transform:none; max-width:none; border-radius:12px; padding:5px 4px 6px; }
+    #dock2,#dock3{ left:6px; right:6px; transform:none; max-width:none; border-radius:12px; padding:5px 4px 6px; }
     #camWrap{ width:130px; right:8px; bottom:96px; }
   }
 </style>
@@ -205,6 +215,7 @@
     <li>Tap a sequencer's pads to switch steps on; pull a pad outward for a higher note.</li>
     <li>Tap the small keys button above an oscillator for its piano; draw a shape beside one to become its waveform.</li>
     <li>Push two oscillators together for FM; swipe across a line to cut it. Play the A–L keys or a MIDI keyboard.</li>
+    <li><b>Play</b> opens instruments for hands and voice: a theremin, air drums, a harp, marbles, hum, a conductor. They work by touch too; with a camera, wave at it.</li>
     <li><b>More</b> opens the advanced pucks (tuning, envelopes, chance, scenes, stems…). Put one near the block it should change; the global ones work anywhere.</li>
   </ul>
 </div>
@@ -225,7 +236,18 @@
   <button class="spawn" data-type="tempo"><span class="chipico ci tick"></span>tempo</button>
   <button class="spawn" id="importBtn" title="import an audio file as a loop"><span class="chipico sq dot" style="border-style:dashed"></span>import</button>
   <input type="file" id="importFile" accept="audio/*" hidden>
+  <button class="spawn" id="playBtn" title="instruments you play with your hands and voice"><span class="chipico"></span>play</button>
   <button class="spawn" id="advBtn" title="the advanced pucks: tuning, envelopes, chance, scenes, stems…"><span class="chipico"></span>more</button>
+</div>
+<div id="dock3" aria-label="play tray" hidden>
+  <div class="lbl">play with your hands and voice</div>
+  <button class="spawn adv" data-type="theremin" title="a theremin: wave a hand in its field"><span class="chipico pl" data-g="⌇"></span>theremin</button>
+  <button class="spawn adv" data-type="drums" title="air drums: hit the pads with your hands or fingers"><span class="chipico pl" data-g="DR"></span>air drums</button>
+  <button class="spawn adv" data-type="harp" title="a harp: sweep across its strings"><span class="chipico pl" data-g="|||"></span>harp</button>
+  <button class="spawn adv" data-type="marbles" title="flick marbles that play the rim and everything they hit"><span class="chipico pl" data-g="∘∘"></span>marbles</button>
+  <button class="spawn adv" data-type="hum" title="hum or sing: the table plays your tune"><span class="chipico pl" data-g="HUM"></span>hum</button>
+  <button class="spawn adv" data-type="conduct" title="beat time in the air and the table follows"><span class="chipico pl c" data-g="♩"></span>conductor</button>
+  <button class="spawn adv" data-type="air" title="raise a hand to turn the nearest block's ring"><span class="chipico pl c" data-g="✋"></span>air knob</button>
 </div>
 <div id="dock2" aria-label="advanced tray" hidden>
   <div class="lbl">advanced pucks</div>
@@ -285,12 +307,26 @@ const FAMILY = { osc:'gen', sampler:'gen', rec:'gen', mic:'gen',
                  filter:'fx', delay:'fx', mod:'fx', dist:'fx', reverb:'fx', chorus:'fx', crush:'fx',
                  lfo:'ctl', seq:'ctl', tempo:'ctl',
                  key:'ctl', tune:'ctl', env:'ctl', xpress:'ctl', steps:'ctl', euclid:'ctl', chance:'ctl', chain:'ctl',
-                 scene:'ctl', motion:'ctl', warp:'ctl', send:'ctl', space:'ctl', master:'ctl', stems:'ctl' };
+                 scene:'ctl', motion:'ctl', warp:'ctl', send:'ctl', space:'ctl', master:'ctl', stems:'ctl',
+                 theremin:'gen', drums:'gen', harp:'gen', marbles:'gen', hum:'gen', conduct:'ctl', air:'ctl' };
+/* the play tray: instruments for hands (camera) and voice, all playable by touch too */
+const PLAY = new Set(['theremin','drums','harp','marbles','hum','conduct','air']);
+const HANDY = new Set(['theremin','drums','harp','conduct','air']);   // these ask for hand tracking
 /* the advanced pucks: hexagonal, one drawer down, so the main tray stays a child's tray */
 const ADV = new Set(['key','tune','env','xpress','steps','euclid','chance','chain','scene','motion','warp','send','space','master','stems']);
 const GLOBAL_ADV = new Set(['key','tune','scene','space','master','stems']);          // work anywhere on the table
 const BIND = { env:['osc','filter'], xpress:['osc','filter'], steps:['seq'], euclid:['seq'], chance:['seq'], chain:['seq'],
-               motion:'any', warp:['sampler','rec'], send:['delay','reverb','chorus','dist','crush','mod','filter'] };
+               motion:'any', warp:['sampler','rec'], send:['delay','reverb','chorus','dist','crush','mod','filter'], air:'any' };
+const PLAY_LEGEND = {
+  theremin:{ name:'THEREMIN', turn:'range 1–4 octaves', slide:'level', faces:['FREE','IN KEY','GLIDE'] },
+  drums:   { name:'AIR DRUMS', turn:'kit pitch', slide:'level', faces:['FREE','ON THE GRID','BIG KIT','TOMS'] },
+  harp:    { name:'HARP', turn:'root note', slide:'level', faces:['HARP','NYLON','STEEL','BELL'] },
+  marbles: { name:'MARBLES', turn:'energy (speed, bounces)', slide:'level', faces:['FLICK','ONE A BAR','TWO A BAR','EVERY BEAT'] },
+  hum:     { name:'HUM', turn:'octave −2 … +2', slide:'level', faces:['FOLLOW','NOTES','HARMONY','OCTAVES'] },
+  conduct: { name:'CONDUCTOR', turn:'—', slide:'how quickly it follows', faces:['TEMPO','TEMPO + DYNAMICS'] },
+  air:     { name:'AIR KNOB', turn:'—', slide:'—', faces:['TURN','SLIDE','BOTH'] },
+};
+const DRUM_PADS = ['KICK','SNARE','HAT','CLAP'];
 const ADV_LEGEND = {   // printed on the cards and used by the readouts
   key:    { name:'KEY',      turn:'key (C…B)',            slide:'scale',                faces:['octave 0','octave +1','octave −1','octave +2'] },
   tune:   { name:'TUNING',   turn:'tuning system',        slide:'reference A (415–466 Hz)', faces:['oscillators','oscillators + loops'] },
@@ -568,7 +604,7 @@ function resize(){
   let topR=60, botR=96;
   try{ const hb=document.querySelector('header').getBoundingClientRect(); if(hb.height) topR=hb.height; }catch(e){}
   try{ const db=document.getElementById('dock').getBoundingClientRect(); if(db.height){ botR=db.height; document.documentElement.style.setProperty('--dockH', Math.round(db.height)+'px'); } }catch(e){}
-  try{ const d2=document.getElementById('dock2'); if(d2 && !d2.hidden){ const r=d2.getBoundingClientRect(); if(r.height) botR=Math.max(botR, H-r.top); } }catch(e){}
+  for(const id of ['dock2','dock3']) try{ const d2=document.getElementById(id); if(d2 && !d2.hidden){ const r=d2.getBoundingClientRect(); if(r.height) botR=Math.max(botR, H-r.top); } }catch(e){}
   const top=topR+10, bot=botR+10;
   CX = W/2; CY = top + (H-top-bot)/2;
   TABLE_R = Math.max(60, Math.min(W/2 - 12, (H-top-bot)/2 - 6));
@@ -585,7 +621,7 @@ const R_PAD0  = () => 62*S, R_PAD1 = () => 84*S;
 const LINK    = () => TABLE_R*0.60;
 const CTL_LINK= () => TABLE_R*0.46;
 const ARC_START = 0.75*Math.PI, ARC_SPAN = 1.5*Math.PI;
-const hitR = o => o.type==='seq' ? R_PAD1()+4 : R_ARC1()+6;
+const hitR = o => (o.type==='seq' || o.type==='marbles' || o.type==='conduct') ? R_PAD1()+4 : R_ARC1()+6;
 
 /* ================= model ================= */
 let nextId = 1;
@@ -601,7 +637,8 @@ function defaults(type){
            lfo:{arc:0.45}, seq:{arc:0.5}, tempo:{arc:0.5},
            key:{arc:0.06}, tune:{arc:0.5}, env:{arc:0.51}, xpress:{arc:0.5}, steps:{arc:0.4}, euclid:{arc:0},
            chance:{arc:0.2}, chain:{arc:0.2}, scene:{arc:0.25}, motion:{arc:0.3}, warp:{arc:0.3}, send:{arc:0.5},
-           space:{arc:0.3}, master:{arc:0.4}, stems:{arc:0.5} }[type];
+           space:{arc:0.3}, master:{arc:0.4}, stems:{arc:0.5},
+           theremin:{arc:0.6}, drums:{arc:0.8}, harp:{arc:0.7}, marbles:{arc:0.6}, hum:{arc:0.7}, conduct:{arc:0.5}, air:{arc:0.5} }[type];
 }
 function spawn(type, x, y){
   const o = { id:nextId++, type, x, y, angle:0, arc:defaults(type).arc,
@@ -634,6 +671,11 @@ function spawn(type, x, y){
   if(type==='space') o.angle = 0.7*TAU;
   if(type==='master') o.angle = 0.55*TAU;
   if(type==='stems'){ o.angle = (2.5/6)*TAU; o.stemState='idle'; }
+  if(type==='theremin') o.angle = 0.35*TAU;        // two octaves
+  if(type==='drums'){ o.angle = 0.5*TAU; o.padFlash=[-9,-9,-9,-9]; }
+  if(type==='harp'){ o.angle = 0.5*TAU; o.strFlash=[]; }
+  if(type==='marbles') o.angle = 0.5*TAU;
+  if(type==='hum'){ o.angle = 0.5*TAU; o.humState='wait'; }
   objects.push(o);
   if(audio){
     buildNodes(o);
@@ -662,7 +704,8 @@ function teardownNodes(o){
     for(const k of ['vib','trem','bendC']) if(o[k]){ try{ o[k].stop(); }catch(e){} }
     if(o.sendG){ for(const k in o.sendG){ try{ o.sendG[k].disconnect(); }catch(e){} } o.sendG=null; }
     if(o.stemTap){ try{ o.stemTap.disconnect(); }catch(e){} o.stemTap.onaudioprocess=null; o.stemTap=null; }
-    for(const k of ['src','src2','preF','fmGain','amp','gate','out','an','pan','biq','inG','dl','fb','fbSat','fbLP','dry','wet','depthG','carrier','ring','dryG','shaper','conv','micSrc','chDelay','chLfo','chDepth','vib','vibG','trem','tremG','bendC'])
+    try{ if(o.src3) o.src3.stop(); }catch(e){}
+    for(const k of ['src','src2','src3','preF','fmGain','amp','gate','out','an','pan','biq','inG','dl','fb','fbSat','fbLP','dry','wet','depthG','carrier','ring','dryG','shaper','conv','micSrc','chDelay','chLfo','chDepth','vib','vibG','trem','tremG','bendC','thGain','humG','humG2','humG3','humAn'])
       if(o[k]){ try{ o[k].disconnect(); }catch(e){} o[k]=null; }
     if(o.ana){ try{ o.ana.node.disconnect(); }catch(e){} if(o.ana.node.onaudioprocess) o.ana.node.onaudioprocess=null; o.ana=null; }
     if(o.playing){ try{ o.playing.stop(); }catch(e){} o.playing = null; }
@@ -800,12 +843,31 @@ function readout(o){
     case 'send': return ['SEND · '+ADV_LEGEND.send.faces[o.option%2], 'level '+Math.round(sendLevel(o)*100)+'% · reach '+Math.round(sendReach(o)/TABLE_R*100)+'%'+(o.hop==='C'?' · unbound':'')];
     case 'space': return ['SPACE · '+ADV_LEGEND.space.faces[o.option%3], 'width '+Math.round(spaceWidth(o)*100)+'%'];
     case 'master': return ['MASTER · '+ADV_LEGEND.master.faces[o.option%4], 'volume '+Math.round(masterVol(o)*100)+'% · glue '+Math.round(o.arc*100)+'%'];
+    case 'theremin': case 'drums': case 'harp': case 'marbles': case 'hum': case 'conduct': case 'air': return playReadout(o);
     case 'stems': return ['STEMS · '+stemBars(o)+' BAR'+(stemBars(o)>1?'S':''),
                           o.stemState==='idle' ? 'tap or replace to arm' : o.stemState==='armed' ? 'starts next bar…'
                         : o.stemState==='recording' ? 'recording '+(o.stemN||0)+' stems…' : o.stemState==='saving' ? 'saving…' : (o.stemMsg||'saved')];
   }
 }
 function fmtMs(s){ return s<1 ? Math.round(s*1000)+' ms' : s.toFixed(2)+' s'; }
+function playReadout(o){
+  const hz = hands.mode==='off' ? (hands.failed ? 'no camera · touch' : 'touch, or a camera') : hands.mode==='mirror' ? 'webcam hands' : 'table hands';
+  switch(o.type){
+    case 'theremin': return ['THEREMIN · '+PLAY_LEGEND.theremin.faces[o.option%3], (o.thActive && o.thMidi!=null ? noteName(Math.round(o.thMidi))+' · ' : '')+thereminOct(o)+' oct · '+hz];
+    case 'drums': return ['AIR DRUMS · '+PLAY_LEGEND.drums.faces[o.option%4], 'level '+Math.round(o.arc*100)+'% · '+hz];
+    case 'harp': return ['HARP · '+PLAY_LEGEND.harp.faces[o.option%4], noteName(harpRoot(o))+' '+SCALES[state.scaleIdx].name+' · sweep the strings'];
+    case 'marbles': return ['MARBLES · '+PLAY_LEGEND.marbles.faces[o.option%4], balls.length+' rolling · flick from the ring'];
+    case 'hum': return ['HUM · '+PLAY_LEGEND.hum.faces[o.option%4], o.humState==='wait' ? 'allow microphone…' : o.humState==='denied' ? 'mic blocked' : (o.humNote!=null ? noteName(o.humNote)+' · ' : 'sing… · ')+(humOct(o)>0?'+':'')+humOct(o)+' oct'];
+    case 'conduct': return ['CONDUCTOR · '+PLAY_LEGEND.conduct.faces[o.option%2], (o.bpmT ? Math.round(o.bpmT)+' BPM felt · ' : 'beat time in the air · ')+hz];
+    case 'air': return ['AIR KNOB · '+PLAY_LEGEND.air.faces[o.option%3], o.hop==='C' ? 'put it by a block' : 'raise a hand · '+hz];
+  }
+}
+function thereminOct(o){ return 1 + Math.round((o.angle/TAU)*3); }
+function thereminField(){ return TABLE_R*0.42; }
+function harpRoot(o){ return 48 + state.key + 12*Math.round((o.angle/TAU)*2 - 1); }   // C3..C5 + key
+function humOct(o){ return Math.round((o.angle/TAU)*4 - 2); }
+function drumPadR(){ return TABLE_R*0.36; }
+function drumRate(o){ return Math.pow(2, (o.angle/TAU - 0.5)); }   // half to double
 
 /* ================= analogue sound engines =================
    Real per-sample DSP, built from the published models rather than Web Audio
@@ -1115,6 +1177,7 @@ function startAudio(){
   };
   ctx.resume();
   buildLoopBuffers();
+  makeDrumKit();
   restoreImports();
 }
 function makeDistCurve(k){
@@ -1232,9 +1295,36 @@ function buildNodes(o){
     o.wet = ctx.createGain(); o.wet.gain.value = o.arc;
     o.inG.connect(o.dry); o.dry.connect(o.out);
     o.inG.connect(o.shaper); o.shaper.connect(o.wet); o.wet.connect(o.out);
-  } else if(o.type==='tempo' || ADV.has(o.type)){
+  } else if(o.type==='tempo' || ADV.has(o.type) || o.type==='conduct' || o.type==='air'){
     /* control pucks: no audio path of their own */
     if(o.type==='master') applyMaster(o);
+  } else if(o.type==='theremin'){
+    o.amp = ctx.createGain(); o.amp.gain.value = 1; o.amp.connect(o.out);
+    o.thGain = ctx.createGain(); o.thGain.gain.value = 0; o.thGain.connect(o.amp);
+    o.src = ctx.createOscillator(); o.src.type='sine'; o.src.frequency.value = 440;
+    o.src2 = ctx.createOscillator(); o.src2.type='sine'; o.src2.frequency.value = 880;
+    const g2 = ctx.createGain(); g2.gain.value = 0.18; o.src2.connect(g2); g2.connect(o.thGain); o.src.connect(o.thGain);
+    o.vib = ctx.createOscillator(); o.vib.frequency.value = 5.2; o.vibG = ctx.createGain(); o.vibG.gain.value = 7;   // cents: a real theremin's hand tremor
+    o.vib.connect(o.vibG); o.vibG.connect(o.src.detune); o.vibG.connect(o.src2.detune);
+    o.src.start(); o.src2.start(); o.vib.start();
+  } else if(o.type==='drums' || o.type==='harp' || o.type==='marbles'){
+    o.amp = ctx.createGain(); o.amp.gain.value = o.arc; o.amp.connect(o.out);
+  } else if(o.type==='hum'){
+    o.amp = ctx.createGain(); o.amp.gain.value = o.arc; o.amp.connect(o.out);
+    o.humG = ctx.createGain(); o.humG.gain.value = 0; o.humG.connect(o.amp);
+    o.preF = ctx.createBiquadFilter(); o.preF.type='lowpass'; o.preF.frequency.value = 2200; o.preF.Q.value = 0.7; o.preF.connect(o.humG);
+    o.src = ctx.createOscillator(); o.src.type='sawtooth'; o.src.frequency.value = 220; o.src.connect(o.preF); o.src.start();
+    o.src2 = ctx.createOscillator(); o.src2.type='triangle'; o.src2.frequency.value = 220; o.humG2 = ctx.createGain(); o.humG2.gain.value = 0; o.src2.connect(o.humG2); o.humG2.connect(o.preF); o.src2.start();
+    o.src3 = ctx.createOscillator(); o.src3.type='triangle'; o.src3.frequency.value = 330; o.humG3 = ctx.createGain(); o.humG3.gain.value = 0; o.src3.connect(o.humG3); o.humG3.connect(o.preF); o.src3.start();
+    if(navigator.mediaDevices && navigator.mediaDevices.getUserMedia){
+      navigator.mediaDevices.getUserMedia({ audio:{ echoCancellation:true, noiseSuppression:true } })
+        .then(stream => {
+          if(!objects.includes(o)){ stream.getTracks().forEach(t=>t.stop()); return; }
+          o.micStream = stream; o.micSrc = ctx.createMediaStreamSource(stream);
+          o.humAn = ctx.createAnalyser(); o.humAn.fftSize = 2048; o.humBuf = new Float32Array(2048);
+          o.micSrc.connect(o.humAn); o.humState = 'live';
+        }).catch(()=>{ o.humState = 'denied'; });
+    } else o.humState = 'denied';
   } else if(o.type==='filter'){
     if(ANALOG() && analogState.mode){
       o.ana = makeAnalog('filter');
@@ -1384,7 +1474,7 @@ function applyParams(o){
       }
       o.amp.gain.setTargetAtTime(o.arc*0.22, t, 0.02);
     }
-  } else if(o.type==='sampler' || o.type==='rec' || o.type==='mic'){
+  } else if(o.type==='sampler' || o.type==='rec' || o.type==='mic' || o.type==='drums' || o.type==='harp' || o.type==='marbles' || o.type==='hum'){
     o.amp.gain.setTargetAtTime(o.arc, t, 0.02);
   } else if(o.type==='dist'){
     o.shaper.curve = makeDistCurve(distDrive(o));
@@ -1488,6 +1578,9 @@ function cycleOption(o){
     o.option = (o.option+1)%4; motionClear(o);
   } else if(ADV.has(o.type)){
     o.option = (o.option+1)%ADV_LEGEND[o.type].faces.length;
+  } else if(PLAY.has(o.type)){
+    o.option = (o.option+1)%PLAY_LEGEND[o.type].faces.length;
+    if(o.type==='hum') humFaces(o);
   }
   saveSoon();
 }
@@ -1737,6 +1830,246 @@ function buildTonalBuffers(){
   }) };
 }
 
+/* ================= the play tray's sounds =================
+   Plucked strings by Karplus–Strong (a noise burst circulating in a delay line
+   with a two-point average: a real string model, synthesised into a buffer per
+   pluck and cached), a one-shot drum kit built from the loop generators, a
+   two-partial theremin voice, and a voice-following synth. */
+const ksCache = new Map();
+function ksBuffer(freq, face){
+  const sr = audio.ctx.sampleRate, key = Math.round(freq*10)+'|'+face+'|'+sr;
+  if(ksCache.has(key)) return ksCache.get(key);
+  const N = Math.max(2, Math.round(sr/freq));
+  const dur = [1.8, 0.8, 2.4, 3.2][face%4], damp = [0.9965, 0.985, 0.998, 0.9992][face%4], bright = [0.45, 0.85, 0.3, 0.95][face%4];
+  const L = Math.floor(sr*dur), b = audio.ctx.createBuffer(1, L, sr), d = b.getChannelData(0);
+  let lp = 0;
+  for(let i=0;i<N;i++){ const n = Math.random()*2-1; lp += (n-lp)*bright; d[i] = lp; }
+  d[N] = damp*d[0];
+  for(let i=N+1;i<L;i++) d[i] = damp*0.5*(d[i-N] + d[i-N-1]);
+  const F = Math.floor(sr*0.05); for(let i=0;i<F;i++) d[L-1-i] *= i/F;
+  if(ksCache.size>96) ksCache.delete(ksCache.keys().next().value);
+  ksCache.set(key, b);
+  return b;
+}
+function ksPluck(o, freq, face, vel, t){
+  if(!audio || !o.amp) return;
+  t = t || audio.ctx.currentTime;
+  const src = audio.ctx.createBufferSource(); src.buffer = ksBuffer(freq, face);
+  const g = audio.ctx.createGain(); g.gain.value = 0.35*Math.max(0.05, Math.min(1, vel==null?0.8:vel));
+  src.connect(g); g.connect(o.amp); try{ src.start(t); }catch(e){}
+  o.flashAt = t;
+}
+const drumKick = (d,at,sr,amp,f0)=>{ for(let i=0;i<sr*0.32;i++){ const t=i/sr; d[at+i] += Math.sin(TAU*((f0||50)+110*Math.exp(-t*30))*t)*Math.exp(-t*9)*(amp||0.9); } };
+const drumSnare = (d,at,sr,amp)=>{ for(let i=0;i<sr*0.22;i++){ const t=i/sr; d[at+i] += ((Math.random()*2-1)*0.55 + Math.sin(TAU*190*t)*0.3)*Math.exp(-t*18)*(amp||1); } };
+const drumHat = (d,at,sr,amp,len)=>{ let p=0; for(let i=0;i<sr*(len||0.06);i++){ const t=i/sr; const n=Math.random()*2-1, h=n-p; p=n; d[at+i] += h*Math.exp(-t*(len?18:60))*(amp||0.3); } };
+const drumClap = (d,at,sr)=>{ for(const off of [0,0.011,0.022]){ const a=at+Math.floor(off*sr); let lp=0; for(let i=0;i<sr*0.25;i++){ const t=i/sr; const n=Math.random()*2-1; lp+=(n-lp)*0.35; d[a+i] += (n-lp)*Math.exp(-t*(i<sr*0.02?60:11))*0.55; } } };
+const drumTom = (d,at,sr,f)=>{ for(let i=0;i<sr*0.4;i++){ const t=i/sr; d[at+i] += Math.sin(TAU*(f+f*0.6*Math.exp(-t*18))*t)*Math.exp(-t*7)*0.8 + (Math.random()*2-1)*Math.exp(-t*80)*0.2; } };
+function makeDrumKit(){
+  const sr = audio.ctx.sampleRate;
+  const mk = (sec, fn) => { const b = audio.ctx.createBuffer(1, Math.floor(sr*sec), sr); fn(b.getChannelData(0), sr); return b; };
+  audio.drums = {
+    KICK: mk(0.4, (d,sr)=>drumKick(d,0,sr,0.95)),        SNARE: mk(0.3, (d,sr)=>drumSnare(d,0,sr,1)),
+    HAT: mk(0.12, (d,sr)=>drumHat(d,0,sr,0.5)),          CLAP: mk(0.35, (d,sr)=>drumClap(d,0,sr)),
+    BKICK: mk(0.6, (d,sr)=>{ drumKick(d,0,sr,1.0,42); drumKick(d,0,sr,0.5,60); }), BSNARE: mk(0.5, (d,sr)=>{ drumSnare(d,0,sr,1.1); drumHat(d,0,sr,0.25,0.3); }),
+    OHAT: mk(0.5, (d,sr)=>drumHat(d,0,sr,0.45,0.45)),   CRASH: mk(1.6, (d,sr)=>drumHat(d,0,sr,0.5,1.5)),
+    TOM1: mk(0.5, (d,sr)=>drumTom(d,0,sr,180)), TOM2: mk(0.5, (d,sr)=>drumTom(d,0,sr,140)), TOM3: mk(0.5, (d,sr)=>drumTom(d,0,sr,110)), TOM4: mk(0.6, (d,sr)=>drumTom(d,0,sr,85)),
+  };
+}
+function drumSample(o, pad){
+  const face = o.option%4;
+  if(face===3) return ['TOM1','TOM2','TOM3','TOM4'][pad];
+  if(face===2) return ['BKICK','BSNARE','OHAT','CRASH'][pad];
+  return DRUM_PADS[pad];
+}
+function drumHit(o, pad, vel, t){
+  if(!audio || !o.amp || !audio.drums) return;
+  t = t || audio.ctx.currentTime;
+  if(o.option%4===1){ const sd = stepDur(); t = transport.anchor + Math.round((t - transport.anchor)/sd)*sd; if(t < audio.ctx.currentTime) t += sd; }   // on the grid
+  const src = audio.ctx.createBufferSource(); src.buffer = audio.drums[drumSample(o, pad)];
+  src.playbackRate.value = drumRate(o);
+  const g = audio.ctx.createGain(); g.gain.value = velGain(o, vel==null?0.8:vel);
+  src.connect(g); g.connect(o.amp); try{ src.start(t); }catch(e){}
+  kickFilterEnvs(t, vel==null?0.8:vel, 0.2);
+  o.padFlash[pad] = t; o.flashAt = t;
+}
+function drumPadAt(o, x, y){
+  const d = Math.hypot(x-o.x, y-o.y);
+  if(d <= R_ARC1()+4 || d > drumPadR()) return -1;
+  const left = x < o.x, top = y < o.y;
+  return top ? (left ? 2 : 3) : (left ? 0 : 1);          // hat, clap above; kick, snare below
+}
+/* the harp: strings fan out from the puck, away from the centre */
+function harpStrings(o){
+  const st = scaleSteps(), n = Math.min(15, st.length*2+1);
+  const away = Math.atan2(o.y-CY, o.x-CX), span = Math.PI*1.15;
+  const r0 = R_ARC1()+6*S, r1 = r0 + TABLE_R*0.34, root = harpRoot(o);
+  const out = [];
+  const ox = o.x-CX, oy = o.y-CY, cc = ox*ox+oy*oy - (TABLE_R-8*S)*(TABLE_R-8*S);
+  for(let k=0;k<n;k++){
+    const a = away - span/2 + span*(k/(n-1)), ux = Math.cos(a), uy = Math.sin(a);
+    const bb = ox*ux + oy*uy, disc = bb*bb - cc;                          // where this string would meet the rim
+    const rEnd = Math.max(r0+10*S, Math.min(r1, disc>0 ? -bb + Math.sqrt(disc) : r1));
+    out.push({ k, midi: root + degSemis(k), x1:o.x+ux*r0, y1:o.y+uy*r0, x2:o.x+ux*rEnd, y2:o.y+uy*rEnd });
+  }
+  return out;
+}
+function harpSweep(o, p0, p1, vel){
+  let any = false;
+  for(const s of harpStrings(o)){
+    if(segIntersect(p0, p1, {x:s.x1,y:s.y1}, {x:s.x2,y:s.y2})){
+      const t = audio ? audio.ctx.currentTime : 0;
+      if(o.strFlash[s.k] && t - o.strFlash[s.k] < 0.06) continue;
+      o.strFlash[s.k] = t;
+      ksPluck(o, pitchHz(s.midi), o.option%4, vel==null ? 0.8 : vel, t);
+      if(audio) kickFilterEnvs(t, 0.7, 0.3);
+      any = true;
+    }
+  }
+  return any;
+}
+/* the theremin: a position in its field is a pitch; a second hand's height, or the slider, is the volume */
+function thereminSet(o, pos, vol){
+  if(!audio || !o.src) return;
+  const t = audio.ctx.currentTime;
+  if(pos==null){ o.thGain.gain.setTargetAtTime(0, t, 0.08); o.thActive = false; return; }
+  pos = Math.max(0, Math.min(1, pos));
+  let midi = 45 + state.key + pos*12*thereminOct(o);
+  if(o.option%3===1) midi = quantMidi(Math.round(midi));
+  const f = o.option%3===1 ? pitchHz(midi) : 440*Math.pow(2,(midi-69)/12);
+  const glide = o.option%3===2 ? 0.22 : 0.035;
+  o.src.frequency.setTargetAtTime(f, t, glide); o.src2.frequency.setTargetAtTime(f*2, t, glide);
+  const v = (vol==null ? 1 : Math.max(0, Math.min(1, vol))) * o.arc*0.35;
+  o.thGain.gain.setTargetAtTime(v, t, 0.05);
+  o.thActive = true; o.thMidi = midi; o.thPos = pos;
+  if(!o.thWasActive){ kickFilterEnvs(t, 0.7, 0.5); } o.thWasActive = true;
+}
+/* hum: a voice becomes a synth line. Autocorrelation pitch tracking on the mic. */
+function autoCorrelate(buf, sr){
+  const n = buf.length; let rms = 0;
+  for(let i=0;i<n;i++) rms += buf[i]*buf[i];
+  rms = Math.sqrt(rms/n); if(rms < 0.015) return { f:-1, rms };
+  const minLag = Math.floor(sr/1000), maxLag = Math.min(n>>1, Math.floor(sr/65)), half = n>>1;
+  const c = new Float32Array(maxLag+2);
+  for(let lag=minLag; lag<=maxLag; lag++){
+    let s = 0, a = 0, b = 0;
+    for(let i=0;i<half;i++){ const x = buf[i], y = buf[i+lag]; s += x*y; a += x*x; b += y*y; }
+    c[lag] = s/Math.sqrt(a*b+1e-12);
+  }
+  // the first strong peak after the correlation has dipped is the period (later peaks are its multiples)
+  let crossed = false, best = -1;
+  for(let lag=minLag+1; lag<maxLag; lag++){
+    if(!crossed){ if(c[lag] < 0.3) crossed = true; continue; }
+    if(c[lag] > 0.82 && c[lag] >= c[lag-1] && c[lag] >= c[lag+1]){ best = lag; break; }
+  }
+  if(best < 0) return { f:-1, rms };
+  const y0 = c[best-1], y1 = c[best], y2 = c[best+1], den = (y0 - 2*y1 + y2);
+  const shift = den ? 0.5*(y0 - y2)/den : 0;                     // parabolic interpolation
+  return { f: sr/(best + Math.max(-0.5, Math.min(0.5, shift))), rms };
+}
+function humTick(o){
+  if(!audio || !o.humAn) return;
+  o.humAn.getFloatTimeDomainData(o.humBuf);
+  const { f, rms } = autoCorrelate(o.humBuf, audio.ctx.sampleRate);
+  const t = audio.ctx.currentTime, face = o.option%4;
+  if(f < 0){ o.humG.gain.setTargetAtTime(0, t, 0.09); if(rms < 0.015) o.humNote = null; return; }
+  const midiF = 69 + 12*Math.log2(f/440) + 12*humOct(o);
+  const q = quantMidi(Math.round(midiF));
+  const level = Math.min(1, (rms-0.01)*9) * 0.28;
+  let fq;
+  if(face===0) fq = 440*Math.pow(2,(midiF-69)/12);
+  else fq = pitchHz(q);
+  if(face!==0 && q!==o.humNote){ o.humG.gain.cancelScheduledValues(t); o.humG.gain.setValueAtTime(o.humG.gain.value*0.4, t); o.flashAt = t; }
+  o.humNote = face===0 ? Math.round(midiF) : q;
+  o.src.frequency.setTargetAtTime(fq, t, face===0 ? 0.03 : 0.012);
+  o.humG.gain.setTargetAtTime(level, t, 0.05);
+  if(face===2){ const third = pitchHz(quantMidi(q+3)), fifth = pitchHz(quantMidi(q+7));
+    o.src2.frequency.setTargetAtTime(third, t, 0.012); o.src3.frequency.setTargetAtTime(fifth, t, 0.012); }
+  else if(face===3){ o.src2.frequency.setTargetAtTime(fq/2, t, 0.012); o.src3.frequency.setTargetAtTime(fq*2, t, 0.012); }
+}
+function humFaces(o){
+  if(!audio || !o.humG2) return;
+  const t = audio.ctx.currentTime, on = o.option%4>=2;
+  o.humG2.gain.setTargetAtTime(on ? 0.6 : 0, t, 0.05); o.humG3.gain.setTargetAtTime(on ? (o.option%4===3 ? 0.35 : 0.5) : 0, t, 0.05);
+}
+/* marbles: little bouncing lights; the rim is a tone circle, and everything they hit plays */
+const balls = [];
+function launchBall(o, dx, dy, speed){
+  const len = Math.hypot(dx,dy)||1; dx/=len; dy/=len;
+  const energy = 0.4 + (o.angle/TAU)*0.8;
+  const r = 5*S + Math.random()*3*S;
+  balls.push({ x:o.x+dx*(R_ARC1()+10*S), y:o.y+dy*(R_ARC1()+10*S), vx:dx*speed*energy, vy:dy*speed*energy, r,
+               life: Math.round(6 + (o.angle/TAU)*18), owner:o.id, born:performance.now(), cool:{}, trail:[] });
+  if(balls.length>24) balls.shift();
+}
+function ballsTick(dt){
+  if(!balls.length) return;
+  const t = audio ? audio.ctx.currentTime : 0, st = scaleSteps(), nDeg = st.length*2;
+  for(let i=balls.length-1;i>=0;i--){
+    const b = balls[i];
+    b.x += b.vx*dt; b.y += b.vy*dt;
+    b.vx *= (1 - 0.12*dt); b.vy *= (1 - 0.12*dt);
+    b.trail.push({x:b.x,y:b.y}); if(b.trail.length>10) b.trail.shift();
+    const owner = objects.find(q=>q.id===b.owner);
+    const dc = Math.hypot(b.x-CX, b.y-CY), lim = TABLE_R - b.r - 2;
+    if(dc > lim){   // the rim: a tone circle
+      const nx = (b.x-CX)/dc, ny = (b.y-CY)/dc, dot = b.vx*nx + b.vy*ny;
+      if(dot > 0){ b.vx -= 2*dot*nx; b.vy -= 2*dot*ny; }
+      b.x = CX + nx*lim; b.y = CY + ny*lim;
+      const ang = ((Math.atan2(ny,nx) + Math.PI/2)/TAU % 1 + 1) % 1;
+      const deg = Math.floor(ang*nDeg), vel = Math.min(1, Math.hypot(b.vx,b.vy)/(TABLE_R*1.4));
+      if(owner) ksPluck(owner, pitchHz(60 + state.key + degSemis(deg)), 0, 0.3+vel*0.7, t);
+      b.life--; b.hitAt = performance.now(); addRipple(b.x, b.y, 0.25, 0.3);
+    }
+    for(const q of objects){   // things on the table: bounce off them, and play them
+      if(q.id===b.owner && performance.now()-b.born < 400) continue;
+      const d = Math.hypot(b.x-q.x, b.y-q.y), R = R_BODY()+b.r;
+      if(d >= R) continue;
+      const nx = (b.x-q.x)/(d||1), ny = (b.y-q.y)/(d||1), dot = b.vx*nx + b.vy*ny;
+      if(dot < 0){ b.vx -= 2*dot*nx; b.vy -= 2*dot*ny; }
+      b.x = q.x + nx*R; b.y = q.y + ny*R;
+      const last = b.cool[q.id]||0; if(performance.now()-last < 160) continue; b.cool[q.id] = performance.now();
+      const vel = Math.min(1, 0.35 + Math.hypot(b.vx,b.vy)/(TABLE_R*1.4));
+      ballPlays(q, owner, vel, t); q.flashAt = t; b.life--; b.hitAt = performance.now();
+    }
+    for(let j=i-1;j>=0;j--){   // marbles bounce off each other
+      const c = balls[j], d = Math.hypot(b.x-c.x, b.y-c.y);
+      if(d < b.r + c.r && d > 0){ const nx=(b.x-c.x)/d, ny=(b.y-c.y)/d, rel=(b.vx-c.vx)*nx + (b.vy-c.vy)*ny;
+        if(rel < 0){ b.vx -= rel*nx; b.vy -= rel*ny; c.vx += rel*nx; c.vy += rel*ny; } }
+    }
+    if(b.life<=0 || Math.hypot(b.vx,b.vy) < 12*S || performance.now()-b.born > 40000 || !owner) balls.splice(i,1);
+  }
+}
+function ballPlays(q, owner, vel, t){
+  if(!audio) return;
+  if(q.type==='osc' && (q.src||q.ana)){ const deg = Math.floor(Math.random()*scaleSteps().length); pluckVoice(q, quantMidi(oscMidi(q)+degSemis(deg)), t, 0.25, vel); }
+  else if(q.type==='sampler' || q.type==='rec'){ sliceOn(q, Math.floor(Math.random()*scaleSteps().length*2), t, 0.22, vel); }
+  else if(q.type==='drums'){ drumHit(q, Math.floor(Math.random()*4), vel, t); }
+  else if(q.type==='harp'){ const s = harpStrings(q); const k = Math.floor(Math.random()*s.length); q.strFlash[k]=t; ksPluck(q, pitchHz(s[k].midi), q.option%4, vel, t); }
+  else if(q.type==='filter'){ kickFilterEnvs(t, vel, 0.3); }
+  else if(q.type==='mic' || q.type==='hum' || q.type==='theremin' || q.type==='marbles'){ if(owner) ksPluck(owner, pitchHz(72 + state.key + degSemis(Math.floor(Math.random()*scaleSteps().length))), 1, vel, t); }
+  else if(owner){ const deg = Math.round((q.angle/TAU)*scaleSteps().length*2); ksPluck(owner, pitchHz(48 + state.key + degSemis(deg)), 2, vel, t); }
+}
+/* the conductor: strikes in the air are beats; their spacing is the tempo */
+function conductBeat(o, tMs){
+  const b = o.beats || (o.beats = []);
+  if(b.length && tMs - b[b.length-1] < 180) return;
+  b.push(tMs); while(b.length > 6) b.shift();
+  o.flashAt = audio ? audio.ctx.currentTime : 0; o.beatAt = tMs;
+  if(b.length < 3) return;
+  const iv = []; for(let i=1;i<b.length;i++) iv.push(b[i]-b[i-1]);
+  const med = median(iv), bpm = 60000/med;
+  if(bpm < 50 || bpm > 200) return;
+  o.bpmT = o.bpmT ? o.bpmT*0.5 + bpm*0.5 : bpm;
+  const k = 0.25 + o.arc*0.7;
+  setBpm(state.bpm*(1-k) + o.bpmT*k); syncChips();
+}
+function conductDyn(o, h){
+  if(!audio || o.option%2!==1) return;
+  const mp = objects.find(q=>q.type==='master');
+  const base = mp ? 0.05 + masterVol(mp)*0.9 : 0.55;
+  audio.master.gain.setTargetAtTime(base*(0.25 + 0.85*Math.max(0,Math.min(1,h))), audio.ctx.currentTime, 0.12);
+}
+
 /* ================= transport & scheduling ================= */
 const transport = { step:0, nextTime:0, anchor:0, timer:null };
 const stepDur = () => 60/state.bpm/4;
@@ -1767,6 +2100,11 @@ function scheduleStep(stepAbs, t){
   if(midi && state.midiOn){                              // MIDI clock, 24 ppq
     const base = perfTime(t), gap = stepDur()/6*1000;
     for(let k=0;k<6;k++) try{ midi.send([0xF8], base+k*gap); }catch(e){}
+  }
+  for(const m of objects) if(m.type==='marbles' && m.option%4){   // auto marbles: one or two a bar, or one every beat
+    const face = m.option%4;
+    const go = face===3 ? (s16%4===0) : (s16===0 || (face===2 && s16===8));
+    if(go){ const a = Math.random()*TAU; launchBall(m, Math.cos(a), Math.sin(a), TABLE_R*0.9); }
   }
   if(s16===0){
     const barAbs = Math.round(stepAbs/16);
@@ -2163,13 +2501,13 @@ function computePatch(){
     let best=null, bd=CTL_LINK();
     for(const t of objects){
       if(t===a) continue;
-      if(allow==='any' ? ADV.has(t.type) : !allow.includes(t.type)) continue;
+      if(allow==='any' ? (ADV.has(t.type) || PLAY.has(t.type)) : !allow.includes(t.type)) continue;
       const d = dist(a,t);
       if(d<bd){ bd=d; best=t; }
     }
     setHop(a, best?best.id:'C');
   }
-  updateSends(); updateSpace();
+  updateSends(); updateSpace(); handsSync();
   // proximity FM between oscillators: the outer one silently modulates the inner
   const oscs = objects.filter(o=>o.type==='osc');
   const FMR = TABLE_R*0.23;
@@ -2371,6 +2709,13 @@ canvas.addEventListener('pointerdown', e=>{
       drags.set(e.pointerId, { mode:'pad', obj:o, idx:padIndexAt(o,x,y), sx:x, sy:y, moved:false });
       return;
     }
+    if(o.type==='marbles' && d > R_ARC1()+4 && d <= R_PAD1()+4){   // flick a marble from the ring
+      drags.set(e.pointerId, { mode:'flick', obj:o, pts:[{x,y,t:performance.now()}] });
+      return;
+    }
+    if(o.type==='conduct' && d > R_ARC1()+4 && d <= R_PAD1()+4){    // tap the ring in time
+      conductBeat(o, performance.now()); addRipple(o.x,o.y,0.3); return;
+    }
     if(d <= R_BODY()){
       drags.set(e.pointerId, { mode:'move', obj:o, dx:o.x-x, dy:o.y-y, sx:x, sy:y, moved:false });
       addRipple(o.x,o.y,0.5);
@@ -2382,10 +2727,33 @@ canvas.addEventListener('pointerdown', e=>{
     }
     return;
   }
+  // the play objects' zones: drum pads, harp strings, the theremin's field
+  const z = zoneAt(x,y);
+  if(z){
+    try{ canvas.setPointerCapture(e.pointerId); }catch(err){}
+    if(z.kind==='pad'){ drumHit(z.o, z.pad, 0.6+0.4*pointerPress(e)); drags.set(e.pointerId, { mode:'drum', obj:z.o, pad:z.pad }); return; }
+    if(z.kind==='field'){ thereminTouch(z.o, x, y); drags.set(e.pointerId, { mode:'theremin', obj:z.o }); return; }
+    if(z.kind==='strings'){ drags.set(e.pointerId, { mode:'stroke', pts:[{x,y}], cuts:new Set(), harp:true }); return; }
+  }
   // empty table: begin a stroke — a swipe cuts lines, a doodle can become a waveform
   try{ canvas.setPointerCapture(e.pointerId); }catch(err){}
   drags.set(e.pointerId, { mode:'stroke', pts:[{x,y}], cuts:new Set() });
 });
+function zoneAt(x,y){
+  for(let i=objects.length-1;i>=0;i--){
+    const o=objects[i], d=Math.hypot(x-o.x,y-o.y);
+    if(o.type==='drums'){ const pad=drumPadAt(o,x,y); if(pad>=0) return { o, kind:'pad', pad }; }
+    else if(o.type==='harp'){
+      if(d > R_ARC1()+4 && d <= R_ARC1()+12*S+TABLE_R*0.34){
+        const away=Math.atan2(o.y-CY,o.x-CX); let da=Math.atan2(y-o.y,x-o.x)-away; da=Math.atan2(Math.sin(da),Math.cos(da));
+        if(Math.abs(da) <= Math.PI*0.62) return { o, kind:'strings' };
+      }
+    }
+    else if(o.type==='theremin'){ if(d > R_ARC1()+4 && d <= thereminField()) return { o, kind:'field' }; }
+  }
+  return null;
+}
+function thereminTouch(o,x,y){ const d=Math.hypot(x-o.x,y-o.y); o.thTouch=true; o.thAt={x,y}; thereminSet(o, 1-Math.min(1,d/thereminField()), null); }
 function connEnds(o){
   const t = o.hop==='C' ? {x:CX,y:CY} : objects.find(z=>z.id===o.hop);
   if(!t) return null;
@@ -2455,6 +2823,12 @@ canvas.addEventListener('pointermove', e=>{
     applyArcFromPointer(obj,x,y);
   } else if(dr.mode==='key'){
     setPressure(obj, pointerPress(e), 'pointer');
+  } else if(dr.mode==='drum'){
+    const pad = drumPadAt(obj,x,y); if(pad>=0 && pad!==dr.pad){ dr.pad=pad; drumHit(obj, pad, 0.6+0.4*pointerPress(e)); }
+  } else if(dr.mode==='theremin'){
+    thereminTouch(obj,x,y);
+  } else if(dr.mode==='flick'){
+    dr.pts.push({x,y,t:performance.now()}); if(dr.pts.length>12) dr.pts.shift();
   } else if(dr.mode==='pad'){
     if(Math.hypot(x-dr.sx,y-dr.sy) > 6*S) dr.moved = true;
     if(dr.moved){
@@ -2468,6 +2842,8 @@ canvas.addEventListener('pointermove', e=>{
   } else if(dr.mode==='stroke'){
     const prev = dr.pts[dr.pts.length-1];
     if(dr.pts.length < 500) dr.pts.push({x,y});
+    for(const o of objects) if(o.type==='harp' && harpSweep(o, prev, {x,y}, 0.85)) dr.plucked = true;
+    if(dr.harp) return;
     for(const o of objects){
       if(FAMILY[o.type]==='ctl' || o.fmTo || dr.cuts.has(o.id)) continue;
       const seg = connEnds(o);
@@ -2490,6 +2866,16 @@ function endDrag(e){
     if(dr.voice) dr.voice.release(Math.max(audio.ctx.currentTime, dr.t0+0.12));
     setPressure(dr.obj, 0, 'pointer');
   }
+  if(dr.mode==='theremin'){ dr.obj.thTouch=false; if(!dr.obj.thHand) thereminSet(dr.obj, null); }
+  if(dr.mode==='flick'){
+    const p0=dr.pts[0], p1=dr.pts[dr.pts.length-1];
+    const mx=p1.x-p0.x, my=p1.y-p0.y, moved=Math.hypot(mx,my);
+    const dtm=Math.max(0.03,(p1.t-p0.t)/1000), sp=moved/dtm;
+    const dx = moved>10 ? mx : p1.x-dr.obj.x, dy = moved>10 ? my : p1.y-dr.obj.y;   // a flick's direction, or straight out from the puck
+    const speed = moved>10 ? Math.max(TABLE_R*0.5, Math.min(TABLE_R*2.2, sp*0.8)) : TABLE_R*0.9;
+    if(Math.hypot(dx,dy)>2) launchBall(dr.obj, dx, dy, speed);
+    addRipple(p1.x,p1.y,0.3);
+  }
   if(dr.mode==='pad' && !dr.moved){
     const st = dr.obj.steps[dr.idx];
     if(xpressFor(dr.obj)){   // with an express puck on the table, pads have an accent: off → on → accent
@@ -2498,12 +2884,12 @@ function endDrag(e){
     addRipple(dr.obj.x,dr.obj.y,0.35);
     saveSoon();
   }
-  if(dr.mode==='stroke'){
+  if(dr.mode==='stroke' && !dr.harp){
     if(dr.pts.length <= 4){
       const p = dr.pts[dr.pts.length-1];
       const c = connAt(p.x, p.y);
       if(c) setMuted(c, !c.muted);
-    } else if(dr.cuts.size===0 && dr.pts.length >= 12){
+    } else if(dr.cuts.size===0 && !dr.plucked && dr.pts.length >= 12){
       tryAbsorbWave(dr.pts);
     }
   }
@@ -2559,12 +2945,19 @@ function onReplace(o){
   else if(o.type==='stems') armStems(o);
   else if(o.type==='scene'){ sceneCapture(o); sceneMorph(o); }
 }
-const advDrawer = { open:false };
+const advDrawer = { open:false, play:false };
 function setAdvDrawer(on){
-  advDrawer.open = !!on;
-  $('dock2').hidden = !advDrawer.open;
-  $('advBtn').classList.toggle('open', advDrawer.open);
-  try{ localStorage.setItem('lumatable-adv', advDrawer.open ? '1' : '0'); }catch(e){}
+  advDrawer.open = !!on; if(advDrawer.open) advDrawer.play = false;
+  $('dock2').hidden = !advDrawer.open; $('dock3').hidden = !advDrawer.play;
+  $('advBtn').classList.toggle('open', advDrawer.open); $('playBtn').classList.toggle('open', advDrawer.play);
+  try{ localStorage.setItem('lumatable-adv', advDrawer.open ? '1' : '0'); localStorage.setItem('lumatable-play', advDrawer.play ? '1' : '0'); }catch(e){}
+  resize();
+}
+function setPlayDrawer(on){
+  advDrawer.play = !!on; if(advDrawer.play) advDrawer.open = false;
+  $('dock3').hidden = !advDrawer.play; $('dock2').hidden = !advDrawer.open;
+  $('playBtn').classList.toggle('open', advDrawer.play); $('advBtn').classList.toggle('open', advDrawer.open);
+  try{ localStorage.setItem('lumatable-adv', advDrawer.open ? '1' : '0'); localStorage.setItem('lumatable-play', advDrawer.play ? '1' : '0'); }catch(e){}
   resize();
 }
 
@@ -2573,7 +2966,8 @@ function setAdvDrawer(on){
    via a UDP→WebSocket relay (see prototype/tuio-bridge.js in the repo).
    Fiducial class IDs map onto object types in blocks of 8.              */
 const TUIO_TYPES = ['osc','sampler','seq','filter','delay','mod','lfo','dist','reverb','rec','mic','tempo','chorus','crush',
-                    'key','tune','env','xpress','steps','euclid','chance','chain','scene','motion','warp','send','space','master','stems'];
+                    'key','tune','env','xpress','steps','euclid','chance','chain','scene','motion','warp','send','space','master','stems',
+                    'theremin','drums','harp','marbles','hum','conduct','air'];
 const tuioObjs = new Map();
 function tuioConnect(url){
   const ws = new WebSocket(url);
@@ -2762,6 +3156,7 @@ function detectMarkers(data, W, Hh){
 /* ---- camera lifecycle ---- */
 async function camStart(){
   if(cam.on) { camStop(); return; }
+  if(hands.mode==='mirror') handsEnd();          // the table camera takes over the video element
   try{
     const stream=await navigator.mediaDevices.getUserMedia({ video:{ facingMode:{ideal:'environment'}, width:{ideal:1280}, height:{ideal:720}, frameRate:{ideal:30} }, audio:false });
     const v=$('camVideo'); v.srcObject=stream; await v.play();
@@ -2772,7 +3167,7 @@ async function camStart(){
     try{ const st=localStorage.getItem('lumatable-camH'); if(st){ const o=JSON.parse(st); if(o.w===cam.w&&o.h===cam.h) cam.H=o.H; } }catch(e){}
     try{ cam.wake=await navigator.wakeLock.request('screen'); }catch(e){}
     if(!cam.H) camCalibrate();
-    if(new URLSearchParams(location.search).has('hands') || /Android|iPhone|iPad/.test(navigator.userAgent)) handsStart();
+    if(handsWanted() || new URLSearchParams(location.search).has('hands') || /Android|iPhone|iPad/.test(navigator.userAgent)){ hands.mode='table'; handsStart(); }
     camLoop();
   }catch(e){ $('camv').textContent='blocked'; }
   syncChips();
@@ -2782,7 +3177,9 @@ function camStop(){
   $('camWrap').hidden=true; $('calChip').hidden=true; cam.calib=null;
   if(cam.wake){ try{ cam.wake.release(); }catch(e){} cam.wake=null; }
   for(const [id,m] of cam.markers){ destroyObject(m.obj); } cam.markers.clear();
+  if(hands.mode==='table'){ hands.mode='off'; hands.list=[]; cam.video=null; }
   syncChips();
+  handsSync();   // play objects still on the table fall back to the device's own camera
 }
 function camCalibrate(){ cam.calib={ step:0, pts:[], stable:0, last:null }; cam.refine=null; syncChips(); }
 function camRefine(){
@@ -2896,8 +3293,62 @@ function camDrawPreview(found){
 }
 
 /* ---- pinch-to-touch via on-device hand tracking (MediaPipe Hands, loaded on demand) ---- */
+/* ---- hands: the camera as an instrument ----
+   With the table camera on, hands are tracked in the overhead view and mapped
+   through the calibration; a hand's apparent size is its height above the table.
+   Without it, a play object switches on the device's own camera (a laptop's
+   webcam, a tablet's front camera) and the frame is mirrored onto the disc, with
+   height read as height in the frame. Either way, MediaPipe Hands runs on-device. */
+const hands = { mode:'off', list:[], stream:null, last:0, failed:false, pumping:false, starting:false, stopT:null };
+function handsWanted(){ return objects.some(o=>HANDY.has(o.type)); }
+function handsSync(){
+  const want = handsWanted();
+  if(want){ clearTimeout(hands.stopT); hands.stopT=null; if(hands.mode==='off' && !hands.failed && audio) handsBegin(); }
+  else if(hands.mode==='mirror' && !hands.stopT) hands.stopT = setTimeout(()=>{ hands.stopT=null; if(!handsWanted()) handsEnd(); }, 5000);
+}
+async function handsBegin(){
+  if(hands.mode!=='off' || hands.starting) return;
+  if(cam.on){ hands.mode='table'; handsStart(); return; }
+  hands.starting = true;
+  try{
+    if(!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) throw new Error('no camera');
+    const stream = await navigator.mediaDevices.getUserMedia({ video:{ facingMode:'user', width:{ideal:640}, height:{ideal:480}, frameRate:{ideal:30} }, audio:false });
+    if(!handsWanted() || cam.on){ stream.getTracks().forEach(t=>t.stop()); hands.starting=false; return; }
+    const v = $('camVideo'); v.srcObject = stream; await v.play();
+    cam.video = v; cam.w = v.videoWidth||640; cam.h = v.videoHeight||480;
+    $('camOv').width = cam.w; $('camOv').height = cam.h;
+    hands.stream = stream; hands.mode = 'mirror';
+    $('camWrap').hidden = false; $('camWrap').classList.add('mirror'); cam.preview = true;
+    $('camStat').textContent = 'hands · wave at the camera';
+    handsStart();
+  }catch(e){ hands.failed = true; }
+  hands.starting = false;
+}
+function handsEnd(){
+  if(hands.mode==='mirror'){
+    try{ hands.stream.getTracks().forEach(t=>t.stop()); }catch(e){}
+    hands.stream = null; $('camWrap').hidden = true; $('camWrap').classList.remove('mirror');
+    if(!cam.on) cam.video = null;
+  }
+  hands.mode = 'off'; hands.list = [];
+  for(const o of objects) if(o.type==='theremin' && !o.thTouch) thereminSet(o, null);
+}
+function handsPump(){
+  if(hands.pumping) return; hands.pumping = true;
+  const pump = async()=>{
+    if(!cam.hands || !cam.video || (!cam.on && hands.mode!=='mirror')){ hands.pumping=false; return; }
+    try{ await cam.hands.send({image:cam.video}); }catch(e){}
+    setTimeout(pump, 50);
+  };
+  pump();
+}
+function handMap(nx, ny){   // normalised camera coords → table coords
+  if(hands.mode==='mirror' || !cam.H) return { x: CX + (0.5-nx)*TABLE_R*2.3, y: CY + (ny-0.5)*TABLE_R*2.3 };
+  return applyH(cam.H, nx*cam.w, ny*cam.h);
+}
 function handsStart(){
-  if(cam.hands || cam.handsTried) return; cam.handsTried=true;
+  if(cam.hands){ handsPump(); return; }
+  if(cam.handsTried) return; cam.handsTried=true;
   const sc=document.createElement('script');
   sc.src='https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js';
   sc.onload=async()=>{
@@ -2907,16 +3358,17 @@ function handsStart(){
       h.onResults(onHands);
       await h.initialize();
       cam.hands=h;
-      const pump=async()=>{ if(!cam.on||!cam.hands) return; try{ await cam.hands.send({image:cam.video}); }catch(e){} setTimeout(pump,50); };
-      pump();
-    }catch(e){ cam.hands=null; $('camStat').textContent+=' · hands unavailable here'; }
+      handsPump();
+    }catch(e){ cam.hands=null; hands.failed=true; $('camStat').textContent+=' · hands unavailable here'; }
   };
-  sc.onerror=()=>{ cam.hands=null; };
+  sc.onerror=()=>{ cam.hands=null; hands.failed=true; };
   document.head.appendChild(sc);
 }
 function onHands(res){
   const lm=res.multiHandLandmarks||[]; cam.cursors=[];
-  const seen=new Set();
+  const seen=new Set(), now=performance.now();
+  const dt=Math.max(0.01, Math.min(0.2, (now-(hands.last||now))/1000)); hands.last=now;
+  const list=[];
   lm.forEach((pts,i)=>{
     const t=pts[4], f=pts[8], w=pts[0], m=pts[9];
     const scale=Math.hypot((m.x-w.x)*cam.w,(m.y-w.y)*cam.h)||1;
@@ -2926,15 +3378,79 @@ function onHands(res){
     const pinch = st.down ? d<0.55 : d<0.38;     // hysteresis
     const grip = Math.max(0, Math.min(1, (0.38-d)/0.25));   // a tighter pinch presses harder
     cam.cursors.push({cx,cy,pinch}); seen.add(i);
-    if(!cam.H) return;
-    const p=applyH(cam.H,cx,cy);
-    const ev=type=>canvas.dispatchEvent(new PointerEvent(type,{clientX:p.x,clientY:p.y,pointerId:st.id,pointerType:'touch',isPrimary:i===0,bubbles:true,pressure:pinch?0.5+0.5*grip:0}));
+    // the hand as an instrument: palm centre, height, openness, fingertip
+    let px=0, py=0; for(const k of [0,5,9,13,17]){ px+=pts[k].x; py+=pts[k].y; } px/=5; py/=5;
+    let open=0; for(const k of [8,12,16,20]) open += Math.hypot((pts[k].x-px)*cam.w,(pts[k].y-py)*cam.h)/scale;
+    open = Math.max(0, Math.min(1, (open/4-0.8)/1.4));
+    const p = handMap(px,py), tip = handMap(f.x,f.y);
+    let h;
+    if(hands.mode==='mirror' || !cam.H) h = 1-py;
+    else { st.base = st.base ? Math.min(st.base*1.003, scale) : scale; h = Math.max(0, Math.min(1, (scale/st.base-1)/0.6)); }
+    const prev = hands.list.find(q=>q.i===i);
+    const vh = prev ? (h-prev.h)/dt : 0;
+    list.push({ i, x:p.x, y:p.y, h, open, pinch, grip, tip, prevTip: prev ? prev.tip : null,
+                vx: prev ? (p.x-prev.x)/dt : 0, vy: prev ? (p.y-prev.y)/dt : 0,
+                vh: prev ? prev.vh*0.4 + vh*0.6 : vh, strike: prev ? prev.strike : { armed:false, vmin:0 } });
+    if(hands.mode!=='mirror' && !cam.H) return;
+    const q = handMap((t.x+f.x)/2, (t.y+f.y)/2);
+    const ev=type=>canvas.dispatchEvent(new PointerEvent(type,{clientX:q.x,clientY:q.y,pointerId:st.id,pointerType:'touch',isPrimary:i===0,bubbles:true,pressure:pinch?0.5+0.5*grip:0}));
     if(pinch && !st.down){ st.down=true; ev('pointerdown'); }
     else if(pinch && st.down) ev('pointermove');
     else if(!pinch && st.down){ st.down=false; ev('pointerup'); }
   });
   cam.handState.forEach((st,i)=>{ if(st && st.down && !seen.has(i)){ st.down=false;
     canvas.dispatchEvent(new PointerEvent('pointerup',{clientX:0,clientY:0,pointerId:st.id,pointerType:'touch',bubbles:true})); } });
+  hands.list=list;
+  handsPlay();
+  if(hands.mode==='mirror' && cam.preview) handsPreview(lm);
+}
+/* a strike: the hand drops fast, then stops. Its depth is the velocity. */
+function handsPlay(){
+  if(!audio) return;
+  const now = performance.now();
+  for(const hd of hands.list){
+    const st = hd.strike; hd.hit = 0;
+    if(hd.vh < -1.6){ st.armed = true; st.vmin = Math.min(st.vmin, hd.vh); }
+    else if(st.armed && hd.vh > -0.5){ st.armed = false; hd.hit = Math.max(0.25, Math.min(1, -st.vmin/5)); st.vmin = 0; }
+  }
+  for(const o of objects){
+    if(o.type==='theremin') thereminHands(o);
+    else if(o.type==='drums'){ for(const hd of hands.list) if(hd.hit){ const pad = drumPadAt(o, hd.x, hd.y); if(pad>=0) drumHit(o, pad, hd.hit); } }
+    else if(o.type==='harp'){ for(const hd of hands.list) if(hd.prevTip) harpSweep(o, hd.prevTip, hd.tip, Math.min(1, 0.4+Math.hypot(hd.vx,hd.vy)/(TABLE_R*3))); }
+    else if(o.type==='conduct'){ for(const hd of hands.list){ if(hd.hit) conductBeat(o, now); conductDyn(o, hd.h); } }
+    else if(o.type==='air') airHands(o);
+  }
+}
+function thereminHands(o){
+  const hs = hands.list;
+  const drop = ()=>{ if(o.thHand){ o.thHand=false; if(!o.thTouch) thereminSet(o, null); } };
+  if(!hs.length){ drop(); return; }
+  if(hands.mode==='mirror'){   // right hand (on screen) is pitch across the disc, the other hand's height is volume
+    const s=[...hs].sort((a,b)=>b.x-a.x), ph=s[0], vh=s[1];
+    o.thHand=true; o.thAt={x:ph.x,y:ph.y};
+    thereminSet(o, (ph.x-(CX-TABLE_R))/(2*TABLE_R), vh ? vh.h : null);
+  } else {                     // the puck is the antenna: closer is higher
+    const s=[...hs].sort((a,b)=>Math.hypot(a.x-o.x,a.y-o.y)-Math.hypot(b.x-o.x,b.y-o.y)), ph=s[0], vh=s[1];
+    const d=Math.hypot(ph.x-o.x,ph.y-o.y), field=thereminField();
+    if(d>field){ drop(); return; }
+    o.thHand=true; o.thAt={x:ph.x,y:ph.y};
+    thereminSet(o, 1-d/field, vh ? vh.h : null);
+  }
+}
+function airHands(o){
+  const q = o.hop!=='C' && objects.find(x=>x.id===o.hop); if(!q || !hands.list.length) return;
+  let hd = hands.list[0];
+  if(hands.mode==='table'){ hd = [...hands.list].sort((a,b)=>Math.hypot(a.x-o.x,a.y-o.y)-Math.hypot(b.x-o.x,b.y-o.y))[0]; if(Math.hypot(hd.x-o.x,hd.y-o.y) > CTL_LINK()) return; }
+  const face = o.option%3; let changed = false;
+  if(face===0 || face===2){ const na = lerpAngle(q.angle, hd.h*TAU*0.97, 0.35); if(Math.abs(na-q.angle)>1e-3){ q.angle=na; changed=true; } }
+  if(face===1){ const nr = q.arc + (hd.h-q.arc)*0.35; if(Math.abs(nr-q.arc)>1e-3){ q.arc=nr; changed=true; } }
+  if(face===2){ const ax = Math.max(0,Math.min(1,(hd.x-(CX-TABLE_R))/(2*TABLE_R))); const nr = q.arc + (ax-q.arc)*0.35; if(Math.abs(nr-q.arc)>1e-3){ q.arc=nr; changed=true; } }
+  if(changed){ q.camMoving = performance.now(); applyParams(q); }
+}
+function handsPreview(lm){
+  const c=$('camOv').getContext('2d'); c.clearRect(0,0,cam.w,cam.h);
+  c.fillStyle='#ffb84d';
+  for(const pts of lm) for(const k of [0,4,8,12,16,20]){ c.beginPath(); c.arc(pts[k].x*cam.w, pts[k].y*cam.h, k===0?8:5, 0, TAU); c.fill(); }
 }
 
 /* ---- printable marker sheet (A4 pages, 60 mm discs, 3 x 4 per page) ---- */
@@ -2960,7 +3476,7 @@ const BASIC_LEGEND = {
   chorus:{name:'CHORUS',turn:'rate',slide:'mix',faces:['CHORUS']},
   crush:{name:'CRUSH',turn:'bits 12 → 2',slide:'mix',faces:['CRUSH']},
 };
-function legendOf(type){ return ADV_LEGEND[type] || BASIC_LEGEND[type]; }
+function legendOf(type){ return ADV_LEGEND[type] || PLAY_LEGEND[type] || BASIC_LEGEND[type]; }
 function markerSheetHTML(mm){
   mm = mm || 60;
   const sec = (title, types) => {
@@ -2972,20 +3488,20 @@ function markerSheetHTML(mm){
     }
     return pages;
   };
-  const basic = TUIO_TYPES.filter(t=>!ADV.has(t)), adv = TUIO_TYPES.filter(t=>ADV.has(t));
+  const basic = TUIO_TYPES.filter(t=>!ADV.has(t) && !PLAY.has(t)), adv = TUIO_TYPES.filter(t=>ADV.has(t)), play = TUIO_TYPES.filter(t=>PLAY.has(t));
   const cell = Math.round(mm*1.1);
   return `<!doctype html><html><head><meta charset="utf-8"><title>Lumatable markers</title><style>
   @page{size:A4;margin:12mm} body{margin:0;font:10pt sans-serif;color:#333}
   .page{display:grid;grid-template-columns:repeat(3,1fr);grid-auto-rows:${cell}mm;gap:2mm;page-break-after:always;padding:2mm}
   figure{margin:0;text-align:center} .m{width:${mm}mm;height:${mm}mm;margin:0 auto} figcaption{margin-top:1mm;letter-spacing:.05em;font-size:8.5pt}
   .note{padding:10mm;font-size:11pt;line-height:1.5} h2{page-break-before:always}</style></head><body>
-  <section class="note"><h1>Lumatable marker sheet · ${mm} mm</h1><p>Print at 100% (no scaling) on matte white card. Cut each disc out with a 3 mm white margin, and stick it to the <b>top</b> of a cube or a puck (the 3D-printed ones have a shallow pocket the disc drops into). The small offset dot is the heading: turning the object turns its ring. Each object type has four faces; a cube carries four faces of one object plus two blanks, so turning it over changes its mode.</p><p>Heading dot at 0.38 D, ID dots at 0.24 D on eight 45° slots (256 ids). The second section is the advanced set: hexagonal pucks in the printed kit.</p></section>${sec('The main tray', basic)}${sec('The advanced pucks', adv)}</body></html>`;
+  <section class="note"><h1>Lumatable marker sheet · ${mm} mm</h1><p>Print at 100% (no scaling) on matte white card. Cut each disc out with a 3 mm white margin, and stick it to the <b>top</b> of a cube or a puck (the 3D-printed ones have a shallow pocket the disc drops into). The small offset dot is the heading: turning the object turns its ring. Each object type has four faces; a cube carries four faces of one object plus two blanks, so turning it over changes its mode.</p><p>Heading dot at 0.38 D, ID dots at 0.24 D on eight 45° slots (256 ids). The second section is the advanced set: hexagonal pucks in the printed kit.</p></section>${sec('The main tray', basic)}${sec('The play tray', play)}${sec('The advanced pucks', adv)}</body></html>`;
 }
 /* printable cards: one per object, what turning, sliding and flipping does */
 function cardsHTML(){
   const card = t => { const lg=legendOf(t); if(!lg) return '';
-    const adv=ADV.has(t);
-    return `<article class="${adv?'adv':''}"><h3>${lg.name}${adv?'<span>advanced</span>':''}</h3>
+    const adv=ADV.has(t), play=PLAY.has(t);
+    return `<article class="${adv?'adv':play?'play':''}"><h3>${lg.name}${adv?'<span>advanced</span>':play?'<span>play</span>':''}</h3>
       <dl><dt>turn</dt><dd>${lg.turn}</dd><dt>slide</dt><dd>${lg.slide}</dd><dt>faces</dt><dd>${lg.faces.join(' · ')}</dd></dl>
       <p>${CARD_TEXT[t]||''}</p></article>`; };
   return `<!doctype html><html><head><meta charset="utf-8"><title>Lumatable cards</title><style>
@@ -3021,6 +3537,13 @@ const CARD_TEXT = {
   space:'The table becomes the stereo field: left is left. Faces orbit the sounds or widen with distance from the centre.',
   master:'Volume and glue compression for the whole table.',
   stems:'Records every object on the table, plus the master, into one multichannel WAV for the DAW.',
+  theremin:'Touch or wave a hand in its field: nearer the puck is higher (or, at a webcam, left to right). A second hand\'s height is the volume. Faces: free pitch, in key, or a slow glide.',
+  drums:'Four pads around the puck: kick and snare below, hat and clap above. Tap them, or strike downward in the air over one. Faces snap hits to the grid, swap in a big kit, or make the pads toms.',
+  harp:'Strings fan out from the puck. Sweep a finger or a hand across them; every string is a note in key. Faces are string types, from nylon to bell.',
+  marbles:'Flick from the ring to launch a marble. The rim is a tone circle, and everything a marble hits plays: oscillators, loops, drums, the harp. Faces launch marbles by themselves.',
+  hum:'Hum or sing into the microphone and a synth follows your voice. Faces: follow every slide, snap to notes, add a harmony, or add octaves.',
+  conduct:'Beat time in the air (or tap its ring) and the whole table takes your tempo. The second face also follows your hand\'s height as dynamics.',
+  air:'Sits by any block. Raise or lower a hand to turn that block\'s ring without touching it; faces choose the ring, the slider, or both.',
 };
 async function markerSheet(){
   const html=markerSheetHTML(), filename='lumatable-markers.html';
@@ -3288,7 +3811,8 @@ $('hintClose').addEventListener('click', ()=>{ $('hint').hidden=true; });
 $('clearChip').addEventListener('click', ()=>{ pushUndo(); for(const o of [...objects]) destroyObject(o); });
 $('undoChip').addEventListener('click', doUndo);
 $('advBtn').addEventListener('click', ()=>setAdvDrawer(!advDrawer.open));
-try{ if(localStorage.getItem('lumatable-adv')==='1') setAdvDrawer(true); }catch(e){}
+$('playBtn').addEventListener('click', ()=>setPlayDrawer(!advDrawer.play));
+try{ if(localStorage.getItem('lumatable-play')==='1') setPlayDrawer(true); else if(localStorage.getItem('lumatable-adv')==='1') setAdvDrawer(true); }catch(e){}
 
 /* computer-keyboard playing: the home row plays the current scale into every
    free oscillator, polyphonically, like a MIDI keyboard without the hardware */
@@ -3537,6 +4061,50 @@ function drawObject(o){
     }
     g.globalAlpha = outside?0.35:1;
   }
+  // the play objects' zones
+  if(o.type==='drums'){
+    const r0=R_ARC1()+8*S, r1=drumPadR();
+    for(let i=0;i<4;i++){
+      const a0=[Math.PI/2, 0, Math.PI, 3*Math.PI/2][i], fl=Math.max(0, 1-(now-o.padFlash[i])*5);   // kick SW, snare SE, hat NW, clap NE
+      g.beginPath(); g.arc(o.x,o.y,r1,a0+0.04,a0+Math.PI/2-0.04); g.arc(o.x,o.y,r0,a0+Math.PI/2-0.04,a0+0.04,true); g.closePath();
+      g.fillStyle=col; g.globalAlpha=(outside?0.35:1)*(0.07+fl*0.45); g.fill();
+      g.strokeStyle=col; g.lineWidth=1.2+fl*2; g.globalAlpha=(outside?0.35:1)*(0.35+fl*0.6); g.stroke();
+      const am=a0+Math.PI/4, rm=(r0+r1)/2;
+      g.globalAlpha=(outside?0.35:1)*(0.55+fl*0.45); g.fillStyle=COL.text; g.font=`600 ${8.5*S}px "Chakra Petch", sans-serif`; g.textAlign='center'; g.textBaseline='middle';
+      g.fillText(drumSample(o,i).replace(/^B/,'').replace(/^O/,''), o.x+Math.cos(am)*rm, o.y+Math.sin(am)*rm);
+    }
+    g.globalAlpha=outside?0.35:1;
+  }
+  if(o.type==='harp'){
+    g.lineCap='round';
+    for(const s of harpStrings(o)){
+      const fl=Math.max(0, 1-(now-(o.strFlash[s.k]||-9))*1.8);
+      g.strokeStyle=fl>0?'#fff3d6':col; g.lineWidth=1+fl*1.2; g.globalAlpha=(outside?0.35:1)*(0.45+fl*0.55);
+      if(fl>0) glow(col, 8*fl);
+      g.beginPath();
+      if(fl>0){ const n=14, dx=s.x2-s.x1, dy=s.y2-s.y1, len=Math.hypot(dx,dy)||1, px=-dy/len, py=dx/len, amp=4*S*fl*Math.sin(performance.now()/18);
+        for(let i=0;i<=n;i++){ const f=i/n, w=Math.sin(f*Math.PI)*amp; g[i?'lineTo':'moveTo'](s.x1+dx*f+px*w, s.y1+dy*f+py*w); } }
+      else { g.moveTo(s.x1,s.y1); g.lineTo(s.x2,s.y2); }
+      g.stroke(); noGlow();
+    }
+    g.globalAlpha=outside?0.35:1;
+  }
+  if(o.type==='theremin'){
+    const fr=thereminField(), act=o.thActive?1:0;
+    const grd=g.createRadialGradient(o.x,o.y,R_ARC1(),o.x,o.y,fr);
+    grd.addColorStop(0,'rgba(255,184,77,'+(0.12+0.18*act)+')'); grd.addColorStop(1,'rgba(255,184,77,0)');
+    g.fillStyle=grd; g.beginPath(); g.arc(o.x,o.y,fr,0,TAU); g.fill();
+    g.strokeStyle=col; g.globalAlpha=(outside?0.35:1)*(0.18+0.3*act); g.setLineDash([2,8]); g.lineWidth=1; g.beginPath(); g.arc(o.x,o.y,fr,0,TAU); g.stroke(); g.setLineDash([]);
+    if(o.thActive && o.thAt){ g.globalAlpha=outside?0.35:1; g.fillStyle='#fff3d6'; glow(col, 14); g.beginPath(); g.arc(o.thAt.x,o.thAt.y,5*S,0,TAU); g.fill(); noGlow();
+      g.strokeStyle=col; g.globalAlpha=0.5; g.beginPath(); g.moveTo(o.x,o.y); g.lineTo(o.thAt.x,o.thAt.y); g.stroke(); }
+    g.globalAlpha=outside?0.35:1;
+  }
+  if(o.type==='marbles' || o.type==='conduct'){   // the ring you flick or tap
+    const fl = o.type==='conduct' ? Math.max(0, 1-(performance.now()-(o.beatAt||-9e9))/250) : 0;
+    g.strokeStyle=col; g.globalAlpha=(outside?0.35:1)*(0.22+fl*0.6); g.lineWidth=1.5+fl*2; g.setLineDash([3,6]);
+    g.beginPath(); g.arc(o.x,o.y,(R_PAD0()+R_PAD1())/2,0,TAU); g.stroke(); g.setLineDash([]);
+    g.globalAlpha=outside?0.35:1;
+  }
   // stems recorder: a red progress ring like the loop recorder's
   if(o.type==='stems' && audio){
     if(o.stemState==='armed' && now>=o.stemFrom) o.stemState='recording';
@@ -3657,6 +4225,7 @@ function drawObject(o){
     g.arc(o.x+Math.sin(sway)*rb*0.45, o.y+rb*0.45-Math.cos(sway)*rb*0.75, 2.6*S, 0, TAU); g.fill();
   }
   else if(ADV.has(o.type)) drawAdvIcon(o, col, rb);
+  else if(PLAY.has(o.type)) drawPlayIcon(o, col, rb);
   else if(o.type==='sampler'){
     g.fillStyle=col; g.font=`600 ${8.5*S}px "Chakra Petch", sans-serif`;
     g.fillText(LOOPS[samplerLoop(o)], o.x, o.y+1);
@@ -3765,6 +4334,31 @@ function drawAdvIcon(o, col, rb){
       break; }
   }
 }
+function drawPlayIcon(o, col, rb){
+  const txt = (s, px) => { g.fillStyle=col; g.font=`600 ${(px||10)*S}px "Chakra Petch", sans-serif`; g.fillText(s, o.x, o.y+1); };
+  g.strokeStyle=col; g.lineWidth=1.6; g.lineCap='round';
+  switch(o.type){
+    case 'theremin': g.beginPath(); g.moveTo(o.x,o.y+rb*0.5); g.lineTo(o.x,o.y-rb*0.35); g.stroke(); g.beginPath(); g.arc(o.x,o.y-rb*0.45,rb*0.14,0,TAU); g.stroke();
+      g.beginPath(); g.moveTo(o.x-rb*0.5,o.y+rb*0.15); g.lineTo(o.x-rb*0.2,o.y+rb*0.15); g.stroke(); break;
+    case 'drums': for(const dx of [-0.28,0.28]){ g.beginPath(); g.arc(o.x+dx*rb,o.y+rb*0.05,rb*0.22,0,TAU); g.stroke(); } g.beginPath(); g.moveTo(o.x-rb*0.45,o.y-rb*0.45); g.lineTo(o.x-rb*0.2,o.y-rb*0.1); g.moveTo(o.x+rb*0.45,o.y-rb*0.45); g.lineTo(o.x+rb*0.2,o.y-rb*0.1); g.stroke(); break;
+    case 'harp': for(const dx of [-0.3,-0.1,0.1,0.3]){ g.beginPath(); g.moveTo(o.x+dx*rb,o.y-rb*0.4-dx*rb*0.5); g.lineTo(o.x+dx*rb,o.y+rb*0.45); g.stroke(); } break;
+    case 'marbles': for(const [dx,dy] of [[-0.3,0.1],[0.1,-0.25],[0.3,0.25]]){ g.fillStyle=col; g.beginPath(); g.arc(o.x+dx*rb,o.y+dy*rb,rb*0.13,0,TAU); g.fill(); } break;
+    case 'hum': txt('HUM', 8.5); break;
+    case 'conduct': g.beginPath(); g.moveTo(o.x-rb*0.4,o.y+rb*0.4); g.lineTo(o.x+rb*0.35,o.y-rb*0.35); g.stroke(); g.fillStyle=col; g.beginPath(); g.arc(o.x+rb*0.38,o.y-rb*0.38,2.6*S,0,TAU); g.fill(); break;
+    case 'air': txt('AIR', 9); break;
+  }
+}
+function drawBalls(){
+  for(const b of balls){
+    const age=(performance.now()-b.born)/1000, hot=Math.max(0, 1-(performance.now()-(b.hitAt||-9e9))/220);
+    g.save();
+    g.strokeStyle=COL.gen; g.globalAlpha=0.25; g.lineWidth=b.r*0.8; g.lineCap='round'; g.beginPath();
+    b.trail.forEach((p,i)=>g[i?'lineTo':'moveTo'](p.x,p.y)); g.stroke();
+    g.globalAlpha=1; g.fillStyle=hot>0?'#fff3d6':COL.gen; glow(COL.gen, 10+hot*14);
+    g.beginPath(); g.arc(b.x,b.y,b.r*(1+hot*0.4),0,TAU); g.fill(); noGlow();
+    g.restore();
+  }
+}
 const motes = [];
 let lastBeat = -1, lastStep16 = -1;
 function drawMotes(dt){
@@ -3784,7 +4378,7 @@ function drawMotes(dt){
   }
   g.globalAlpha=1;
 }
-let frameErrors = 0;
+let frameErrors = 0, frameN = 0;
 function glFallback(){   // the GPU path failed at runtime: show the fully-drawn 2D scene directly
   gl=null; G=null;                                   // disable the GPU FIRST, whatever happens next
   try{
@@ -3828,7 +4422,9 @@ function frameBody(){
       else if(avg<13 && RES_SCALE<1){ RES_SCALE=Math.min(1,RES_SCALE+0.25); resize(); lastResChange=nowMs; }
     }
   }
-  if(audio) for(const o of objects){ if(o.type==='scene') sceneTick(o, dt); else if(o.type==='motion') motionTick(o); }
+  if(audio) for(const o of objects){ if(o.type==='scene') sceneTick(o, dt); else if(o.type==='motion') motionTick(o); else if(o.type==='hum' && (frameN&1)===0) humTick(o); }
+  frameN++;
+  if(audio) ballsTick(dt);
   if(audio && objects.some(o=>o.type==='space' && o.option%3===1)) updateSpace();
   const stepNow = currentStepVis();
   if(stepNow>=0 && stepNow!==lastStep16){
@@ -3926,9 +4522,14 @@ function frameBody(){
   g.restore();
 
   for(const o of objects) drawObject(o);
+  drawBalls();
+  if(hands.mode!=='off') for(const hd of hands.list){   // hands over the table: a ring that grows as the hand rises
+    g.save(); g.strokeStyle=hd.pinch?COL.gen:'#fff3d6'; g.globalAlpha=0.8; g.lineWidth=2;
+    g.beginPath(); g.arc(hd.x,hd.y,(12+hd.h*16)*S,0,TAU); g.stroke();
+    g.globalAlpha=0.5; g.beginPath(); g.arc(hd.tip.x,hd.tip.y,4*S,0,TAU); g.stroke(); g.restore(); }
   if(cam.refine && performance.now()>cam.refine.until+1500) cam.refine=null;   // never leave the dots up if the camera loop stalls
   if(cam.refine){ g.save(); g.fillStyle='#fff'; for(const t of refineTargets()){ g.beginPath(); g.arc(t.x,t.y,16*S,0,TAU); g.fill(); } g.restore(); }
-  if(cam.on && cam.H) for(const h of cam.cursors){ const p=applyH(cam.H,h.cx,h.cy);
+  if(cam.on && cam.H && hands.mode==='off') for(const h of cam.cursors){ const p=applyH(cam.H,h.cx,h.cy);
     g.save(); g.strokeStyle=h.pinch?COL.gen:COL.ctl; g.lineWidth=2; g.globalAlpha=0.9;
     g.beginPath(); g.arc(p.x,p.y,(h.pinch?10:16)*S,0,TAU); g.stroke(); g.restore(); }
   if(gl) glPost(ph, level);
@@ -3949,6 +4550,7 @@ document.getElementById('begin').addEventListener('click', ()=>{
   startTransport();
   initMidi();
   applySync();
+  handsSync();
   if(ANALOG()) setSoundMode(state.soundMode);
   document.getElementById('overlay').remove();
   const q = new URLSearchParams(location.search).get('tuio');

@@ -33,6 +33,7 @@ synthesiser.
 | [docs/05-feature-parity.md](docs/05-feature-parity.md) | Parity ledger against the original Reactable |
 | [docs/06-sound-engines.md](docs/06-sound-engines.md) | The analogue sound engines and the theory behind each |
 | [docs/07-advanced.md](docs/07-advanced.md) | The advanced pucks: tuning, envelopes, expression, chance, scenes, motion, warp, sends, stems, and the physical kit |
+| [docs/08-play.md](docs/08-play.md) | The play tray: theremin, air drums, harp, marbles, hum, conductor and air knob, by touch, hands or voice |
 | [hardware/README.md](hardware/README.md) | The printed kit: STL/OBJ parts, marker sheets and cards |
 | [tests/README.md](tests/README.md) | Headless end-to-end tests of the instrument (Playwright) |
 
@@ -95,6 +96,11 @@ most of Phase 2 of the plan:
   morph, gesture loops, granular warp for loops, proximity sends, the table as a stereo
   field, a master puck, and a stems recorder that writes every object to one multichannel
   WAV. Imports persist. See [docs/07-advanced.md](docs/07-advanced.md).
+- **The play tray**: seven instruments for hands and voice behind a *play* button. A
+  theremin, air drums, a Karplus–Strong harp, marbles that play the rim and everything they
+  hit, a hum-to-synth voice follower, a conductor that takes the tempo from your beats, and
+  an air knob. All work by touch; with a webcam or the table camera, MediaPipe hand tracking
+  on the device turns them into air instruments. See [docs/08-play.md](docs/08-play.md).
 - **Printed kit**: [`hardware/print/`](hardware/print/) has a 60 mm cube and round and
   hexagonal 70 mm pucks as STL and OBJ with marker pockets, plus printable marker sheets
   (256 eight-bit ids) and a card per object. See [hardware/README.md](hardware/README.md).

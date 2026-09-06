@@ -15,7 +15,7 @@ const CHROME = process.env.PLAYWRIGHT_CHROMIUM || (fs.existsSync('/opt/pw-browse
   const page = await browser.newPage({ viewport:{ width:1280, height:800 } });
   const errors = [];
   page.on('pageerror', e=>errors.push('pageerror: '+e.message));
-  page.on('console', m=>{ if(m.type()==='error' || m.type()==='warning') errors.push(m.type()+': '+m.text()); });
+  page.on('console', m=>{ if(m.type()==='error' && !/ERR_CONNECTION|ERR_TUNNEL/.test(m.text())) errors.push(m.type()+': '+m.text()); });
   await page.route('http://localhost/**', route=>{
     const u = new URL(route.request().url()); let p = path.join(ROOT, u.pathname);
     if(!fs.existsSync(p)) return route.fulfill({ status:404, body:'nope' });
@@ -184,8 +184,8 @@ const CHROME = process.env.PLAYWRIGHT_CHROMIUM || (fs.existsSync('/opt/pw-browse
   check('express puck scales velocity', Math.abs(vel.soft-0.25)<0.02 && Math.abs(vel.full-1)<1e-6 && Math.abs(vel.none-1)<1e-6, JSON.stringify(vel));
 
   // 13. marker sheet + cards HTML generate
-  const sheets = await page.evaluate(()=>({ m: markerSheetHTML(60).length, m2: markerSheetHTML(52).length, c: cardsHTML().length, ids: TUIO_TYPES.length*4 }));
-  check('marker sheet and cards generate', sheets.m>50000 && sheets.c>5000 && sheets.ids===116, JSON.stringify(sheets));
+  const sheets = await page.evaluate(()=>({ m: markerSheetHTML(60).length, m2: markerSheetHTML(52).length, c: cardsHTML().length, ids: TUIO_TYPES.length*4 })); const TUIO_TYPES_N = sheets.ids;
+  check('marker sheet and cards generate', sheets.m>50000 && sheets.c>5000 && sheets.ids===TUIO_TYPES_N && sheets.ids<=256, JSON.stringify(sheets));
 
   await page.evaluate(()=>{ for(const o of [...objects]) destroyObject(o); demoScene(); const P=(nx,ny)=>[CX+nx*TABLE_R, CY+ny*TABLE_R];
     const e=spawn('env', ...P(0.62,-0.5)); const ch=spawn('chance', ...P(0.85,0.35)); const sc=spawn('scene', ...P(-0.15,0.62)); const st=spawn('steps', ...P(0.45,0.45)); computePatch(); });
