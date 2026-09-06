@@ -42,10 +42,16 @@ Total: typically **£30 to £100** on top of a TV and phone you already have.
   downloaded; there is no library. Because the TV's picture is dark and the markers are
   bright white, detection is unusually robust, and the moving UI under the cubes does not
   confuse it.
-- **Calibration is four dots.** The first time the camera starts (and whenever you tap
-  *calibrate*), the screen goes black and shows one bright dot at a time in four corners of
-  the disc; the phone finds each, and computes the projective map from camera to screen. It
-  is stored on the phone, so you calibrate once per placement.
+- **Calibration is four dots, then it looks after itself.** The first time the camera
+  starts (and whenever you hold *recalibrate*), the screen goes black and shows one bright
+  dot at a time in four corners of the disc; the phone finds each and computes the
+  projective map from camera to screen. After that, four small dots flash in the dark
+  screen corners for half a second every couple of minutes (and whenever you tap *refine*):
+  because a mapping already exists, the phone knows where each dot should appear and only
+  accepts a blob close to that prediction, so cubes can't be mistaken for one, and it
+  rejects any solution that would jump the mapping by more than a small drift. The phone
+  can creep on its boom or be re-hung roughly where it was, and the table stays aligned
+  without bezel markers or permanently lit dots.
 - **Rotation is physical.** Turning a cube turns its ring: the heading dot's angle is
   mapped through the same calibration, so it is correct however the phone is oriented.
 - **Occlusion is forgiven.** A hand passing over a cube hides its marker for a moment; the

@@ -1846,6 +1846,32 @@ function solveH(src, dst){
   return h;
 }
 function applyH(h,u,v){ const w=h[6]*u+h[7]*v+h[8]; return { x:(h[0]*u+h[1]*v+h[2])/w, y:(h[3]*u+h[4]*v+h[5])/w }; }
+function invertH(h){
+  const [a,b,c,d,e,f,g,k,i]=h;
+  const A=e*i-f*k, B=-(d*i-f*g), C=d*k-e*g;
+  const det=a*A+b*B+c*C; if(Math.abs(det)<1e-12) return null;
+  const inv=[A, -(b*i-c*k), b*f-c*e, B, a*i-c*g, -(a*f-c*d), C, -(a*k-b*g), a*e-b*d].map(v=>v/det);
+  return inv.map(v=>v/inv[8]);
+}
+/* refinement: four dots flash in the dark screen corners; each expected dot is matched
+   only to a bright blob near where the current calibration predicts it, so cubes on the
+   disc cannot be mistaken for it, and a solution that would move the mapping by more
+   than a small drift is rejected. */
+function refineTargets(){ return [{x:W*0.06,y:H*0.16},{x:W*0.94,y:H*0.16},{x:W*0.94,y:H*0.86},{x:W*0.06,y:H*0.86}]; }
+function matchRefine(blobs, targets, Hcur, tolPx){
+  const Hi=invertH(Hcur); if(!Hi) return null;
+  const out=[];
+  for(const t of targets){
+    const pr=applyH(Hi,t.x,t.y); let best=null, bd=tolPx;
+    for(const b of blobs){ const d=Math.hypot(b.x-pr.x,b.y-pr.y); if(d<bd){ bd=d; best=b; } }
+    if(!best) return null; out.push({x:best.x,y:best.y});
+  }
+  return out;
+}
+function acceptRefine(Hnew, Hold, checkPts, maxShiftPx){
+  for(const p of checkPts){ const a=applyH(Hold,p.x,p.y), b=applyH(Hnew,p.x,p.y); if(Math.hypot(a.x-b.x,a.y-b.y)>maxShiftPx) return false; }
+  return true;
+}
 
 /* ---- connected components on a binary mask (4-connected) ---- */
 function labelBlobs(mask, w, h, minArea){
@@ -1935,7 +1961,26 @@ function camStop(){
   for(const [id,m] of cam.markers){ destroyObject(m.obj); } cam.markers.clear();
   syncChips();
 }
-function camCalibrate(){ cam.calib={ step:0, pts:[], stable:0, last:null }; syncChips(); }
+function camCalibrate(){ cam.calib={ step:0, pts:[], stable:0, last:null }; cam.refine=null; syncChips(); }
+function camRefine(){
+  if(!cam.on || !cam.H || cam.calib || cam.refine) return;
+  cam.refine={ until:performance.now()+600, samples:[[],[],[],[]] };
+}
+function camRefineFrame(){
+  const r=cam.refine; if(!r) return;
+  const blobs=(cam.coarse||[]).filter(b=>b.area>=12).map(b=>({x:b.cx*4+2,y:b.cy*4+2}));
+  const m=matchRefine(blobs, refineTargets(), cam.H, 70);
+  if(m) m.forEach((p,i)=>r.samples[i].push(p));
+  if(performance.now()<r.until) return;
+  cam.refine=null;
+  if(r.samples.some(a=>a.length<2)) return;                      // a corner was hidden or unseen
+  const pts=r.samples.map(a=>({ x:a.reduce((s,p)=>s+p.x,0)/a.length, y:a.reduce((s,p)=>s+p.y,0)/a.length }));
+  const Hn=solveH(pts, refineTargets()); if(!Hn) return;
+  const probe=[{x:cam.w*0.3,y:cam.h*0.3},{x:cam.w*0.7,y:cam.h*0.3},{x:cam.w*0.5,y:cam.h*0.7}];
+  if(!acceptRefine(Hn, cam.H, probe, 90)) return;                 // too big a jump: not a drift
+  cam.H=Hn; cam.lastRefine=performance.now();
+  try{ localStorage.setItem('lumatable-camH', JSON.stringify({w:cam.w,h:cam.h,H:cam.H})); }catch(e){}
+}
 function calibTargets(){ const r=TABLE_R*0.78; return [{x:CX-r,y:CY-r},{x:CX+r,y:CY-r},{x:CX+r,y:CY+r},{x:CX-r,y:CY+r}]; }
 function camLoop(){
   if(!cam.on) return;
@@ -1955,13 +2000,16 @@ function camFrame(){
       if(c.last && Math.hypot(p.x-c.last.x,p.y-c.last.y)<4) c.stable++; else c.stable=0;
       c.last=p;
       if(c.stable>=5){ c.pts.push(p); c.step++; c.stable=0; c.last=null;
-        if(c.step>=4){ cam.H=solveH(c.pts, calibTargets()); cam.calib=null;
+        if(c.step>=4){ cam.H=solveH(c.pts, calibTargets()); cam.calib=null; cam.calibDone=performance.now();
+          setTimeout(camRefine, 3000);
           try{ localStorage.setItem('lumatable-camH', JSON.stringify({w:cam.w,h:cam.h,H:cam.H})); }catch(e){} syncChips(); } }
     } else c.stable=0;
     camDrawPreview([]);
     return;
   }
   const found=detectMarkers(data,cam.w,cam.h);
+  if(cam.refine) camRefineFrame();
+  else if(cam.H && performance.now()-(cam.lastRefine||cam.calibDone||0) > 120000) camRefine();   // every 2 min
   const tnow=performance.now(); const seen=new Set();
   for(const m of found){
     if(!cam.H) break;
@@ -2072,6 +2120,7 @@ async function markerSheet(){
   let done=false;
   try{ const dl=window.claude ? await window.claude.use('downloads') : null; if(dl){ await dl.save({filename, data:html}); done=true; } }catch(e){ done=e&&e.code==='declined'; }
   if(!done){ try{ const a=document.createElement('a'); a.href=URL.createObjectURL(new Blob([html],{type:'text/html'})); a.download=filename; document.body.appendChild(a); a.click(); a.remove(); }catch(e){} }
+  if(!done && window.claude){ $('markChip').textContent='saves in the hosted build'; setTimeout(()=>{ $('markChip').textContent='markers'; }, 2500); }
 }
 
 /* ================= persistence ================= */
@@ -2162,6 +2211,7 @@ function syncChips(){
   $('swingv').textContent = SWINGS[state.swingIdx].n;
   $('soundv').textContent = state.soundMode==='original' ? 'original' : MODE_CFG[state.soundMode].label;
   $('camv').textContent = !cam.on ? 'off' : cam.calib ? 'calibrating' : cam.H ? 'on' : 'uncalibrated';
+  $('calChip').textContent = cam.H ? 'refine · hold to recalibrate' : 'calibrate';
 }
 $('bpmDn').addEventListener('click', ()=>setBpm(state.bpm-4));
 $('bpmUp').addEventListener('click', ()=>setBpm(state.bpm+4));
@@ -2178,7 +2228,9 @@ $('scaleChip').addEventListener('click', ()=>{
 });
 $('camChip').addEventListener('click', ()=>{ if(!audio) return; camStart(); if(!cam.on) return;
   try{ if(!document.fullscreenElement) document.documentElement.requestFullscreen(); }catch(e){} });
-$('calChip').addEventListener('click', ()=>{ if(cam.on) camCalibrate(); });
+{ let t0=0;
+  $('calChip').addEventListener('pointerdown', ()=>{ t0=performance.now(); });
+  $('calChip').addEventListener('click', ()=>{ if(!cam.on) return; if(cam.H && performance.now()-t0<600) camRefine(); else camCalibrate(); }); }
 $('markChip').addEventListener('click', markerSheet);
 $('camWrap').addEventListener('click', ()=>{ cam.preview=false; $('camWrap').hidden=true; });
 addEventListener('keydown', e=>{ if(e.key==='f' && !e.ctrlKey && !e.metaKey){ try{ document.fullscreenElement?document.exitFullscreen():document.documentElement.requestFullscreen(); }catch(err){} } });
@@ -2260,6 +2312,7 @@ $('recChip').addEventListener('click', async ()=>{
       document.body.appendChild(a); a.click(); a.remove();
     }catch(e){}
   }
+  if(!done && window.claude){ $('recChip').textContent='saves in the hosted build'; setTimeout(()=>{ $('recChip').textContent='⏺ record'; }, 2500); return; }
   $('recChip').textContent = '⏺ record';
 });
 
@@ -2705,6 +2758,8 @@ function frame(){
   g.restore();
 
   for(const o of objects) drawObject(o);
+  if(cam.refine && performance.now()>cam.refine.until+1500) cam.refine=null;   // never leave the dots up if the camera loop stalls
+  if(cam.refine){ g.save(); g.fillStyle='#fff'; for(const t of refineTargets()){ g.beginPath(); g.arc(t.x,t.y,16*S,0,TAU); g.fill(); } g.restore(); }
   if(cam.on && cam.H) for(const h of cam.cursors){ const p=applyH(cam.H,h.cx,h.cy);
     g.save(); g.strokeStyle=h.pinch?COL.gen:COL.ctl; g.lineWidth=2; g.globalAlpha=0.9;
     g.beginPath(); g.arc(p.x,p.y,(h.pinch?10:16)*S,0,TAU); g.stroke(); g.restore(); }
