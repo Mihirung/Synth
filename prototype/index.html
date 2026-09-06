@@ -313,7 +313,8 @@ function glPass(pr, srcTex, dst, setU){
 const ripples = [];
 function addRipple(x,y,s,w){
   if(!G || REDUCED) return;
-  const warp = (Math.min(W,H) < 720) ? 0 : (w===undefined ? 1 : w);   // never warp a small screen
+  const base = (w===undefined ? 0.6 : w);                              // touch ripples: gentle
+  const warp = (Math.min(W,H) < 720) ? base*0.35 : base;               // phones: a trace only
   ripples.push({ x:x/W, y:1-y/H, t0:(performance.now()-G.t0)/1000, s, w:warp });
   if(ripples.length>6) ripples.shift();
 }
@@ -2005,7 +2006,7 @@ function frame(){
         motes.push({ id:o.id, f:0, spd:0.35+Math.random()*0.3, sz:(1.1+Math.random()*1.3)*S });
     }
     const b=Math.floor(stepNow/4);
-    if(b!==lastBeat){ lastBeat=b; addRipple(CX,CY,0.3,0); }
+    if(b!==lastBeat){ lastBeat=b; addRipple(CX,CY,0.3,0.35); }   // beat: a whisper of warp
   }
   g.setTransform(DPR,0,0,DPR,0,0);
   g.fillStyle=COL.ground; g.fillRect(0,0,W,H);
