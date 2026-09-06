@@ -37,7 +37,7 @@
   .chips{display:flex;gap:6px;pointer-events:auto;align-items:center;
     flex:1 1 auto;min-width:0;overflow-x:auto;overflow-y:hidden;padding:4px 0;
     flex-wrap:nowrap;touch-action:pan-x;-webkit-overflow-scrolling:touch;
-    scrollbar-width:none;-ms-overflow-style:none;justify-content:flex-end}
+    scrollbar-width:none;-ms-overflow-style:none;justify-content:flex-start}
   .chips::-webkit-scrollbar{display:none}
   .chips>*{flex:0 0 auto}
   .chip{
@@ -53,10 +53,20 @@
   .chip:focus-visible{outline:1px solid var(--line);outline-offset:2px}
   .chip.warn{color:var(--dim)}
   #hint{
-    position:fixed;left:50%;transform:translateX(-50%);bottom:136px;z-index:2;max-width:720px;
-    font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--dim);
-    text-align:center;pointer-events:none;padding:0 16px;line-height:1.9;
+    position:fixed;left:50%;top:50%;transform:translate(-50%,-50%);z-index:9;
+    width:min(440px,calc(100vw - 40px));max-height:80vh;overflow:auto;box-sizing:border-box;
+    padding:22px 26px;border-radius:16px;color:var(--text);
+    background:rgba(9,15,26,.86);border:1px solid rgba(255,255,255,.12);
+    backdrop-filter:blur(20px) saturate(1.3);-webkit-backdrop-filter:blur(20px) saturate(1.3);
+    box-shadow:0 30px 90px rgba(0,0,0,.6),inset 0 1px 0 rgba(255,255,255,.06);
   }
+  #hint h2{margin:0 0 12px;font-size:12px;font-weight:600;letter-spacing:.24em;text-transform:uppercase;color:var(--line)}
+  #hint ul{margin:0;padding-left:18px;display:flex;flex-direction:column;gap:9px}
+  #hint li{font-size:13px;line-height:1.5;letter-spacing:.02em;color:var(--text)}
+  #hintClose{position:absolute;top:10px;right:12px;background:none;border:0;color:var(--dim);
+    font-size:22px;line-height:1;cursor:pointer;padding:4px 8px}
+  #hintClose:hover{color:var(--text)}
+  #helpChip{font-weight:600;min-width:34px;text-align:center}
   #dock{
     position:fixed;left:50%;transform:translateX(-50%);bottom:14px;z-index:3;
     display:flex;gap:2px;padding:8px 10px;border:1px solid rgba(255,255,255,.09);
@@ -125,13 +135,12 @@
     padding:12px 30px;cursor:pointer;font-weight:600;
   }
   #begin:focus-visible{outline:2px solid var(--text);outline-offset:3px}
-  @media (max-width:760px), (max-height:540px){
+  @media (max-width:760px), (max-height:540px), (pointer:coarse){
     header{ flex-direction:column; align-items:stretch; padding:6px 0 4px; row-gap:0; gap:0; }
     .wordmark, .tag{ display:none; }
     .chips{ width:100%; padding:2px 12px 6px; gap:6px; justify-content:flex-start; }
     .chips::-webkit-scrollbar{ display:none; }
     .chip{ flex:0 0 auto; font-size:11px; padding:8px 13px; scroll-snap-align:start; }
-    #hint{ display:none; }
     #dock{ left:0; right:0; transform:none; bottom:0; max-width:100%;
       border-radius:16px 16px 0 0; gap:2px; padding:7px 6px calc(7px + env(safe-area-inset-bottom));
       justify-content:center; flex-wrap:wrap; }
@@ -164,11 +173,21 @@
     <button class="chip warn" id="undoChip">↶ undo</button>
     <button class="chip warn" id="demoChip">demo</button>
     <button class="chip warn" id="clearChip">clear</button>
+    <button class="chip" id="helpChip" aria-label="how to play" title="how to play">?</button>
   </div>
 </header>
-<div id="hint">
-  drag blocks onto the disc · turn rings · slide arcs · tap sequencer pads, pull them out for higher notes · swipe across a line to cut it<br>
-  tap an osc for its piano · double-tap to change mode (rec: record) · draw a shape near an osc to become its waveform · push two oscs together for FM · play the A–L keys or a MIDI keyboard
+<div id="hint" hidden>
+  <button id="hintClose" aria-label="close">×</button>
+  <h2>How to play</h2>
+  <ul>
+    <li>Drag blocks from the tray onto the disc; drag one off the disc to remove it.</li>
+    <li>Turn a block's inner ring for its main control; slide the outer arc for the second.</li>
+    <li>Tap a sequencer's pads to switch steps on; pull a pad outward for a higher note.</li>
+    <li>Double-tap a block to change its mode (a Rec block: double-tap to record).</li>
+    <li>Tap an oscillator for its little piano; draw a shape beside one to become its waveform.</li>
+    <li>Push two oscillators together for FM; swipe across a line to cut it.</li>
+    <li>Play the A–L keys, or a MIDI keyboard.</li>
+  </ul>
 </div>
 <div id="dock" aria-label="object tray">
   <button class="spawn" data-type="osc"><span class="chipico sq"></span>osc</button>
@@ -478,8 +497,8 @@ const R_BODY  = () => 26*S;
 const R_RING0 = () => 30*S, R_RING1 = () => 42*S;
 const R_ARC0  = () => 46*S, R_ARC1 = () => 58*S;
 const R_PAD0  = () => 62*S, R_PAD1 = () => 84*S;
-const LINK    = () => TABLE_R*0.52;
-const CTL_LINK= () => TABLE_R*0.40;
+const LINK    = () => TABLE_R*0.60;
+const CTL_LINK= () => TABLE_R*0.46;
 const ARC_START = 0.75*Math.PI, ARC_SPAN = 1.5*Math.PI;
 const hitR = o => o.type==='seq' ? R_PAD1()+4 : R_ARC1()+6;
 
@@ -1561,7 +1580,7 @@ function computePatch(){
   }
   // proximity FM between oscillators: the outer one silently modulates the inner
   const oscs = objects.filter(o=>o.type==='osc');
-  const FMR = TABLE_R*0.20;
+  const FMR = TABLE_R*0.23;
   const modders = new Set();
   for(const o of [...oscs].sort((a,b)=>distC(b)-distC(a))){
     let best=null, bd=FMR;
@@ -2430,6 +2449,8 @@ $('shareChip').addEventListener('click', async ()=>{
   setTimeout(()=>{ $('shareChip').textContent = 'share'; }, 2200);
 });
 $('demoChip').addEventListener('click', ()=>{ pushUndo(); demoScene(); });
+$('helpChip').addEventListener('click', ()=>{ const h=$('hint'); h.hidden=!h.hidden; });
+$('hintClose').addEventListener('click', ()=>{ $('hint').hidden=true; });
 $('clearChip').addEventListener('click', ()=>{ pushUndo(); for(const o of [...objects]) destroyObject(o); });
 $('undoChip').addEventListener('click', doUndo);
 
