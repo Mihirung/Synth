@@ -216,7 +216,7 @@ s+=(texture2D(t,v+d*1.3846).rgb+texture2D(t,v-d*1.3846).rgb)*.3162162;
 s+=(texture2D(t,v+d*3.2308).rgb+texture2D(t,v-d*3.2308).rgb)*.0702703;
 gl_FragColor=vec4(s,1.);}`;
 const FS_COMP = `precision mediump float;varying vec2 v;
-uniform sampler2D scene,b1,b2;uniform vec2 res,cen;uniform float rad,time,beat,level,amt;uniform vec4 rip[6];
+uniform sampler2D scene,b1,b2;uniform vec2 res,cen;uniform float rad,time,beat,level,amt;uniform vec4 rip[6];uniform float rw[6];
 float hash(vec2 p){return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453);}
 float noise(vec2 p){vec2 i=floor(p),f=fract(p);f=f*f*(3.-2.*f);
 return mix(mix(hash(i),hash(i+vec2(1.,0.)),f.x),mix(hash(i+vec2(0.,1.)),hash(i+vec2(1.,1.)),f.x),f.y);}
@@ -230,7 +230,7 @@ void main(){
    vec2 d=(v-r.xy)*vec2(asp,1.);
    float dist=length(d); float age=time-r.z;
    float band=exp(-pow((dist-age*.55)*22.,2.))*exp(-age*2.2)*r.w;
-   disp+=normalize(d+1e-5)*band*.008; rl+=band;
+   disp+=normalize(d+1e-5)*band*.0035*rw[i]; rl+=band;
  }
  vec3 c=texture2D(scene,v+disp*vec2(1./asp,1.)).rgb;
  float inD=1.-smoothstep(.985,1.0,dc);
@@ -245,7 +245,7 @@ void main(){
  vec3 bl2=texture2D(b2,v).rgb;
  vec3 bloom=bl*.85+bl2*1.15;
  c=1.-(1.-c)*(1.-bloom*amt);
- c+=tint*rl*.14*(1.-.6*smoothstep(1.,1.08,dc));
+ c+=tint*rl*.10*(1.-.6*smoothstep(1.,1.08,dc));
  float outD=smoothstep(.98,1.08,dc);
  float an=noise(q*1.6+vec2(time*.02,time*.015));
  float an2=noise(q*3.1-vec2(time*.01,time*.025));
@@ -311,12 +311,13 @@ function glPass(pr, srcTex, dst, setU){
   gl.drawArrays(gl.TRIANGLES,0,3);
 }
 const ripples = [];
-function addRipple(x,y,s){
+function addRipple(x,y,s,w){
   if(!G || REDUCED) return;
-  ripples.push({ x:x/W, y:1-y/H, t0:(performance.now()-G.t0)/1000, s });
+  const warp = (Math.min(W,H) < 720) ? 0 : (w===undefined ? 1 : w);   // never warp a small screen
+  ripples.push({ x:x/W, y:1-y/H, t0:(performance.now()-G.t0)/1000, s, w:warp });
   if(ripples.length>6) ripples.shift();
 }
-const ripArr = new Float32Array(24);
+const ripArr = new Float32Array(24), ripW = new Float32Array(6);
 function glPost(beatPh, level){
   gl.activeTexture(gl.TEXTURE0); gl.bindTexture(gl.TEXTURE_2D,G.sceneTex);
   if(G.sceneW!==scene.width || G.sceneH!==scene.height){
@@ -351,8 +352,10 @@ function glPost(beatPh, level){
   gl.uniform1f(u.amt,REDUCED?0.6:0.95);
   const tnow=(performance.now()-G.t0)/1000;
   for(let i=0;i<6;i++){ const r=ripples[i]; const live=r && tnow-r.t0<2.6;
-    ripArr[i*4]=live?r.x:0; ripArr[i*4+1]=live?r.y:0; ripArr[i*4+2]=live?r.t0:0; ripArr[i*4+3]=live?r.s:0; }
+    ripArr[i*4]=live?r.x:0; ripArr[i*4+1]=live?r.y:0; ripArr[i*4+2]=live?r.t0:0; ripArr[i*4+3]=live?r.s:0;
+    ripW[i]=live?(r.w||0):0; }
   gl.uniform4fv(u['rip[0]'], ripArr);
+  gl.uniform1fv(u['rw[0]'], ripW);
   gl.drawArrays(gl.TRIANGLES,0,3);
 }
 
@@ -2002,7 +2005,7 @@ function frame(){
         motes.push({ id:o.id, f:0, spd:0.35+Math.random()*0.3, sz:(1.1+Math.random()*1.3)*S });
     }
     const b=Math.floor(stepNow/4);
-    if(b!==lastBeat){ lastBeat=b; addRipple(CX,CY,0.3); }
+    if(b!==lastBeat){ lastBeat=b; addRipple(CX,CY,0.3,0); }
   }
   g.setTransform(DPR,0,0,DPR,0,0);
   g.fillStyle=COL.ground; g.fillRect(0,0,W,H);
