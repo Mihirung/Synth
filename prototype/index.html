@@ -85,6 +85,15 @@
   .chipico.di{border:2px solid var(--ctl);border-radius:5px;transform:rotate(45deg) scale(.84)}
   .chipico.ri{border:2px solid var(--ctl);border-radius:50%}
   .chipico.ri::after{content:'';position:absolute;inset:9px;border-radius:50%;background:var(--ctl)}
+  #syncPanel{position:fixed;top:54px;right:16px;z-index:5;width:300px;padding:14px 16px;border-radius:14px;
+    background:rgba(10,17,30,.72);border:1px solid rgba(255,255,255,.1);
+    backdrop-filter:blur(16px) saturate(1.3);-webkit-backdrop-filter:blur(16px) saturate(1.3);
+    box-shadow:0 14px 44px rgba(0,0,0,.5);color:var(--text);font-size:11px;letter-spacing:.06em}
+  #syncPanel .lbl{font-size:10px;letter-spacing:.2em;text-transform:uppercase;color:var(--dim);margin-bottom:8px}
+  #syncPanel input[type=range]{width:100%;accent-color:var(--line);margin:4px 0 8px}
+  #syncPanel .hint2{color:var(--dim);line-height:1.5;margin-bottom:8px}
+  #syncPanel #syncInfo{color:var(--text);line-height:1.5;margin-bottom:10px;min-height:1.5em}
+  #syncPanel .row{display:flex;gap:6px;flex-wrap:wrap}
   #camWrap{position:fixed;right:14px;bottom:150px;width:200px;z-index:4;border:1px solid rgba(255,255,255,.12);
     border-radius:10px;overflow:hidden;background:#000;box-shadow:0 8px 30px rgba(0,0,0,.5)}
   #camWrap video{display:block;width:100%;height:auto}
@@ -125,6 +134,7 @@
     <button class="chip" id="swingChip">swing <b id="swingv">off</b></button>
     <button class="chip" id="recChip">⏺ record</button>
     <button class="chip" id="midiChip" hidden>midi <b id="midiv">off</b></button>
+    <button class="chip" id="syncChip" title="align what you see with what you hear">sync <b id="syncv">0 ms</b></button>
     <button class="chip" id="camChip" title="track printed markers with this device's camera">camera <b id="camv">off</b></button>
     <button class="chip" id="calChip" hidden>calibrate</button>
     <button class="chip" id="markChip" title="printable marker sheet">markers</button>
@@ -155,6 +165,13 @@
   <button class="spawn" data-type="tempo"><span class="chipico ci tick"></span>tempo</button>
   <button class="spawn" id="importBtn" title="import an audio file as a loop"><span class="chipico sq dot" style="border-style:dashed"></span>import</button>
   <input type="file" id="importFile" accept="audio/*" hidden>
+</div>
+<div id="syncPanel" hidden>
+  <div class="lbl">picture ↔ sound</div>
+  <input type="range" id="syncRange" min="-400" max="400" step="5" value="0">
+  <div class="hint2">+ delays the sound (picture arrives later) · − delays the picture (sound arrives later). Cubes and hands are never delayed.</div>
+  <div id="syncInfo">not measured</div>
+  <div class="row"><button class="chip" id="syncMeasure">measure with mic + camera</button><button class="chip warn" id="syncClose">close</button></div>
 </div>
 <div id="camWrap" hidden><video id="camVideo" playsinline muted></video><canvas id="camOv"></canvas><div id="camStat"></div></div>
 <div id="overlay">
@@ -823,7 +840,8 @@ function startAudio(){
   const comp = ctx.createDynamicsCompressor();
   comp.threshold.value=-16; comp.ratio.value=8;
   const master = ctx.createGain(); master.gain.value=0.55;
-  master.connect(comp); comp.connect(ctx.destination);
+  master.connect(comp);
+  const syncDelay = ctx.createDelay(1.0); comp.connect(syncDelay); syncDelay.connect(ctx.destination);
   const masterAn = ctx.createAnalyser(); masterAn.fftSize = 1024;
   comp.connect(masterAn);
   // capture taps: PCM for the loop-recorder object, stream for webm export
@@ -834,7 +852,7 @@ function startAudio(){
   comp.connect(mediaDest);
   const wow=ctx.createOscillator(); wow.frequency.value=0.45; const wowG=ctx.createGain(); wowG.gain.value=0;
   wow.connect(wowG); wow.start();
-  audio = { ctx, master, comp, tap, mediaDest, masterAn, masterWave:new Float32Array(1024), wowG,
+  audio = { ctx, master, comp, syncDelay, tap, mediaDest, masterAn, masterWave:new Float32Array(1024), wowG,
             buffers:{}, captures:new Set(), outStage:null };
   tap.onaudioprocess = e => {
     if(!audio.captures.size) return;
@@ -1984,14 +2002,16 @@ function camRefineFrame(){
 function calibTargets(){ const r=TABLE_R*0.78; return [{x:CX-r,y:CY-r},{x:CX+r,y:CY-r},{x:CX+r,y:CY+r},{x:CX-r,y:CY+r}]; }
 function camLoop(){
   if(!cam.on) return;
-  const step=()=>{ camFrame(); if(cam.on){ if(cam.video.requestVideoFrameCallback) cam.video.requestVideoFrameCallback(step); else setTimeout(step,40); } };
+  const step=(now,meta)=>{ camFrame(meta); if(cam.on){ if(cam.video.requestVideoFrameCallback) cam.video.requestVideoFrameCallback(step); else setTimeout(step,40); } };
   step();
 }
-function camFrame(){
+function camFrame(meta){
   const v=cam.video; if(!v||v.readyState<2) return;
   const now=performance.now(); cam.fps=cam.fps*0.9+(cam.lastT?1000/(now-cam.lastT):0)*0.1; cam.lastT=now;
   cam.ctx.drawImage(v,0,0,cam.w,cam.h);
   const data=cam.ctx.getImageData(0,0,cam.w,cam.h).data;
+  { let acc=0, n=0; for(let i=0;i<data.length;i+=64){ acc+=data[i+1]; n++; } const b=acc/n;
+    if(sync.flash) flashCheck(b, (meta && meta.captureTime) ? meta.captureTime : performance.now()); else cam.bright=b; }
   if(cam.calib){                       // find the one bright calibration dot on an otherwise dark screen
     detectMarkers(data,cam.w,cam.h);   // populates cam.coarse with bright blobs
     const big=(cam.coarse||[]).sort((a,b)=>b.area-a.area)[0];
@@ -2123,6 +2143,100 @@ async function markerSheet(){
   if(!done && window.claude){ $('markChip').textContent='saves in the hosted build'; setTimeout(()=>{ $('markChip').textContent='markers'; }, 2500); }
 }
 
+
+/* ================= A/V sync: measure and compensate =================
+   Picture and sound leave the phone on different pipes (cast vs speaker) with
+   different delays. Whichever arrives first is held back: sound through a delay
+   line on the output, or the "what is sounding now" visuals (beat, playhead,
+   flashes, waveforms, VU) drawn from a short memory. Objects and hands are never
+   delayed. The phone measures both pipes itself: the microphone hears its own
+   click return from the speakers; the overhead camera sees the screen flash. */
+const sync = { offset:0, audioMs:null, videoMs:null, busy:false, flash:null };
+let VIS_DELAY = 0, lastDt = 0.016;
+const sleep = ms => new Promise(r=>setTimeout(r,ms));
+const median = a => { const b=[...a].sort((x,y)=>x-y); return b.length ? b[b.length>>1] : null; };
+function visNow(){ return audio ? audio.ctx.currentTime - VIS_DELAY : performance.now()/1000; }
+function currentStepVis(){ if(!audio) return -1; return Math.floor((visNow() - transport.anchor)/stepDur()); }
+function loadSync(){ try{ const v=parseFloat(localStorage.getItem('lumatable-avsync')); if(Number.isFinite(v)) sync.offset=Math.max(-400,Math.min(400,v)); }catch(e){} }
+function applySync(){
+  if(audio && audio.syncDelay) audio.syncDelay.delayTime.setTargetAtTime(Math.max(0,sync.offset)/1000, audio.ctx.currentTime, 0.05);
+  VIS_DELAY = Math.max(0,-sync.offset)/1000;
+  $('syncv').textContent = (sync.offset>0?'+':'')+Math.round(sync.offset)+' ms';
+  $('syncRange').value = Math.round(sync.offset);
+  try{ localStorage.setItem('lumatable-avsync', String(Math.round(sync.offset))); }catch(e){}
+}
+function histPush(o){
+  if(VIS_DELAY<=0){ o.hist=null; return; }
+  (o.hist = o.hist || []).push({ w:o.wave.slice(0), lv:o.lv });
+  if(o.hist.length>45) o.hist.shift();
+}
+function histGet(o){
+  if(VIS_DELAY<=0 || !o.hist || !o.hist.length) return null;
+  const k=Math.min(o.hist.length-1, Math.round(VIS_DELAY/Math.max(0.004,lastDt)));
+  return o.hist[o.hist.length-1-k];
+}
+function playClick(t0){
+  const ctx=audio.ctx, o=ctx.createOscillator(), g=ctx.createGain();
+  o.frequency.value=3000;
+  g.gain.setValueAtTime(0,t0); g.gain.linearRampToValueAtTime(0.6,t0+0.001);
+  g.gain.setValueAtTime(0.6,t0+0.012); g.gain.linearRampToValueAtTime(0,t0+0.016);
+  o.connect(g); g.connect(ctx.destination);      // straight out: the raw speaker path, no sync delay
+  o.start(t0); o.stop(t0+0.03);
+}
+function findOnset(chunks, t0, sr){
+  let acc=0, n=0;
+  for(const c of chunks) if(c.t>=t0-0.15 && c.t<t0-0.005) for(let i=0;i<c.d.length;i++){ acc+=c.d[i]*c.d[i]; n++; }
+  const thr=Math.max(0.02, Math.sqrt(acc/Math.max(1,n))*8);
+  for(const c of chunks){
+    if(c.t+c.d.length/sr < t0) continue;
+    for(let i=0;i<c.d.length;i++){ const t=c.t+i/sr; if(t<t0) continue; if(Math.abs(c.d[i])>thr) return (t-t0)*1000; }
+  }
+  return null;
+}
+function flashCheck(bright, captureMs){
+  const f=sync.flash; if(!f) return;
+  if(bright > f.base+40 && captureMs>=f.t0){ const r=captureMs-f.t0; sync.flash=null; f.done(r); }
+  else if(performance.now()>f.timeout){ sync.flash=null; f.done(null); }
+}
+function measureFlash(){
+  return new Promise(res=>{ const t0=performance.now();
+    sync.flash={ t0, base:cam.bright||0, done:res, until:t0+120, timeout:t0+1500 }; });
+}
+async function measureSync(){
+  if(sync.busy || !audio) return; sync.busy=true;
+  const info=$('syncInfo'); info.textContent='measuring…';
+  const ctx=audio.ctx; let videoMs=null, audioMs=null;
+  if(cam.on && cam.video){
+    info.textContent='measuring the picture: watching the screen flash…';
+    const res=[]; for(let i=0;i<3;i++){ const v=await measureFlash(); if(v!=null) res.push(v); await sleep(500); }
+    if(res.length) videoMs=median(res);
+  }
+  try{
+    info.textContent='measuring the sound: listening for clicks…';
+    const stream=await navigator.mediaDevices.getUserMedia({ audio:{ echoCancellation:false, noiseSuppression:false, autoGainControl:false }, video:false });
+    const src=ctx.createMediaStreamSource(stream);
+    const bp=ctx.createBiquadFilter(); bp.type='bandpass'; bp.frequency.value=3000; bp.Q.value=6;
+    const proc=ctx.createScriptProcessor(1024,1,1); const mute=ctx.createGain(); mute.gain.value=0;
+    src.connect(bp); bp.connect(proc); proc.connect(mute); mute.connect(ctx.destination);
+    const chunks=[];
+    proc.onaudioprocess=e=>{ chunks.push({ t:e.playbackTime, d:new Float32Array(e.inputBuffer.getChannelData(0)) }); if(chunks.length>120) chunks.shift(); };
+    await sleep(300);
+    const res=[];
+    for(let i=0;i<4;i++){ const t0=ctx.currentTime+0.25; playClick(t0); await sleep(700); const m=findOnset(chunks,t0,ctx.sampleRate); if(m!=null) res.push(m); }
+    proc.onaudioprocess=null; try{ src.disconnect(); bp.disconnect(); proc.disconnect(); mute.disconnect(); }catch(e){}
+    stream.getTracks().forEach(t=>t.stop());
+    if(res.length) audioMs=median(res);
+  }catch(e){}
+  sync.audioMs=audioMs; sync.videoMs=videoMs;
+  if(audioMs!=null && videoMs!=null){
+    sync.offset=Math.max(-400,Math.min(400,videoMs-audioMs)); applySync();
+    info.textContent=`picture ${videoMs|0} ms · sound ${audioMs|0} ms → ${sync.offset>=0?'sound delayed':'picture delayed'} by ${Math.abs(sync.offset)|0} ms`;
+  } else if(audioMs!=null) info.textContent=`sound path ${audioMs|0} ms · camera is off, so set the picture side by ear`;
+  else if(videoMs!=null) info.textContent=`picture path ${videoMs|0} ms · could not hear the click: allow the microphone and turn the speakers up`;
+  else info.textContent='nothing measured: allow the microphone (and turn the camera on for the picture)';
+  sync.busy=false;
+}
+
 /* ================= persistence ================= */
 let saveTimer = null;
 function sceneJSON(){
@@ -2228,6 +2342,10 @@ $('scaleChip').addEventListener('click', ()=>{
 });
 $('camChip').addEventListener('click', ()=>{ if(!audio) return; camStart(); if(!cam.on) return;
   try{ if(!document.fullscreenElement) document.documentElement.requestFullscreen(); }catch(e){} });
+$('syncChip').addEventListener('click', ()=>{ $('syncPanel').hidden=!$('syncPanel').hidden; });
+$('syncClose').addEventListener('click', ()=>{ $('syncPanel').hidden=true; });
+$('syncRange').addEventListener('input', e=>{ sync.offset=+e.target.value; applySync(); });
+$('syncMeasure').addEventListener('click', ()=>{ if(!audio){ $('syncInfo').textContent='switch the table on first'; return; } measureSync(); });
 { let t0=0;
   $('calChip').addEventListener('pointerdown', ()=>{ t0=performance.now(); });
   $('calChip').addEventListener('click', ()=>{ if(!cam.on) return; if(cam.H && performance.now()-t0<600) camRefine(); else camCalibrate(); }); }
@@ -2350,7 +2468,7 @@ $('importFile').addEventListener('change', async e=>{
 /* ================= drawing ================= */
 function beatPhase(){
   if(!audio) return (performance.now()/1000 * state.bpm/60) % 1;
-  return ((audio.ctx.currentTime - transport.anchor)/(stepDur()*4)) % 1;
+  return ((visNow() - transport.anchor)/(stepDur()*4)) % 1;
 }
 function drawWaveGlyph(cx,cy,w,kind,color){
   g.strokeStyle=color; g.lineWidth=1.6; g.beginPath();
@@ -2400,17 +2518,18 @@ function drawConnection(o){
   g.beginPath();
   if(audio && o.an){
     o.an.getFloatTimeDomainData(o.wave);
+    let wv=o.wave; if(VIS_DELAY>0){ const hh=histGet(o); if(hh) wv=hh.w; }
     const N=96, amp=15*S;
     for(let i=0;i<=N;i++){
       const f=i/N;
-      const s=o.wave[Math.floor(f*(o.wave.length-1))]||0;
+      const s=wv[Math.floor(f*(wv.length-1))]||0;
       const fall=Math.sin(f*Math.PI);
       g[i?'lineTo':'moveTo'](x0+ux*(f*L)+px*s*amp*fall, y0+uy*(f*L)+py*s*amp*fall);
     }
   } else { g.moveTo(x0,y0); g.lineTo(x0+ux*L,y0+uy*L); }
   if(GLOW){ g.strokeStyle=COL.line; g.lineWidth=1.8; glow(COL.line, 9); g.stroke(); }
   else {
-    g.strokeStyle=COL.line; g.lineWidth=3+(o.lv||0)*7; g.globalAlpha=0.45+(o.lv||0)*0.5; g.stroke();  // lit by its own signal
+    g.strokeStyle=COL.line; g.lineWidth=3+(o.lvDraw||0)*7; g.globalAlpha=0.45+(o.lvDraw||0)*0.5; g.stroke();  // lit by its own signal
     g.strokeStyle='#eafcff'; g.lineWidth=1.3; g.globalAlpha=1; g.stroke();   // crisp neon core
   }
   g.restore();
@@ -2419,13 +2538,14 @@ function drawObject(o){
   const col = FCOLOR[FAMILY[o.type]];
   const rb = R_BODY();
   const outside = distC(o) > TABLE_R-8 || !!o.ghost;
-  const now = audio ? audio.ctx.currentTime : 0;
+  const now = visNow();
   const flash = Math.max(0, 1-(now-o.flashAt)*4);
   if(audio && o.an && FAMILY[o.type]!=='ctl'){
     o.an.getFloatTimeDomainData(o.wave);
     let sum=0; for(let i=0;i<o.wave.length;i+=4) sum+=o.wave[i]*o.wave[i];
     o.lv = (o.lv||0)*0.7 + Math.min(1, Math.sqrt(sum/(o.wave.length/4))*2.6)*0.3;
-  } else o.lv = 0;
+    histPush(o); const hh=histGet(o); if(hh) o.lvDraw=hh.lv; else o.lvDraw=o.lv;
+  } else { o.lv = 0; o.lvDraw = 0; }
   g.save();
   g.globalAlpha = outside?0.35:1;
   if(!outside && !GLOW){   // contact shadow: the block rests on the glass
@@ -2469,7 +2589,7 @@ function drawObject(o){
 
   // sequencer step pads
   if(o.type==='seq'){
-    const cs = currentStep();
+    const cs = currentStepVis();
     const playIdx = cs>=0 ? (cs%16 + seqOffset(o))%16 : -1;
     const maxDeg = scaleSteps().length*2 - 1;
     for(let i=0;i<16;i++){
@@ -2509,9 +2629,9 @@ function drawObject(o){
   // glass specular: a faint highlight along the lit edge
   g.save(); g.globalAlpha=(outside?0.35:1)*0.35; g.strokeStyle='#dff6ff'; g.lineWidth=1.2;
   g.beginPath(); g.arc(o.x,o.y,rb*0.78,Math.PI*1.1,Math.PI*1.55); g.stroke(); g.restore();
-  if(o.lv>0.02){   // the block is lit by its own signal
-    g.save(); g.globalAlpha=(outside?0.35:1)*Math.min(0.95,o.lv*1.5);
-    g.strokeStyle=col; g.lineWidth=2.5+o.lv*3.5;
+  if((o.lvDraw||0)>0.02){   // the block is lit by its own signal
+    g.save(); g.globalAlpha=(outside?0.35:1)*Math.min(0.95,o.lvDraw*1.5);
+    g.strokeStyle=col; g.lineWidth=2.5+o.lvDraw*3.5;
     g.beginPath(); g.arc(o.x,o.y,rb*0.98,0,TAU); g.stroke(); g.restore();
   }
 
@@ -2645,6 +2765,10 @@ function drawMotes(dt){
   g.globalAlpha=1;
 }
 function frame(){
+  if(sync.flash && performance.now()<sync.flash.until){   // the measurement flash: a white frame the camera can't miss
+    g.setTransform(DPR,0,0,DPR,0,0); g.fillStyle='#fff'; g.fillRect(0,0,W,H);
+    if(gl) glPost(0,0); requestAnimationFrame(frame); return;
+  }
   if(cam.calib){   // calibration: a black screen with one bright dot at a time
     g.setTransform(DPR,0,0,DPR,0,0); g.fillStyle='#000'; g.fillRect(0,0,W,H);
     const t=calibTargets()[cam.calib.step]; g.fillStyle='#fff';
@@ -2657,7 +2781,7 @@ function frame(){
   const nowMs=performance.now();
   const dt = lastFrameT ? Math.min(0.1,(nowMs-lastFrameT)/1000) : 0.016;
   if(lastFrameT){ ftAcc+=nowMs-lastFrameT; ftN++; }
-  lastFrameT=nowMs;
+  lastFrameT=nowMs; lastDt=dt;
   if(gl && !RES_LOCK && ftN>=90){            // adaptive resolution: trade pixels for frames
     const avg=ftAcc/ftN; ftAcc=0; ftN=0;
     if(nowMs-lastResChange>2500){
@@ -2665,7 +2789,7 @@ function frame(){
       else if(avg<13 && RES_SCALE<1){ RES_SCALE=Math.min(1,RES_SCALE+0.25); resize(); lastResChange=nowMs; }
     }
   }
-  const stepNow = currentStep();
+  const stepNow = currentStepVis();
   if(stepNow>=0 && stepNow!==lastStep16){
     lastStep16=stepNow;
     if(!REDUCED && motes.length<240) for(const o of objects){
@@ -2742,6 +2866,9 @@ function frame(){
     audio.masterAn.getFloatTimeDomainData(audio.masterWave);
     let sum=0; for(let i=0;i<audio.masterWave.length;i++) sum += audio.masterWave[i]*audio.masterWave[i];
     level = Math.min(1, Math.sqrt(sum/audio.masterWave.length)*3.2);
+    if(VIS_DELAY>0){ (audio.lvHist=audio.lvHist||[]).push(level); if(audio.lvHist.length>45) audio.lvHist.shift();
+      const k=Math.min(audio.lvHist.length-1, Math.round(VIS_DELAY/Math.max(0.004,lastDt))); level=audio.lvHist[audio.lvHist.length-1-k]; }
+    else audio.lvHist=null;
   }
   g.save();
   if(level > 0.01){
@@ -2771,6 +2898,7 @@ function frame(){
 addEventListener('resize', resize);
 resize();
 if(!loadHashScene() && !loadScene()) demoScene();
+loadSync(); applySync();
 syncChips();
 requestAnimationFrame(frame);
 document.getElementById('begin').addEventListener('click', ()=>{
@@ -2780,6 +2908,7 @@ document.getElementById('begin').addEventListener('click', ()=>{
   for(const o of objects){ rewireAudio(o); rewireCtl(o); applyParams(o); }
   startTransport();
   initMidi();
+  applySync();
   if(ANALOG()) setSoundMode(state.soundMode);
   document.getElementById('overlay').remove();
   const q = new URLSearchParams(location.search).get('tuio');

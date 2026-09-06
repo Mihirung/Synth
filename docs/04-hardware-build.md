@@ -102,13 +102,25 @@ turns tracking off again; **calibrate** re-runs the four dots if you move the ph
   grab and turn.
 - If the TV is very bright, lower its backlight a little; the UI is designed for a dark disc.
 
-## 4.5 Latency and audio
+## 4.5 Latency, audio, and keeping picture and sound together
 
 Casting adds 100 to 250 ms of video delay, which is fine for placing and turning objects.
 Audio should not go through the cast: take it from the phone's headphone/USB-C output to
-powered speakers (a wired link, the one cable worth keeping), or accept Bluetooth's extra
-delay for casual play. For a stage, a USB-C to HDMI adapter carries video *and* audio to
+powered speakers (a wired link, the one cable worth keeping), or use Bluetooth and accept
+its delay for casual play. For a stage, a USB-C to HDMI adapter carries video *and* audio to
 the TV with a fraction of the delay, at the cost of one cable.
+
+Because the picture and the sound travel on different pipes, they rarely arrive together.
+The **sync** chip fixes that, and the phone measures it for you: tap *measure* and the phone
+flashes the screen white (the overhead camera times when the TV shows it) and plays four
+short clicks (the microphone times when the speakers return them). The difference sets the
+offset; a slider lets you trim it by ear. Whichever path arrives first is held back: if the
+sound leads, it is delayed on the way out; if the picture leads, the "what is sounding now"
+visuals (beat pulse, playhead, flashes, waveforms) are drawn from a short memory instead,
+while cubes and your hands stay immediate. The setting is remembered on the phone; re-measure
+if you change speakers, since Bluetooth delay varies by codec (roughly 40 ms for aptX Low
+Latency, 150 to 250 ms for SBC/AAC, up to 300 ms for LDAC). Sync makes sight and sound agree;
+it cannot make Bluetooth faster, so rhythmic finger-playing still wants a wire.
 
 ## 4.6 Appendix: the classic rear-projection build
 
