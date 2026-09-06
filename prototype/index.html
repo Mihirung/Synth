@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Lumatable</title>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@500;600&display=swap">
 </head>
@@ -27,13 +27,19 @@
   }
   #stage{position:fixed;inset:0;display:block;touch-action:none;cursor:default}
   header{
-    position:fixed;top:0;left:0;right:0;display:flex;align-items:center;flex-wrap:wrap;
-    justify-content:space-between;padding:12px 16px;pointer-events:none;z-index:2;row-gap:6px;
+    position:fixed;top:0;left:0;right:0;display:flex;align-items:center;flex-wrap:nowrap;
+    justify-content:space-between;padding:10px 14px;pointer-events:none;z-index:2;gap:12px;
   }
   .wordmark{font-weight:600;font-size:15px;letter-spacing:.32em;color:var(--text)}
   .wordmark span{color:var(--line);text-shadow:0 0 14px rgba(127,216,232,.55)}
   .tag{font-size:10px;letter-spacing:.18em;text-transform:uppercase;color:var(--dim);margin-left:12px}
-  .chips{display:flex;gap:6px;pointer-events:auto;align-items:center}
+  .chips,#dock,#syncPanel,.chip,.spawn{box-sizing:border-box}
+  .chips{display:flex;gap:6px;pointer-events:auto;align-items:center;
+    flex:1 1 auto;min-width:0;overflow-x:auto;overflow-y:hidden;padding:4px 0;
+    flex-wrap:nowrap;touch-action:pan-x;-webkit-overflow-scrolling:touch;
+    scrollbar-width:none;-ms-overflow-style:none;justify-content:flex-end}
+  .chips::-webkit-scrollbar{display:none}
+  .chips>*{flex:0 0 auto}
   .chip{
     font-family:var(--font);font-size:10px;letter-spacing:.16em;text-transform:uppercase;
     color:var(--text);background:rgba(12,20,36,.55);border:1px solid rgba(255,255,255,.09);
@@ -119,6 +125,22 @@
     padding:12px 30px;cursor:pointer;font-weight:600;
   }
   #begin:focus-visible{outline:2px solid var(--text);outline-offset:3px}
+  @media (max-width:760px), (max-height:540px){
+    header{ flex-direction:column; align-items:stretch; padding:6px 0 4px; row-gap:0; gap:0; }
+    .wordmark, .tag{ display:none; }
+    .chips{ width:100%; padding:2px 12px 6px; gap:6px; justify-content:flex-start; }
+    .chips::-webkit-scrollbar{ display:none; }
+    .chip{ flex:0 0 auto; font-size:11px; padding:8px 13px; scroll-snap-align:start; }
+    #hint{ display:none; }
+    #dock{ left:0; right:0; transform:none; bottom:0; max-width:100%;
+      border-radius:16px 16px 0 0; gap:2px; padding:7px 6px calc(7px + env(safe-area-inset-bottom));
+      justify-content:center; flex-wrap:wrap; }
+    .spawn{ padding:4px 6px; }
+    .spawn .chipico{ width:22px; height:22px; }
+    .spawn{ font-size:8.5px; letter-spacing:.1em; }
+    #syncPanel{ width:calc(100vw - 24px); right:12px; left:12px; top:auto; bottom:88px; }
+    #camWrap{ width:130px; right:8px; bottom:96px; }
+  }
 </style>
 
 <canvas id="stage"></canvas>
@@ -440,8 +462,12 @@ function resize(){
   if(scene!==canvas){ scene.width = W*DPR; scene.height = H*DPR; }
   if(gl) glResize();
   discGrad = null;
-  CX = W/2; CY = (H-80)/2 + 26;
-  TABLE_R = Math.min(W/2 - 20, (H-180)/2);
+  let topR=60, botR=96;
+  try{ const hb=document.querySelector('header').getBoundingClientRect(); if(hb.height) topR=hb.height; }catch(e){}
+  try{ const db=document.getElementById('dock').getBoundingClientRect(); if(db.height) botR=db.height; }catch(e){}
+  const top=topR+10, bot=botR+10;
+  CX = W/2; CY = top + (H-top-bot)/2;
+  TABLE_R = Math.max(60, Math.min(W/2 - 12, (H-top-bot)/2 - 6));
   S = Math.max(0.62, Math.min(1.12, TABLE_R/320));
   if(had) for(const o of objects){
     o.x = CX + (o.x - oCX)/oR * TABLE_R;
@@ -2327,6 +2353,15 @@ function loadHashScene(){
 function demoScene(){
   for(const o of [...objects]) destroyObject(o);
   const P = (nx,ny)=>[CX+nx*TABLE_R, CY+ny*TABLE_R];
+  if(W<760 || H<540){   // a small screen: a light, legible patch that doesn't crowd
+    const beat = spawn('sampler', ...P(-0.50,-0.34)); beat.angle=(1.5/6)*TAU;   // one object per quadrant
+    const osc  = spawn('osc',     ...P(0.50,-0.34)); osc.angle=(26/48)*TAU; osc.arc=0.6;
+    const flt  = spawn('filter',  ...P(-0.40, 0.40)); flt.angle=TAU*0.6; flt.arc=0.25;
+    const seq  = spawn('seq',     ...P(0.42, 0.38));
+    computePatch();
+    if(audio){ for(const o of objects){ rewireAudio(o); rewireCtl(o); applyParams(o); } }
+    saveSoon(); return;
+  }
   const beat = spawn('sampler', ...P(-0.50,-0.12)); beat.angle=(1.5/6)*TAU;             // BEAT
   const bass = spawn('sampler', ...P(-0.44, 0.36)); bass.angle=(3.5/6)*TAU; bass.arc=0.85; // BASS
   const osc = spawn('osc', ...P(0.58,-0.20)); osc.angle=(26/48)*TAU; osc.arc=0.62;
