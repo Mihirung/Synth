@@ -534,8 +534,15 @@ function spawn(type, x, y){
   if(type==='tempo') o.angle = ((state.bpm-60)/120)*TAU;
   if(type==='seq') o.steps = SEQ_PATTERNS[0].map(s => s ? {on:true,deg:s[0]} : {on:false,deg:0});
   objects.push(o);
-  if(audio) buildNodes(o);
-  computePatch();
+  if(audio){
+    buildNodes(o);
+    computePatch();
+    // wire the freshly-built object to its destination even when its hop
+    // never changes from the default 'C' (setHop skips an unchanged hop,
+    // so this is the only place a centre-connected object gets connected)
+    if(FAMILY[o.type]!=='ctl') rewireAudio(o);
+    if(o.type==='lfo') rewireCtl(o);
+  } else computePatch();
   return o;
 }
 function teardownNodes(o){
