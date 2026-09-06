@@ -122,6 +122,46 @@ if you change speakers, since Bluetooth delay varies by codec (roughly 40 ms for
 Latency, 150 to 250 ms for SBC/AAC, up to 300 ms for LDAC). Sync makes sight and sound agree;
 it cannot make Bluetooth faster, so rhythmic finger-playing still wants a wire.
 
+### 4.5.1 Hookup for KEF LS50 Wireless II
+
+The LS50 Wireless II has HDMI eARC, optical, coaxial and a 3.5 mm analogue input as well as
+Bluetooth (SBC/AAC) and Wi-Fi streaming. Its wireless paths are the slow ones: Bluetooth is
+roughly 150 to 250 ms, and Chromecast built-in and AirPlay 2 buffer a second or more. The
+wired path below gives about 30 to 60 ms for sound *and* 20 to 50 ms for picture, replaces
+casting entirely, and powers the phone.
+
+**Recommended: one short tether at the phone mount**
+
+1. **Phone → USB-C hub** clamped to the boom, with a short USB-C lead. The hub needs an
+   HDMI output and USB-C Power Delivery pass-through (60 W or more) with a charger plugged
+   in, so the phone runs cool and never drains. *Check your phone supports video over
+   USB-C (DisplayPort Alt Mode): Samsung Galaxy S and Note, recent OnePlus and Xiaomi, and
+   Pixel 8 onwards do; older Pixels and many budget phones don't.* If it doesn't, see Plan B.
+2. **Hub HDMI → any HDMI input on the TV.** On the TV: turn on game mode (low latency),
+   turn off motion smoothing and any picture "enhancement".
+3. **TV's eARC/ARC HDMI port → the LS50 Wireless II's HDMI port**, with an Ultra High Speed
+   HDMI cable. On the TV set audio output to ARC/eARC and the digital format to **PCM** (not
+   Dolby or "auto", which adds encoding delay). The TV then handles lip-sync itself. In the
+   KEF Connect app pick the HDMI source (auto-switch usually does it) and turn HDMI CEC on if
+   you want the TV's remote to control volume; otherwise fix the speakers at a set level and
+   control loudness from the phone.
+4. In Lumatable, run **sync → measure**. With this chain it should read close to zero; the
+   slider is a trim.
+
+**Plan B (phone without video over USB-C):** keep casting for the picture, and take sound
+by wire: a USB-C-to-3.5 mm adapter (or the hub's headphone jack) into the LS50's **aux**
+input, or a USB-C-to-optical adapter into its **optical** input. Sound drops to about 15 to
+40 ms; the picture stays at cast latency; the sync measurement then sets the offset for you.
+
+**Stage notes for the LS50 Wireless II**
+
+- Use the supplied inter-speaker cable rather than the wireless link between the two
+  speakers in a venue full of Wi-Fi; it is the more dependable connection.
+- In KEF Connect set auto-standby to *Never* so the speakers don't sleep during a quiet
+  passage, and disable any auto source switching that could jump to Bluetooth if a phone
+  nearby pairs.
+- Bluetooth remains the zero-cable fallback for casual play, with the sync compensation.
+
 ## 4.6 Appendix: the classic rear-projection build
 
 The original Reactable used a translucent acrylic top with a projector and an infrared
