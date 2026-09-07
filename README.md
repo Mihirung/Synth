@@ -99,10 +99,13 @@ most of Phase 2 of the plan:
 - **The play tray**: eight instruments for hands and voice behind a *play* button. A
   theremin, air drums, a Karplus–Strong harp, marbles that play the rim and everything they
   hit, a hum-to-synth voice follower, a conductor that takes the tempo from your beats, an
-  air knob, and a **waterphone**: a modal model of the bowl, the brass rods and the sloshing
+  air knob, a **waterphone**: a modal model of the bowl, the brass rods and the sloshing
   water, bowed by holding a rod, struck by tapping one, bent by moving the puck or tilting
-  the cube. All work by touch; with a webcam or the table camera, MediaPipe hand tracking
-  on the device turns them into air instruments. See [docs/08-play.md](docs/08-play.md).
+  the cube, and **planets**: the disc becomes an orrery with real periods and real moon
+  counts, every world playable in the manner of Holst, with a God mode of real gravity,
+  collisions that merge or shatter worlds, rockets, starships and visitors. All work by
+  touch; with a webcam or the table camera, MediaPipe hand tracking on the device turns
+  them into air instruments. See [docs/08-play.md](docs/08-play.md).
 - **Printed kit**: [`hardware/print/`](hardware/print/) has a 60 mm cube and round and
   hexagonal 70 mm pucks as STL and OBJ with marker pockets, plus printable marker sheets
   (256 eight-bit ids) and a card per object. See [hardware/README.md](hardware/README.md).

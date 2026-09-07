@@ -24,6 +24,7 @@ height above the table. Either way the picture never leaves the device.
 | **conductor** | tap its ring in time | beat time in the air; strikes are beats | — | how quickly the tempo follows | TEMPO · TEMPO + DYNAMICS |
 | **air knob** | — | sits by any block; raise a hand to turn that block's ring | — | — | TURN · SLIDE · BOTH |
 | **waterphone** | hold a rod to bow it, tap one to strike it, move or turn the puck to slosh the water | a resting fingertip bows, a fast one strikes, a sweep over the bowl tilts it, a strike over the bowl is a mallet on the dome | how much water | level | WHALE · STORM · GONG · GHOST |
+| **planets** | the disc becomes the solar system; touch a world, a moon, a ring or an asteroid to hear it | pinch works as a touch | how fast a year goes, 4 s to 2 min | level | ORRERY · GOD MODE |
 
 **Theremin.** Two sine partials with a slow hand-tremor vibrato, silent until played, so
 it never drones. FREE is a true theremin (continuous pitch); IN KEY quantises to the
@@ -97,6 +98,44 @@ a **reverb** behind it; every recording of the real thing has one. The numerical
 `tests/waterphone-dsp.test.js` checks the partial ratios, a bow's sustain and release, the
 bend under a slosh, that ten hard bows plus dome strikes stay bounded, the faces, and the
 cost (about two per cent of real time).
+
+**Planets: the music of the spheres.** Placing the planets puck turns the whole disc into
+an orrery. The centre dot is the Sun; every planet sits on its own orbit and moves with
+its real period (Kepler's ratios are kept exactly: Mercury laps 685 times while Neptune
+goes round once), and each carries its real number of moons: Earth 1, Mars 2, Jupiter 95,
+Saturn 146 with rings, Uranus 28, Neptune 16, plus Ceres in the asteroid belt and Pluto
+with its 5. Sizes and distances are compressed to fit (orbits by a log law, radii by a
+square-root law), otherwise Jupiter would be a pixel and Neptune off the table. Turning
+the puck sets how long a year takes.
+
+Everything is playable, in the manner of Holst. Mars gives the 5/4 ostinato on kettle
+drums with col legno beneath and a brass stab; Venus a soft rising horn under celesta
+sparkle; Mercury a flitting run; Jupiter a timpani roll into a fanfare; Saturn a tolling
+bell over the slow tick-tock of two alternating chords; Uranus the Magician's four notes,
+G, E flat, A, B, in the low brass; Neptune a wordless choir and a harp glissando; Earth a
+warm choir chord; Pluto an icy shimmer. Moons tinkle in the current key, larger moons
+lower, so sweeping a finger across Jupiter's Galileans or Saturn's swarm is an arpeggio;
+Saturn's rings have five bands, each a note, so a finger drawn across them is a
+glissando. Asteroids click like wood. The Sun is the whole band: a low drum, a bell and
+soft brass.
+
+**God mode** (the second face) hands the sky to real gravity: every world gets its
+circular velocity and the Sun's mass is chosen so Earth keeps its year, then an n-body
+integration takes over (four substeps a frame, symplectic Euler). A finger resting in a
+planet's path is a wall it bounces off; dragging through a planet grabs it and a flick
+throws it. Worlds that meet slowly **merge** (mass and momentum conserved, radius by the
+cube root, the moons come along) with a choir swell; worlds that meet fast **shatter**,
+the larger keeping just over half the mass and the rest flying off as three to five new
+blobs with the collision's energy, with a boom and a shower of sparks; anything that
+falls into the Sun is consumed and the Sun grows. Moons of a destroyed world are set
+loose as little worlds of their own. The rim is soft, so the mayhem stays on the table.
+Flipping back to ORRERY rebuilds the solar system as it was.
+
+Now and then a **rocket** leaves Earth for the Moon and plants a flag; a **starship**
+leaves for Mars and lands seven times in ten, otherwise it makes a small crater; and
+every minute or two a **visitor** from outside drops in, warbles at a couple of planets
+and leaves. In God mode ships can be grabbed and thrown too, and become tiny bodies
+under gravity until they hit something.
 
 ## How the hands are read
 

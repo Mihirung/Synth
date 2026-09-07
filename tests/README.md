@@ -9,6 +9,10 @@ node tests/advanced-camera.test.js   # analogue engine with envelopes, pen press
 node tests/play.test.js              # the play tray: drums, harp, theremin, marbles, hum, and synthetic hand landmarks
 node tests/waterphone-dsp.test.js    # the waterphone model, numerically: strike, bow, water bending, stress, faces, speed (no browser)
 node tests/waterphone.test.js        # the waterphone in the browser: bow, strike, slosh, hands, marbles, persistence
+node tests/phone.test.js             # iPhone layout: tray pages, tap-to-place, back
+node tests/help.test.js              # the ? panel's tabs, desktop and phone
+node tests/lines.test.js             # cutting and mending lines by touch, purple reach
+node tests/spheres.test.js           # the orrery: moon counts, Kepler ratios, Holst touches, God-mode physics and collisions, ships
 node tests/phone.test.js             # iPhone emulation: trays as pages of the dock, tap-to-place, back; desktop drawers still stack
 ```
 

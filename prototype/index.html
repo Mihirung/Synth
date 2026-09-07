@@ -258,6 +258,7 @@
     <p><b>Hum.</b> Hum a tune. The table hums it back.</p>
     <p><b>Conductor.</b> Tap its ring in time. Everybody follows you.</p>
     <p><b>Waterphone.</b> Hold a rod to bow it. Tap a rod to hit it. Wobble the block to slosh the water. Spooky!</p>
+    <p><b>Planets.</b> The whole circle turns into space. Touch the Sun, a planet or a moon to hear it. Run a finger across Saturn's rings. Tap the block for <b>God mode</b>: flick the planets, block them with a finger, and watch them crash and join up.</p>
     <h3>With a camera</h3>
     <p>Say <b>yes</b> when it asks to use the camera. Then wave your hands in the air instead of touching.</p>
     <p>Strike downwards over a drum pad to hit it. Rest a fingertip on a harp string or a waterphone rod to bow it.</p>
@@ -306,6 +307,7 @@
   <button class="spawn adv" data-type="conduct" title="beat time in the air and the table follows"><span class="chipico pl c" data-g="♩"></span>conductor</button>
   <button class="spawn adv" data-type="air" title="raise a hand to turn the nearest block's ring"><span class="chipico pl c" data-g="✋"></span>air knob</button>
   <button class="spawn adv" data-type="water" title="a waterphone: bow or strike its rods, tilt the water"><span class="chipico pl" data-g="≈"></span>waterphone</button>
+  <button class="spawn adv" data-type="spheres" title="the solar system on the disc, and the music of the spheres"><span class="chipico pl" data-g="♄"></span>planets</button>
 </div>
 <div id="dock2" aria-label="advanced tray" hidden>
   <div class="lbl">advanced pucks</div>
@@ -367,9 +369,9 @@ const FAMILY = { osc:'gen', sampler:'gen', rec:'gen', mic:'gen',
                  lfo:'ctl', seq:'ctl', tempo:'ctl',
                  key:'ctl', tune:'ctl', env:'ctl', xpress:'ctl', steps:'ctl', euclid:'ctl', chance:'ctl', chain:'ctl',
                  scene:'ctl', motion:'ctl', warp:'ctl', send:'ctl', space:'ctl', master:'ctl', stems:'ctl',
-                 theremin:'gen', drums:'gen', harp:'gen', marbles:'gen', hum:'gen', conduct:'ctl', air:'ctl', water:'gen' };
+                 theremin:'gen', drums:'gen', harp:'gen', marbles:'gen', hum:'gen', conduct:'ctl', air:'ctl', water:'gen', spheres:'gen' };
 /* the play tray: instruments for hands (camera) and voice, all playable by touch too */
-const PLAY = new Set(['theremin','drums','harp','marbles','hum','conduct','air','water']);
+const PLAY = new Set(['theremin','drums','harp','marbles','hum','conduct','air','water','spheres']);
 const HANDY = new Set(['theremin','drums','harp','conduct','air','water']);   // these ask for hand tracking
 /* the advanced pucks: hexagonal, one drawer down, so the main tray stays a child's tray */
 const ADV = new Set(['key','tune','env','xpress','steps','euclid','chance','chain','scene','motion','warp','send','space','master','stems']);
@@ -385,6 +387,7 @@ const PLAY_LEGEND = {
   conduct: { name:'CONDUCTOR', turn:'—', slide:'how quickly it follows', faces:['TEMPO','TEMPO + DYNAMICS'] },
   air:     { name:'AIR KNOB', turn:'—', slide:'—', faces:['TURN','SLIDE','BOTH'] },
   water:   { name:'WATERPHONE', turn:'how much water', slide:'level', faces:['WHALE','STORM','GONG','GHOST'] },
+  spheres: { name:'PLANETS', turn:'how fast a year goes (4 s – 2 min)', slide:'level', faces:['ORRERY','GOD MODE'] },
 };
 const DRUM_PADS = ['KICK','SNARE','HAT','CLAP'];
 const ADV_LEGEND = {   // printed on the cards and used by the readouts
@@ -698,7 +701,7 @@ function defaults(type){
            key:{arc:0.06}, tune:{arc:0.5}, env:{arc:0.51}, xpress:{arc:0.5}, steps:{arc:0.4}, euclid:{arc:0},
            chance:{arc:0.2}, chain:{arc:0.2}, scene:{arc:0.25}, motion:{arc:0.3}, warp:{arc:0.3}, send:{arc:0.5},
            space:{arc:0.3}, master:{arc:0.4}, stems:{arc:0.5},
-           theremin:{arc:0.6}, drums:{arc:0.8}, harp:{arc:0.7}, marbles:{arc:0.6}, hum:{arc:0.7}, conduct:{arc:0.5}, air:{arc:0.5}, water:{arc:0.75} }[type];
+           theremin:{arc:0.6}, drums:{arc:0.8}, harp:{arc:0.7}, marbles:{arc:0.6}, hum:{arc:0.7}, conduct:{arc:0.5}, air:{arc:0.5}, water:{arc:0.75}, spheres:{arc:0.8} }[type];
 }
 function spawn(type, x, y){
   const o = { id:nextId++, type, x, y, angle:0, arc:defaults(type).arc,
@@ -737,7 +740,9 @@ function spawn(type, x, y){
   if(type==='marbles') o.angle = 0.5*TAU;
   if(type==='hum'){ o.angle = 0.5*TAU; o.humState='wait'; }
   if(type==='water'){ o.angle = 0.5*TAU; o.rodFlash=[]; o.rodBow={}; o.wsS=0; o.wsV=0; o.handBow={}; }
+  if(type==='spheres') o.angle = 0.4*TAU;          // a year in about 16 seconds
   objects.push(o);
+  if(type==='spheres') spheresEnter(o);
   if(audio){
     buildNodes(o);
     computePatch();
@@ -774,6 +779,7 @@ function teardownNodes(o){
 }
 function destroyObject(o){
   teardownNodes(o);
+  if(spheres.puck===o) spheresExit();
   if(o.type==='scene' && o.morphOrigin) sceneRestoreOrigin(o);
   if(o.type==='master' && audio) applyMaster(null);
   const i = objects.indexOf(o);
@@ -904,7 +910,7 @@ function readout(o){
     case 'send': return ['SEND · '+ADV_LEGEND.send.faces[o.option%2], 'level '+Math.round(sendLevel(o)*100)+'% · reach '+Math.round(sendReach(o)/TABLE_R*100)+'%'+(o.hop==='C'?' · unbound':'')];
     case 'space': return ['SPACE · '+ADV_LEGEND.space.faces[o.option%3], 'width '+Math.round(spaceWidth(o)*100)+'%'];
     case 'master': return ['MASTER · '+ADV_LEGEND.master.faces[o.option%4], 'volume '+Math.round(masterVol(o)*100)+'% · glue '+Math.round(o.arc*100)+'%'];
-    case 'theremin': case 'drums': case 'harp': case 'marbles': case 'hum': case 'conduct': case 'air': case 'water': return playReadout(o);
+    case 'theremin': case 'drums': case 'harp': case 'marbles': case 'hum': case 'conduct': case 'air': case 'water': case 'spheres': return playReadout(o);
     case 'stems': return ['STEMS · '+stemBars(o)+' BAR'+(stemBars(o)>1?'S':''),
                           o.stemState==='idle' ? 'tap or replace to arm' : o.stemState==='armed' ? 'starts next bar…'
                         : o.stemState==='recording' ? 'recording '+(o.stemN||0)+' stems…' : o.stemState==='saving' ? 'saving…' : (o.stemMsg||'saved')];
@@ -922,6 +928,7 @@ function playReadout(o){
     case 'conduct': return ['CONDUCTOR · '+PLAY_LEGEND.conduct.faces[o.option%2], (o.bpmT ? Math.round(o.bpmT)+' BPM felt · ' : 'beat time in the air · ')+hz];
     case 'air': return ['AIR KNOB · '+PLAY_LEGEND.air.faces[o.option%3], o.hop==='C' ? 'put it by a block' : 'raise a hand · '+hz];
     case 'water': return ['WATERPHONE · '+PLAY_LEGEND.water.faces[o.option%4], 'water '+Math.round((o.angle/TAU)*100)+'% · '+(o.ana ? 'hold a rod to bow · tap to strike · move it to slosh' : 'filling…')];
+    case 'spheres': return ['PLANETS · '+PLAY_LEGEND.spheres.faces[o.option%2], 'a year every '+Math.round(spheresYearS(o))+' s · '+(o.option%2 ? 'flick a world, block an orbit' : 'touch a world to hear it')];
   }
 }
 function thereminOct(o){ return 1 + Math.round((o.angle/TAU)*3); }
@@ -1477,7 +1484,7 @@ function buildNodes(o){
     o.vib = ctx.createOscillator(); o.vib.frequency.value = 5.2; o.vibG = ctx.createGain(); o.vibG.gain.value = 7;   // cents: a real theremin's hand tremor
     o.vib.connect(o.vibG); o.vibG.connect(o.src.detune); o.vibG.connect(o.src2.detune);
     o.src.start(); o.src2.start(); o.vib.start();
-  } else if(o.type==='drums' || o.type==='harp' || o.type==='marbles'){
+  } else if(o.type==='drums' || o.type==='harp' || o.type==='marbles' || o.type==='spheres'){
     o.amp = ctx.createGain(); o.amp.gain.value = o.arc; o.amp.connect(o.out);
   } else if(o.type==='water'){
     o.amp = ctx.createGain(); o.amp.gain.value = o.arc; o.amp.connect(o.out);
@@ -1648,7 +1655,7 @@ function applyParams(o){
       }
       o.amp.gain.setTargetAtTime(o.arc*0.22, t, 0.02);
     }
-  } else if(o.type==='sampler' || o.type==='rec' || o.type==='mic' || o.type==='drums' || o.type==='harp' || o.type==='marbles' || o.type==='hum'){
+  } else if(o.type==='sampler' || o.type==='rec' || o.type==='mic' || o.type==='drums' || o.type==='harp' || o.type==='marbles' || o.type==='hum' || o.type==='spheres'){
     o.amp.gain.setTargetAtTime(o.arc, t, 0.02);
   } else if(o.type==='water'){
     o.amp.gain.setTargetAtTime(o.arc, t, 0.02); waterCfg(o);
@@ -1758,6 +1765,7 @@ function cycleOption(o){
     o.option = (o.option+1)%PLAY_LEGEND[o.type].faces.length;
     if(o.type==='hum') humFaces(o);
     if(o.type==='water') waterCfg(o);
+    if(o.type==='spheres') spheresSetGod(o.option%2===1);
   }
   saveSoon();
 }
@@ -1773,7 +1781,7 @@ function setMuted(o,m){
 }
 function updateOutGain(o){
   if(audio && o.out)
-    o.out.gain.setTargetAtTime((o.muted || o.fmTo) ? 0 : 1, audio.ctx.currentTime, 0.015);
+    o.out.gain.setTargetAtTime((o.muted || o.fmTo || (spheres.on && o!==spheres.puck)) ? 0 : 1, audio.ctx.currentTime, 0.015);
 }
 /* a finger-drawn waveform becomes the oscillator's tone (64 samples -> harmonics) */
 function applyDrawnWave(o){
@@ -2894,6 +2902,10 @@ function pianoRect(o){
 const pointerPress = e => e.pointerType==='mouse' ? 0 : Math.max(0, Math.min(1, ((e.pressure||0)-0.5)*2));
 canvas.addEventListener('pointerdown', e=>{
   const x=e.clientX, y=e.clientY;
+  if(spheres.on){   // the sky takes every touch that is not on the planets puck itself
+    const h = objectAt(x,y);
+    if(!(h && h.o===spheres.puck)){ spheresPointerDown(e, x, y); return; }
+  }
   // the "little piano": an open note picker eats taps first; a key is held, and pressure is aftertouch
   for(const o of objects) if(o.type==='osc' && o.piano){
     const r = pianoRect(o);
@@ -3040,6 +3052,7 @@ canvas.addEventListener('pointermove', e=>{
   const dr = drags.get(e.pointerId);
   if(!dr) return;
   const { obj } = dr, x=e.clientX, y=e.clientY;
+  if(dr.mode==='sky'){ spheresPointerMove(e, x, y); return; }
   if(dr.mode==='move'){
     const ox=obj.x, oy=obj.y;
     obj.x = x+dr.dx; obj.y = y+dr.dy;
@@ -3099,6 +3112,7 @@ function endDrag(e){
   const dr = drags.get(e.pointerId);
   drags.delete(e.pointerId);
   if(!dr) return;
+  if(dr.mode==='sky'){ spheresPointerUp(e, dr); return; }
   if(dr.mode==='move'){
     if(distC(dr.obj) > TABLE_R-8){ pushUndo(); destroyObject(dr.obj); }
     else if(!dr.moved) cycleOption(dr.obj);   // single tap = flip the cube to its next face
@@ -3226,7 +3240,7 @@ function placeFree(o){
    Fiducial class IDs map onto object types in blocks of 8.              */
 const TUIO_TYPES = ['osc','sampler','seq','filter','delay','mod','lfo','dist','reverb','rec','mic','tempo','chorus','crush',
                     'key','tune','env','xpress','steps','euclid','chance','chain','scene','motion','warp','send','space','master','stems',
-                    'theremin','drums','harp','marbles','hum','conduct','air','water'];
+                    'theremin','drums','harp','marbles','hum','conduct','air','water','spheres'];
 const tuioObjs = new Map();
 function tuioConnect(url){
   const ws = new WebSocket(url);
@@ -3828,6 +3842,7 @@ const CARD_TEXT = {
   conduct:'Beat time in the air (or tap its ring) and the whole table takes your tempo. The second face also follows your hand\'s height as dynamics.',
   air:'Sits by any block. Raise or lower a hand to turn that block\'s ring without touching it; faces choose the ring, the slider, or both.',
   water:'A waterphone: a bowl of water with brass rods around it. Hold a rod to bow it, tap one to strike it, and move or turn the puck (or tilt the cube) to slosh the water, which bends every note. Faces: whale, storm (it plays itself), gong, ghost. Put a reverb behind it.',
+  spheres:'The disc becomes the solar system: the Sun in the middle, every planet on its real orbit, with its real number of moons. Touch a planet or a moon to hear it, in the manner of Holst. Turn to speed the years up. Flip to God mode: flick worlds, block their orbits with a finger, and watch them merge or shatter.',
 };
 async function markerSheet(){
   const html=markerSheetHTML(), filename='lumatable-markers.html';
@@ -4206,6 +4221,475 @@ $('importFile').addEventListener('change', async e=>{
     setTimeout(()=>{ $('importBtn').lastChild.textContent = 'import'; }, 2000);
   }
 });
+
+/* ================= the music of the spheres =================
+   A "planets" puck turns the disc into an orrery: the Sun at the centre, every
+   planet on an orbit whose period is the real one (Kepler's ratios kept, sizes
+   and distances compressed to fit), with the real count of moons for each, the
+   asteroid belt, Pluto and Ceres. Touching anything plays a sound in the manner
+   of Holst's Planets. The second face is God mode: real gravity takes over, a
+   finger in an orbit's way deflects a planet, a flick throws it, and collisions
+   merge worlds or blow them apart into new ones. Rockets go to the Moon,
+   starships try for Mars, and now and then something from outside drops by.  */
+const SPHERES_PLANETS = [
+  { n:'Mercury', au:0.387, yr:0.2408, rE:0.383, mE:0.055,  col:'#c8c2b8', hue:'#9a948c', moons:0 },
+  { n:'Venus',   au:0.723, yr:0.6152, rE:0.949, mE:0.815,  col:'#f0d29a', hue:'#c9a86a', moons:0 },
+  { n:'Earth',   au:1.000, yr:1.0000, rE:1.000, mE:1.000,  col:'#5db0ff', hue:'#2f7fd0', moons:1,  majors:[['Moon',27.3,0.27]] },
+  { n:'Mars',    au:1.524, yr:1.8808, rE:0.532, mE:0.107,  col:'#e0764a', hue:'#a8452a', moons:2,  majors:[['Phobos',0.32,0.002],['Deimos',1.26,0.001]] },
+  { n:'Ceres',   au:2.767, yr:4.6000, rE:0.074, mE:0.00016,col:'#a8a8a8', hue:'#7a7a7a', moons:0, dwarf:true },
+  { n:'Jupiter', au:5.203, yr:11.862, rE:11.21, mE:317.8,  col:'#e8be86', hue:'#b88a5a', moons:95, majors:[['Io',1.77,0.29],['Europa',3.55,0.25],['Ganymede',7.15,0.41],['Callisto',16.69,0.38]] },
+  { n:'Saturn',  au:9.537, yr:29.457, rE:9.45,  mE:95.16,  col:'#eedca6', hue:'#c4ad74', moons:146, rings:true, majors:[['Mimas',0.94,0.03],['Enceladus',1.37,0.04],['Tethys',1.89,0.08],['Dione',2.74,0.09],['Rhea',4.52,0.12],['Titan',15.95,0.40],['Iapetus',79.3,0.12]] },
+  { n:'Uranus',  au:19.19, yr:84.011, rE:4.007, mE:14.54,  col:'#a6e3ea', hue:'#6fb3bd', moons:28, majors:[['Miranda',1.41,0.04],['Ariel',2.52,0.09],['Umbriel',4.14,0.09],['Titania',8.71,0.12],['Oberon',13.46,0.12]] },
+  { n:'Neptune', au:30.07, yr:164.79, rE:3.883, mE:17.15,  col:'#5f7fee', hue:'#3e55b8', moons:16, majors:[['Triton',5.88,0.21]] },
+  { n:'Pluto',   au:39.48, yr:247.94, rE:0.186, mE:0.0022, col:'#d6c4b0', hue:'#9d8c7c', moons:5, dwarf:true, majors:[['Charon',6.39,0.09],['Styx',20.2,0.001],['Nix',24.9,0.003],['Kerberos',32.2,0.001],['Hydra',38.2,0.004]] },
+];
+const SUN_M = 333000;   // Earth masses
+const spheres = { on:false, god:false, puck:null, t:0, bodies:[], belt:[], stars:[], ships:[], sparks:[], fingers:new Map(),
+                  yearS:16, nextRocket:14, nextShip:30, nextAlien:70, lastNow:0, GM:0, flash:0, seed:1 };
+const sphRand = () => { spheres.seed = (spheres.seed*1664525+1013904223)>>>0; return spheres.seed/4294967296; };
+function sphOrbitR(au){ return TABLE_R*(0.17 + 0.77*Math.log(au/0.3)/Math.log(40/0.3)); }
+function sphPlanetR(rE){ return S*(2.2 + 3.2*Math.pow(rE, 0.45)); }
+function sphSunR(){ return 13*S; }
+function spheresYearS(o){ return 4*Math.pow(2, (o.angle/TAU)*5); }   // 4 s .. 128 s per Earth year
+function spheresEnter(o){
+  spheres.on = true; spheres.puck = o; spheres.god = o.option%2===1; spheres.seed = 7;
+  spheres.t = 0; spheres.ships = []; spheres.sparks = []; spheres.fingers.clear();
+  spheres.nextRocket = 10 + sphRand()*10; spheres.nextShip = 25 + sphRand()*20; spheres.nextAlien = 60 + sphRand()*40;
+  spheresBuild();
+  spheres.stars = Array.from({length:220}, ()=>{ const a=sphRand()*TAU, r=Math.sqrt(sphRand()); return { a, r, s:0.6+sphRand()*1.4, ph:sphRand()*TAU }; });
+  for(const q of objects) updateOutGain(q);
+  if(audio) holstCue('enter');
+}
+function spheresExit(){
+  spheres.on = false; spheres.god = false; spheres.puck = null; spheres.bodies = []; spheres.ships = []; spheres.sparks = [];
+  for(const q of objects) updateOutGain(q);
+}
+function spheresBuild(){   // the real solar system, in the disc's scale
+  spheres.bodies = [];
+  const sun = { n:'Sun', sun:true, x:CX, y:CY, vx:0, vy:0, m:SUN_M, r:sphSunR(), col:'#fff2c4', hue:'#ffb84d', moons:[], alive:true };
+  spheres.bodies.push(sun);
+  for(const p of SPHERES_PLANETS){
+    const R = sphOrbitR(p.au), ph = sphRand()*TAU;
+    const b = { n:p.n, p, orbitR:R, yr:p.yr, ph, x:CX+Math.cos(ph)*R, y:CY+Math.sin(ph)*R, vx:0, vy:0, m:p.mE, r:sphPlanetR(p.rE),
+                col:p.col, hue:p.hue, rings:!!p.rings, dwarf:!!p.dwarf, moons:[], alive:true, spin:sphRand()*TAU };
+    const maj = p.majors || [];
+    const maxR = Math.min(b.r*3.4, TABLE_R*0.045);
+    maj.forEach(([n,d,rr],i)=>{ const orb = b.r*1.7 + (maxR-b.r*1.7)*(i+1)/(maj.length+1);
+      b.moons.push({ n, d, orb, r:Math.max(1.2*S, Math.min(3.2*S, S*(1+4*rr))), ph:sphRand()*TAU, major:true }); });
+    for(let i=maj.length;i<p.moons;i++){   // the swarm: small, distant, slow, as the irregular moons are
+      const orb = maxR*(0.75 + 0.55*sphRand()), d = 20 + 700*sphRand();
+      b.moons.push({ n:p.n+' moon '+(i+1), d, orb, r:(0.6+0.5*sphRand())*S, ph:sphRand()*TAU, major:false, retro: sphRand()<0.5 });
+    }
+    spheres.bodies.push(b);
+  }
+  spheres.belt = Array.from({length:150}, ()=>{ const au = 2.1 + 1.2*sphRand(); return { au, yr:Math.pow(au,1.5), ph:sphRand()*TAU, r:(0.5+sphRand()*1.1)*S, wob:sphRand()*0.02 }; });
+  spheresPlaceOrrery();
+}
+function spheresPlaceOrrery(){   // positions from the clock, in accurate ratios
+  const t = spheres.t;
+  for(const b of spheres.bodies){
+    if(b.sun || !b.p || b.debris) continue;
+    if(!spheres.god){ const a = b.ph + TAU*t/b.yr; b.x = CX+Math.cos(a)*b.orbitR; b.y = CY+Math.sin(a)*b.orbitR; }
+    b.spin += 0.02;
+  }
+}
+function sphMoonPos(b, m){   // moons ride on their planet; their periods keep their order
+  const T = 0.8*Math.pow(m.d, 0.6) * (spheres.yearS/16);
+  const a = m.ph + (m.retro?-1:1)*TAU*(spheres.clock||0)/T;
+  return { x:b.x+Math.cos(a)*m.orb, y:b.y+Math.sin(a)*m.orb*0.92 };
+}
+function sphBeltPos(a){ const R = sphOrbitR(a.au), ang = a.ph + TAU*spheres.t/a.yr; return { x:CX+Math.cos(ang)*R*(1+a.wob), y:CY+Math.sin(ang)*R }; }
+/* ---- God mode: real gravity in the disc's units ---- */
+function spheresSetGod(on){
+  if(!spheres.on) return;
+  if(on && !spheres.god){
+    const earth = spheres.bodies.find(b=>b.n==='Earth') || spheres.bodies[1];
+    const Ty = spheres.yearS, R = earth ? earth.orbitR : TABLE_R*0.35;
+    spheres.GM = Math.pow(TAU/Ty, 2)*R*R*R;                    // Kepler: the Sun's GM that gives Earth its year
+    for(const b of spheres.bodies){ if(b.sun) continue;
+      const d = Math.hypot(b.x-CX, b.y-CY)||1, v = Math.sqrt(spheres.GM/d);   // circular speed, anticlockwise
+      b.vx = -(b.y-CY)/d*v; b.vy = (b.x-CX)/d*v; }
+    if(audio) holstCue('god');
+  }
+  if(!on && spheres.god){ spheresBuild(); if(audio) holstCue('enter'); }
+  spheres.god = on;
+}
+function spheresPhysics(dt){
+  const bodies = spheres.bodies, GM = spheres.GM, sub = 4, h = dt/sub;
+  for(let s=0;s<sub;s++){
+    for(const b of bodies){
+      if(b.sun || !b.alive) continue;
+      let ax=0, ay=0;
+      for(const c of bodies){
+        if(c===b || !c.alive) continue;
+        const dx=c.x-b.x, dy=c.y-b.y, d2=dx*dx+dy*dy+ (c.r+b.r)*(c.r+b.r)*0.25, d=Math.sqrt(d2);
+        const f = GM*(c.m/SUN_M)/d2;
+        ax += f*dx/d; ay += f*dy/d;
+      }
+      b.vx += ax*h; b.vy += ay*h;
+    }
+    for(const b of bodies){
+      if(b.sun || !b.alive) continue;
+      b.x += b.vx*h; b.y += b.vy*h;
+      // fingers in the way: a resting or moving finger is a wall the planet bounces off
+      for(const f of spheres.fingers.values()){
+        if(f.hold===b) continue;
+        const dx=b.x-f.x, dy=b.y-f.y, d=Math.hypot(dx,dy), rr=b.r+18*S;
+        if(d<rr && d>0){ const nx=dx/d, ny=dy/d, rel=(b.vx-f.vx)*nx+(b.vy-f.vy)*ny;
+          if(rel<0){ b.vx -= 1.9*rel*nx; b.vy -= 1.9*rel*ny; sphSpark(b.x-nx*b.r, b.y-ny*b.r, 4, b.col); if(audio) holstBody(b, 0.5, true); }
+          b.x = f.x+nx*rr; b.y = f.y+ny*rr; }
+      }
+      // the rim keeps the mayhem on the table
+      const dc = Math.hypot(b.x-CX, b.y-CY), lim = TABLE_R - b.r - 2;
+      if(dc > lim){ const nx=(b.x-CX)/dc, ny=(b.y-CY)/dc, dot=b.vx*nx+b.vy*ny; if(dot>0){ b.vx -= 1.85*dot*nx; b.vy -= 1.85*dot*ny; } b.x=CX+nx*lim; b.y=CY+ny*lim; }
+    }
+    for(const f of spheres.fingers.values()) if(f.hold && f.hold.alive){ f.hold.x = f.x; f.hold.y = f.y; f.hold.vx = f.vx; f.hold.vy = f.vy; }
+    // collisions: slow ones merge, fast ones shatter
+    const nNow = bodies.length, clock = spheres.clock||0;
+    for(let i=0;i<nNow;i++) for(let j=i+1;j<nNow;j++){
+      const a=bodies[i], b=bodies[j]; if(!a.alive || !b.alive) continue;
+      if((a.grace||0) > clock || (b.grace||0) > clock) continue;          // newborn blobs get a moment to fly clear
+      const d=Math.hypot(a.x-b.x, a.y-b.y); if(d >= a.r+b.r) continue;
+      const vrel = Math.hypot(a.vx-b.vx, a.vy-b.vy), vEarth = Math.sqrt(GM/(TABLE_R*0.35));
+      if(a.sun || b.sun) sphConsume(a.sun?a:b, a.sun?b:a);
+      else if(vrel > 0.55*vEarth && !(a.debris && b.debris)) sphShatter(a, b, vrel);   // rubble only ever clumps
+      else sphMerge(a, b);
+    }
+  }
+  spheres.bodies = bodies.filter(b=>b.alive);
+  if(spheres.bodies.length > 60){   // too much rubble: the smallest pieces become dust
+    const rubble = spheres.bodies.filter(b=>b.debris).sort((a,b)=>a.r-b.r);
+    for(let i=0;i<spheres.bodies.length-60 && i<rubble.length;i++) rubble[i].alive=false;
+    spheres.bodies = spheres.bodies.filter(b=>b.alive);
+  }
+}
+function sphConsume(sun, b){
+  b.alive=false; sun.r = Math.min(sphSunR()*1.6, sun.r + b.r*0.08); sun.m += b.m;
+  sphSpark(b.x, b.y, 24, '#fff2c4'); spheres.flash = 0.8;
+  if(audio) holstBoom(0.9, b.r/sphPlanetR(11.2), true);
+  b.moons.filter(mo=>mo.major).concat(b.moons.filter(mo=>!mo.major).slice(0,6)).forEach(mo=>sphFree(b, mo));
+}
+function sphMerge(a, b){
+  const big = a.m>=b.m ? a : b, small = big===a ? b : a;
+  const m = a.m+b.m;
+  big.vx = (a.vx*a.m + b.vx*b.m)/m; big.vy = (a.vy*a.m + b.vy*b.m)/m;
+  big.x = (a.x*a.m + b.x*b.m)/m; big.y = (a.y*a.m + b.y*b.m)/m;
+  big.r = Math.cbrt(Math.pow(big.r,3)+Math.pow(small.r,3)); big.m = m; big.n = big.n+'+'+small.n.split('+')[0]; big.moons.push(...small.moons);
+  small.alive=false; sphSpark(big.x, big.y, 16, small.col); spheres.flash = 0.4;
+  if(audio) holstMerge(big.r/sphPlanetR(11.2));
+}
+function sphShatter(a, b, vrel){
+  const big = a.m>=b.m ? a : b, small = big===a ? b : a;
+  const m = a.m+b.m, px=(a.x*a.m+b.x*b.m)/m, py=(a.y*a.m+b.y*b.m)/m, vx=(a.vx*a.m+b.vx*b.m)/m, vy=(a.vy*a.m+b.vy*b.m)/m;
+  const n = 3 + Math.floor(sphRand()*3), keep = 0.55;
+  big.m = m*keep; big.r = Math.cbrt(Math.pow(a.r,3)+Math.pow(b.r,3))*Math.cbrt(keep); big.x=px; big.y=py;
+  big.vx = vx + (sphRand()-0.5)*vrel*0.4; big.vy = vy + (sphRand()-0.5)*vrel*0.4; big.n = big.n.split('+')[0]+"'";
+  small.moons.filter(mo=>mo.major).concat(small.moons.filter(mo=>!mo.major).slice(0,6)).forEach(mo=>sphFree(small, mo));   // the swarm becomes dust
+  small.alive=false;
+  const debM = m*(1-keep)/n, debR = Math.max(2*S, Math.cbrt((Math.pow(a.r,3)+Math.pow(b.r,3))*(1-keep)/n));
+  for(let k=0;k<n;k++){ const ang = sphRand()*TAU, sp = vrel*(0.5+sphRand()*0.9);
+    spheres.bodies.push({ n:'blob', x:px+Math.cos(ang)*(big.r+debR+2), y:py+Math.sin(ang)*(big.r+debR+2), vx:vx+Math.cos(ang)*sp, vy:vy+Math.sin(ang)*sp,
+      m:debM, r:debR, col:sphRand()<0.5?a.col:b.col, hue:'#7a5a4a', moons:[], alive:true, debris:true, born:spheres.t, grace:(spheres.clock||0)+0.7, spin:0 }); }
+  big.grace = (spheres.clock||0)+0.7;
+  sphSpark(px, py, 40, '#fff3d6'); spheres.flash = 1;
+  if(audio) holstBoom(1, Math.max(a.r,b.r)/sphPlanetR(11.2), false);
+}
+function sphFree(planet, m){   // a moon set loose becomes a little world of its own
+  const p = sphMoonPos(planet, m), T = 0.8*Math.pow(m.d,0.6)*(spheres.yearS/16), v = TAU*m.orb/T*0.4;
+  const ang = Math.atan2(p.y-planet.y, p.x-planet.x)+Math.PI/2;
+  spheres.bodies.push({ n:m.n, x:p.x, y:p.y, vx:planet.vx+Math.cos(ang)*v, vy:planet.vy+Math.sin(ang)*v, m:planet.m*0.002+0.0001, r:Math.max(1.5*S, m.r), col:'#d9d2c6', hue:'#8c8478', moons:[], alive:true, debris:true, born:spheres.t, grace:(spheres.clock||0)+0.7, spin:0 });
+}
+function sphSpark(x, y, n, col){
+  for(let i=0;i<n;i++){ const a=sphRand()*TAU, sp=(20+sphRand()*120)*S; spheres.sparks.push({ x, y, vx:Math.cos(a)*sp, vy:Math.sin(a)*sp, life:0.6+sphRand()*0.9, col }); }
+  if(spheres.sparks.length>400) spheres.sparks.splice(0, spheres.sparks.length-400);
+}
+/* ---- ships: rockets to the Moon, starships to Mars, visitors from outside ---- */
+function sphShipTick(dt){
+  const earth = spheres.bodies.find(b=>b.n==='Earth' && b.alive), mars = spheres.bodies.find(b=>b.n==='Mars' && b.alive);
+  spheres.nextRocket -= dt; spheres.nextShip -= dt; spheres.nextAlien -= dt;
+  if(spheres.nextRocket<=0 && earth && earth.moons.length){ spheres.nextRocket = 18+sphRand()*22; sphLaunch('rocket', earth, {planet:earth, moon:earth.moons[0]}, 5+sphRand()*2); }
+  if(spheres.nextShip<=0 && earth && mars){ spheres.nextShip = 30+sphRand()*30; sphLaunch('starship', earth, {planet:mars}, 9+sphRand()*3); }
+  if(spheres.nextAlien<=0){ spheres.nextAlien = 70+sphRand()*60; const a=sphRand()*TAU;
+    spheres.ships.push({ kind:'alien', x:CX+Math.cos(a)*TABLE_R*1.1, y:CY+Math.sin(a)*TABLE_R*1.1, vx:0, vy:0, t:0, life:18+sphRand()*10, ph:sphRand()*TAU, wob:sphRand()*TAU, visit:0 });
+    if(audio) holstAlien(true); }
+  for(let i=spheres.ships.length-1;i>=0;i--){
+    const s = spheres.ships[i];
+    s.t += dt;
+    if(s.free){   // thrown by a finger in God mode: a tiny body under gravity
+      const dx=CX-s.x, dy=CY-s.y, d2=dx*dx+dy*dy+100, d=Math.sqrt(d2), f=spheres.GM/d2;
+      s.vx += f*dx/d*dt; s.vy += f*dy/d*dt; s.x += s.vx*dt; s.y += s.vy*dt;
+      for(const b of spheres.bodies) if(b.alive && Math.hypot(b.x-s.x,b.y-s.y) < b.r+3*S){ sphSpark(s.x,s.y,10,'#ffd27a'); if(audio) holstBoom(0.35, 0.05, false); spheres.ships.splice(i,1); s.dead=true; break; }
+      if(s.dead) continue;
+      if(Math.hypot(s.x-CX,s.y-CY) > TABLE_R*1.3) spheres.ships.splice(i,1);
+      continue;
+    }
+    if(s.kind==='alien'){
+      s.life -= dt;
+      const tgt = s.life>4 ? (spheres.bodies[1+Math.floor((s.visit)%Math.max(1,spheres.bodies.length-1))]||{x:CX,y:CY}) : { x:CX+Math.cos(s.ph)*TABLE_R*1.3, y:CY+Math.sin(s.ph)*TABLE_R*1.3 };
+      const dx=tgt.x-s.x, dy=tgt.y-s.y, d=Math.hypot(dx,dy)||1, sp=TABLE_R*0.28;
+      s.vx += (dx/d*sp - s.vx)*Math.min(1,dt*2.5); s.vy += (dy/d*sp - s.vy)*Math.min(1,dt*2.5);
+      s.wob += dt*6; s.x += s.vx*dt + Math.cos(s.wob)*20*S*dt; s.y += s.vy*dt + Math.sin(s.wob*1.3)*20*S*dt;
+      if(d < 22*S && s.life>4){ s.visit++; if(audio) holstAlien(false); }
+      if(s.life<=0 || (s.life<4 && Math.hypot(s.x-CX,s.y-CY)>TABLE_R*1.25)) spheres.ships.splice(i,1);
+      continue;
+    }
+    // rockets and starships: a curved transfer to a moving target, then a landing
+    const from = s.from, to = s.to.planet;
+    if(!from.alive || !to.alive){ spheres.ships.splice(i,1); continue; }
+    const tp = s.to.moon ? sphMoonPos(to, s.to.moon) : { x:to.x, y:to.y };
+    const f = Math.min(1, s.t/s.dur), e = f*f*(3-2*f);
+    const mx=(s.x0+tp.x)/2, my=(s.y0+tp.y)/2, bx=mx-(tp.y-s.y0)*0.25, by=my+(tp.x-s.x0)*0.25;
+    const px = (1-e)*(1-e)*s.x0 + 2*(1-e)*e*bx + e*e*tp.x, py = (1-e)*(1-e)*s.y0 + 2*(1-e)*e*by + e*e*tp.y;
+    s.vx = (px-s.x)/Math.max(dt,0.001); s.vy = (py-s.y)/Math.max(dt,0.001); s.x = px; s.y = py;
+    if(f>=1){
+      const ok = s.kind==='rocket' ? true : sphRand() < 0.7;
+      if(ok){ s.landed = true; if(audio) holstLand(s.kind); to.flags = (to.flags||0)+1; sphSpark(s.x, s.y, 6, '#bfe8ff'); }
+      else { sphSpark(s.x, s.y, 14, '#ffb27a'); if(audio) holstBoom(0.3, 0.04, false); }
+      spheres.ships.splice(i,1);
+    }
+  }
+}
+function sphLaunch(kind, from, to, dur){
+  const s = { kind, from, to, dur, t:0, x:from.x, y:from.y+from.r, x0:from.x, y0:from.y+from.r, vx:0, vy:0 };
+  spheres.ships.push(s); sphSpark(s.x, s.y, 5, '#ffd27a');
+  if(audio) holstLaunch(kind);
+}
+/* ---- touch: what a finger does on the sky ---- */
+function sphBodyAt(x,y){
+  let best=null, bd=1e9;
+  for(const b of spheres.bodies){ if(!b.alive) continue;
+    const d = Math.hypot(x-b.x, y-b.y) - Math.max(b.r, 6*S); if(d < 10*S && d < bd){ bd=d; best={ body:b }; }
+    for(const m of b.moons){ const p=sphMoonPos(b,m); const dm=Math.hypot(x-p.x,y-p.y); if(dm < Math.max(m.r,3*S)+5*S && dm-3*S < bd){ bd=dm-3*S; best={ body:b, moon:m, at:p }; } }
+  }
+  if(best) return best;
+  for(const a of spheres.belt){ const p=sphBeltPos(a); if(Math.hypot(x-p.x,y-p.y) < 7*S) return { asteroid:a, at:p }; }
+  for(const s of spheres.ships){ if(Math.hypot(x-s.x,y-s.y) < 12*S) return { ship:s }; }
+  return null;
+}
+function sphRingBand(b, x, y){   // which of Saturn's ring bands a point is in, or -1
+  if(!b.rings) return -1;
+  const d = Math.hypot(x-b.x, (y-b.y)/0.42); const f = d/b.r;
+  if(f<1.35 || f>2.6) return -1;
+  return Math.floor((f-1.35)/(1.25/5));
+}
+function spheresPointerDown(e, x, y){
+  const hit = sphBodyAt(x,y);
+  const f = { x, y, vx:0, vy:0, lx:x, ly:y, lt:performance.now(), hold:null, band:-1, lastMoonKey:null };
+  spheres.fingers.set(e.pointerId, f);
+  try{ canvas.setPointerCapture(e.pointerId); }catch(err){}
+  drags.set(e.pointerId, { mode:'sky', finger:f });
+  if(hit){
+    if(hit.ship){ if(spheres.god){ f.holdShip = hit.ship; } if(audio) holstAlien(false); return; }
+    if(hit.asteroid){ if(audio) holstAsteroid(hit.asteroid); sphSpark(hit.at.x, hit.at.y, 3, '#c9c2b8'); return; }
+    if(hit.moon){ if(audio) holstMoon(hit.body, hit.moon); sphSpark(hit.at.x, hit.at.y, 4, '#eaf6ff'); f.lastMoonKey = hit.moon.n; return; }
+    if(audio) holstBody(hit.body, 1, false);
+    sphSpark(hit.body.x, hit.body.y, 8, hit.body.col);
+    if(spheres.god && !hit.body.sun) f.hold = hit.body;
+  }
+  const sat = spheres.bodies.find(b=>b.rings && b.alive); if(sat) f.band = sphRingBand(sat, x, y);
+}
+function spheresPointerMove(e, x, y){
+  const dr = drags.get(e.pointerId); if(!dr || dr.mode!=='sky') return;
+  const f = dr.finger, now = performance.now(), dtm = Math.max(0.008, (now-f.lt)/1000);
+  f.vx = f.vx*0.5 + ((x-f.lx)/dtm)*0.5; f.vy = f.vy*0.5 + ((y-f.ly)/dtm)*0.5; f.lx=x; f.ly=y; f.lt=now; f.x=x; f.y=y;
+  if(f.holdShip){ f.holdShip.x=x; f.holdShip.y=y; f.holdShip.free=true; f.holdShip.vx=f.vx; f.holdShip.vy=f.vy; }
+  // sweeping across moons and rings: tinkles
+  const hit = sphBodyAt(x,y);
+  if(hit && hit.moon && hit.moon.n!==f.lastMoonKey){ f.lastMoonKey = hit.moon.n; if(audio) holstMoon(hit.body, hit.moon, 0.6); sphSpark(hit.at.x, hit.at.y, 2, '#eaf6ff'); }
+  else if(!hit || !hit.moon) f.lastMoonKey = null;
+  const sat = spheres.bodies.find(b=>b.rings && b.alive);
+  if(sat){ const band = sphRingBand(sat, x, y); if(band>=0 && band!==f.band){ if(audio) holstRing(band, Math.min(1, Math.hypot(f.vx,f.vy)/(TABLE_R*2))); sphSpark(x, y, 2, '#fff3d6'); } f.band = band; }
+}
+function spheresPointerUp(e, dr){
+  if(!dr || dr.mode!=='sky') return;
+  const f = dr.finger;
+  if(f.hold){ const sp=Math.hypot(f.vx,f.vy), cap=900*S, k=sp>cap?cap/sp:1; f.hold.vx = f.vx*0.9*k; f.hold.vy = f.vy*0.9*k; f.hold = null; }   // a flick, but not a bullet
+  if(f.holdShip){ f.holdShip.free = true; f.holdShip.vx = f.vx*0.9; f.holdShip.vy = f.vy*0.9; f.holdShip = null; }
+  spheres.fingers.delete(e.pointerId);
+}
+/* ---- the clock ---- */
+function spheresTick(dt){
+  if(!spheres.on) return;
+  const o = spheres.puck; spheres.yearS = o ? spheresYearS(o) : 16;
+  spheres.t += dt/spheres.yearS; spheres.clock = (spheres.clock||0) + dt;
+  if(spheres.god) spheresPhysics(Math.min(dt, 0.05)); else spheresPlaceOrrery();
+  for(const b of spheres.bodies) if(b.debris && b.alive && spheres.t - b.born > 0.02 && b.r < 2.5*S && sphRand()<0.002) b.alive=false;   // dust settles
+  sphShipTick(dt);
+  for(let i=spheres.sparks.length-1;i>=0;i--){ const s=spheres.sparks[i]; s.life-=dt; s.x+=s.vx*dt; s.y+=s.vy*dt; s.vx*=0.97; s.vy*=0.97; if(s.life<=0) spheres.sparks.splice(i,1); }
+  spheres.flash = Math.max(0, spheres.flash - dt*1.5);
+}
+/* ---- the picture ---- */
+function spheresDraw(){
+  const now = performance.now()/1000;
+  g.save(); g.beginPath(); g.arc(CX,CY,TABLE_R,0,TAU); g.clip();
+  for(const st of spheres.stars){ const tw = 0.45+0.55*Math.abs(Math.sin(now*st.s+st.ph)); g.fillStyle='rgba(220,235,255,'+(0.35*tw).toFixed(2)+')';
+    g.beginPath(); g.arc(CX+Math.cos(st.a)*st.r*TABLE_R, CY+Math.sin(st.a)*st.r*TABLE_R, (0.5+st.s*0.5)*S, 0, TAU); g.fill(); }
+  if(!spheres.god){ g.strokeStyle='rgba(160,190,230,0.14)'; g.lineWidth=1; for(const p of SPHERES_PLANETS){ g.beginPath(); g.arc(CX,CY,sphOrbitR(p.au),0,TAU); g.stroke(); } }
+  g.fillStyle='rgba(200,190,175,0.55)';
+  for(const a of spheres.belt){ const p=sphBeltPos(a); g.beginPath(); g.arc(p.x,p.y,a.r,0,TAU); g.fill(); }
+  for(const b of spheres.bodies){
+    if(!b.alive) continue;
+    if(b.sun){
+      const pulse = 1+0.04*Math.sin(now*2);
+      const grd = g.createRadialGradient(b.x,b.y,b.r*0.2,b.x,b.y,b.r*3.2); grd.addColorStop(0,'rgba(255,240,190,0.55)'); grd.addColorStop(1,'rgba(255,184,77,0)');
+      g.fillStyle=grd; g.beginPath(); g.arc(b.x,b.y,b.r*3.2,0,TAU); g.fill();
+      g.fillStyle='#fff6d8'; glow('#ffd27a', 24); g.beginPath(); g.arc(b.x,b.y,b.r*pulse,0,TAU); g.fill(); noGlow();
+      continue;
+    }
+    if(b.rings){   // Saturn's rings, behind the planet on the far side
+      g.save(); g.translate(b.x,b.y); g.scale(1,0.42);
+      for(let k=0;k<5;k++){ const f0=1.35+k*0.25; g.strokeStyle= k===2 ? 'rgba(120,105,80,0.35)' : 'rgba(235,220,180,'+(0.5-k*0.05)+')'; g.lineWidth=b.r*0.2;
+        g.beginPath(); g.arc(0,0,b.r*(f0+0.12),Math.PI,TAU); g.stroke(); }
+      g.restore();
+    }
+    const grd = g.createRadialGradient(b.x-b.r*0.4,b.y-b.r*0.4,b.r*0.1,b.x,b.y,b.r*1.05); grd.addColorStop(0,b.col); grd.addColorStop(1,b.hue);
+    g.fillStyle=grd; glow(b.col, b.debris?4:9); g.beginPath(); g.arc(b.x,b.y,b.r,0,TAU); g.fill(); noGlow();
+    if(b.n==='Jupiter'){ g.save(); g.beginPath(); g.arc(b.x,b.y,b.r,0,TAU); g.clip(); g.fillStyle='rgba(170,110,70,0.45)'; for(const yy of [-0.45,-0.05,0.4]) g.fillRect(b.x-b.r,b.y+yy*b.r,b.r*2,b.r*0.16); g.fillStyle='rgba(200,80,60,0.6)'; g.beginPath(); g.ellipse(b.x+Math.cos(b.spin)*b.r*0.5,b.y+b.r*0.3,b.r*0.22,b.r*0.13,0,0,TAU); g.fill(); g.restore(); }
+    if(b.n==='Earth'){ g.save(); g.beginPath(); g.arc(b.x,b.y,b.r,0,TAU); g.clip(); g.fillStyle='rgba(90,190,110,0.8)'; for(const [dx,dy,rr] of [[0.2,-0.2,0.45],[-0.35,0.25,0.35]]) { g.beginPath(); g.ellipse(b.x+Math.cos(b.spin+dx*3)*b.r*0.5, b.y+dy*b.r, b.r*rr, b.r*rr*0.6, 0, 0, TAU); g.fill(); } g.restore(); }
+    if(b.rings){ g.save(); g.translate(b.x,b.y); g.scale(1,0.42);
+      for(let k=0;k<5;k++){ const f0=1.35+k*0.25; g.strokeStyle= k===2 ? 'rgba(120,105,80,0.35)' : 'rgba(235,220,180,'+(0.5-k*0.05)+')'; g.lineWidth=b.r*0.2;
+        g.beginPath(); g.arc(0,0,b.r*(f0+0.12),0,Math.PI); g.stroke(); }
+      g.restore(); }
+    for(const m of b.moons){ const p=sphMoonPos(b,m); g.fillStyle = m.major ? '#e9e4d8' : 'rgba(210,205,195,0.55)'; g.beginPath(); g.arc(p.x,p.y,m.r,0,TAU); g.fill(); }
+    if(b.flags){ g.fillStyle='#bfe8ff'; for(let k=0;k<Math.min(6,b.flags);k++){ g.fillRect(b.x-b.r*0.6+k*b.r*0.25, b.y-b.r-4*S, 1.5*S, 3*S); } }
+    if(!b.debris){ g.fillStyle='rgba(199,211,224,0.7)'; g.font=`500 ${8*S}px "Chakra Petch", sans-serif`; g.textAlign='center'; g.textBaseline='top'; g.fillText(b.n.toUpperCase(), b.x, b.y+b.r+3*S); }
+  }
+  for(const s of spheres.ships){
+    g.save(); g.translate(s.x,s.y);
+    if(s.kind==='alien'){ const bl = 0.5+0.5*Math.sin(now*9); g.fillStyle='#b7c6d6'; g.beginPath(); g.ellipse(0,0,9*S,3.2*S,0,0,TAU); g.fill();
+      g.fillStyle='rgba(180,255,200,'+(0.5+0.5*bl)+')'; glow('#8dffb0', 10*bl); g.beginPath(); g.arc(0,-2.5*S,3.5*S,Math.PI,TAU); g.fill(); noGlow();
+      g.fillStyle='#ff6b6b'; for(const dx of [-5,0,5]) { g.beginPath(); g.arc(dx*S, 1.5*S, 1*S, 0, TAU); g.fill(); } }
+    else { const a = Math.atan2(s.vy, s.vx); g.rotate(a); g.fillStyle = s.kind==='rocket' ? '#f2f2f2' : '#d8dde8';
+      g.beginPath(); g.moveTo(6*S,0); g.lineTo(-4*S,-2.6*S); g.lineTo(-2.5*S,0); g.lineTo(-4*S,2.6*S); g.closePath(); g.fill();
+      if(s.kind==='rocket'){ g.fillStyle='#d33'; g.fillRect(-1*S,-2.2*S,2*S,4.4*S); }
+      g.fillStyle='rgba(255,180,80,'+(0.5+0.5*Math.sin(now*40))+')'; glow('#ffb84d', 8); g.beginPath(); g.moveTo(-4*S,-1.5*S); g.lineTo(-9*S,0); g.lineTo(-4*S,1.5*S); g.closePath(); g.fill(); noGlow(); }
+    g.restore();
+  }
+  for(const s of spheres.sparks){ g.fillStyle=s.col; g.globalAlpha=Math.min(1,s.life); g.beginPath(); g.arc(s.x,s.y,1.4*S,0,TAU); g.fill(); }
+  g.globalAlpha=1;
+  for(const f of spheres.fingers.values()){ g.strokeStyle='rgba(255,243,214,0.8)'; g.lineWidth=2; g.beginPath(); g.arc(f.x,f.y,18*S,0,TAU); g.stroke(); }
+  if(spheres.flash>0){ g.fillStyle='rgba(255,240,210,'+(spheres.flash*0.35).toFixed(2)+')'; g.fillRect(CX-TABLE_R,CY-TABLE_R,TABLE_R*2,TABLE_R*2); }
+  g.restore();
+  g.fillStyle='rgba(199,211,224,0.55)'; g.font=`600 ${9*S}px "Chakra Petch", sans-serif`; g.textAlign='center'; g.textBaseline='top';
+  g.fillText(spheres.god ? 'GOD MODE · flick a world, block an orbit' : 'THE MUSIC OF THE SPHERES · touch a world', CX, CY+TABLE_R-16*S);
+}
+/* ---- the orchestra: a few instruments, in the manner of Holst ---- */
+function orchOut(){ const p = spheres.puck; return p && p.amp ? p.amp : (audio ? audio.master : null); }
+function orchNoise(){ if(!audio.noiseBuf){ const sr=audio.ctx.sampleRate, b=audio.ctx.createBuffer(1,sr,sr), d=b.getChannelData(0); for(let i=0;i<sr;i++) d[i]=Math.random()*2-1; audio.noiseBuf=b; } return audio.noiseBuf; }
+function orchTimp(midi, t, vel, len){   // a kettle drum: a sine that drops in pitch, a thump of noise, a long boom
+  const ctx=audio.ctx, out=orchOut(); if(!out) return; const f=pitchHz(midi);
+  const o=ctx.createOscillator(); o.type='sine'; o.frequency.setValueAtTime(f*1.6,t); o.frequency.exponentialRampToValueAtTime(f,t+0.05);
+  const g=ctx.createGain(); g.gain.setValueAtTime(0.0001,t); g.gain.exponentialRampToValueAtTime(0.7*vel,t+0.006); g.gain.exponentialRampToValueAtTime(0.0001,t+(len||1.4));
+  const n=ctx.createBufferSource(); n.buffer=orchNoise(); const nf=ctx.createBiquadFilter(); nf.type='lowpass'; nf.frequency.value=600; const ng=ctx.createGain(); ng.gain.setValueAtTime(0.5*vel,t); ng.gain.exponentialRampToValueAtTime(0.0001,t+0.06);
+  o.connect(g); g.connect(out); n.connect(nf); nf.connect(ng); ng.connect(out); o.start(t); o.stop(t+(len||1.4)+0.1); n.start(t); n.stop(t+0.1);
+}
+function orchBrass(midi, t, vel, dur, soft){   // sawtooths through a filter that opens with the note
+  const ctx=audio.ctx, out=orchOut(); if(!out) return; const f=pitchHz(midi), a=soft?0.09:0.03;
+  const g=ctx.createGain(); g.gain.setValueAtTime(0.0001,t); g.gain.linearRampToValueAtTime(0.22*vel,t+a); g.gain.setValueAtTime(0.22*vel,t+dur); g.gain.exponentialRampToValueAtTime(0.0001,t+dur+0.25);
+  const lp=ctx.createBiquadFilter(); lp.type='lowpass'; lp.Q.value=1.2; lp.frequency.setValueAtTime(f*(soft?2:3),t); lp.frequency.linearRampToValueAtTime(f*(soft?4:9),t+a*2); lp.frequency.setTargetAtTime(f*(soft?3:5),t+dur,0.1);
+  for(const det of [-6,5]){ const o=ctx.createOscillator(); o.type=soft?'triangle':'sawtooth'; o.frequency.value=f; o.detune.value=det; o.connect(lp); o.start(t); o.stop(t+dur+0.4); }
+  if(!soft){ const o=ctx.createOscillator(); o.type='sawtooth'; o.frequency.value=f/2; const sg=ctx.createGain(); sg.gain.value=0.5; o.connect(sg); sg.connect(lp); o.start(t); o.stop(t+dur+0.4); }
+  lp.connect(g); g.connect(out);
+}
+function orchChoir(midis, t, vel, dur){   // wordless voices: two formants of "ah" on detuned saws
+  const ctx=audio.ctx, out=orchOut(); if(!out) return;
+  const g=ctx.createGain(); g.gain.setValueAtTime(0.0001,t); g.gain.linearRampToValueAtTime(0.12*vel,t+0.5); g.gain.setValueAtTime(0.12*vel,t+dur); g.gain.linearRampToValueAtTime(0.0001,t+dur+1.6);
+  const f1=ctx.createBiquadFilter(); f1.type='bandpass'; f1.frequency.value=720; f1.Q.value=5; const f2=ctx.createBiquadFilter(); f2.type='bandpass'; f2.frequency.value=1150; f2.Q.value=6;
+  const mix=ctx.createGain(); mix.gain.value=1; f1.connect(g); f2.connect(g);
+  for(const m of midis) for(const det of [-7,6]){ const o=ctx.createOscillator(); o.type='sawtooth'; o.frequency.value=pitchHz(m); o.detune.value=det; o.connect(mix); o.start(t); o.stop(t+dur+1.8); }
+  mix.connect(f1); mix.connect(f2); g.connect(out);
+}
+function orchCelesta(midi, t, vel){   // a bell-like ping: a sine with a bright partial, quick to fade
+  const ctx=audio.ctx, out=orchOut(); if(!out) return; const f=pitchHz(midi);
+  for(const [mul,amp,dec] of [[1,0.22,0.9],[4,0.05,0.25],[2.76,0.03,0.4]]){ const o=ctx.createOscillator(); o.type='sine'; o.frequency.value=f*mul; const g=ctx.createGain();
+    g.gain.setValueAtTime(0.0001,t); g.gain.exponentialRampToValueAtTime(amp*vel,t+0.004); g.gain.exponentialRampToValueAtTime(0.0001,t+dec); o.connect(g); g.connect(out); o.start(t); o.stop(t+dec+0.05); }
+}
+function orchBell(midi, t, vel, dur){   // a tolling bell: inharmonic partials
+  const ctx=audio.ctx, out=orchOut(); if(!out) return; const f=pitchHz(midi);
+  for(const [mul,amp,dec] of [[0.5,0.16,dur],[1,0.2,dur*0.8],[1.19,0.08,dur*0.6],[1.56,0.07,dur*0.5],[2,0.06,dur*0.4],[2.51,0.05,dur*0.3]]){ const o=ctx.createOscillator(); o.type='sine'; o.frequency.value=f*mul; const g=ctx.createGain();
+    g.gain.setValueAtTime(0.0001,t); g.gain.exponentialRampToValueAtTime(amp*vel,t+0.01); g.gain.exponentialRampToValueAtTime(0.0001,t+dec); o.connect(g); g.connect(out); o.start(t); o.stop(t+dec+0.05); }
+}
+function orchLegno(t, vel, midi){   // col legno: the wood of the bow on the string
+  const ctx=audio.ctx, out=orchOut(); if(!out) return;
+  const n=ctx.createBufferSource(); n.buffer=orchNoise(); const bp=ctx.createBiquadFilter(); bp.type='bandpass'; bp.frequency.value=1800+Math.random()*800; bp.Q.value=3;
+  const g=ctx.createGain(); g.gain.setValueAtTime(0.35*vel,t); g.gain.exponentialRampToValueAtTime(0.0001,t+0.03); n.connect(bp); bp.connect(g); g.connect(out); n.start(t); n.stop(t+0.05);
+  const o=ctx.createOscillator(); o.type='triangle'; o.frequency.value=pitchHz(midi||55); const og=ctx.createGain(); og.gain.setValueAtTime(0.2*vel,t); og.gain.exponentialRampToValueAtTime(0.0001,t+0.08); o.connect(og); og.connect(out); o.start(t); o.stop(t+0.1);
+}
+function orchWhoosh(t, up, dur, vel){
+  const ctx=audio.ctx, out=orchOut(); if(!out) return;
+  const n=ctx.createBufferSource(); n.buffer=orchNoise(); n.loop=true; const bp=ctx.createBiquadFilter(); bp.type='bandpass'; bp.Q.value=1.5;
+  bp.frequency.setValueAtTime(up?200:2500,t); bp.frequency.exponentialRampToValueAtTime(up?2500:200,t+dur);
+  const g=ctx.createGain(); g.gain.setValueAtTime(0.0001,t); g.gain.linearRampToValueAtTime(0.25*vel,t+dur*0.3); g.gain.exponentialRampToValueAtTime(0.0001,t+dur);
+  n.connect(bp); bp.connect(g); g.connect(out); n.start(t); n.stop(t+dur+0.05);
+}
+function orchWarble(t, dur, vel){   // the visitor: a tone with a fast vibrato through a ring
+  const ctx=audio.ctx, out=orchOut(); if(!out) return;
+  const o=ctx.createOscillator(); o.type='sine'; o.frequency.setValueAtTime(900,t); o.frequency.linearRampToValueAtTime(1400,t+dur*0.5); o.frequency.linearRampToValueAtTime(700,t+dur);
+  const v=ctx.createOscillator(); v.frequency.value=9; const vg=ctx.createGain(); vg.gain.value=90; v.connect(vg); vg.connect(o.frequency);
+  const r=ctx.createOscillator(); r.frequency.value=37; const rg=ctx.createGain(); rg.gain.value=0; r.connect(rg.gain);
+  const g=ctx.createGain(); g.gain.setValueAtTime(0.0001,t); g.gain.linearRampToValueAtTime(0.12*vel,t+0.15); g.gain.linearRampToValueAtTime(0.0001,t+dur);
+  o.connect(rg); rg.connect(g); o.connect(g); g.connect(out); o.start(t); v.start(t); r.start(t); o.stop(t+dur+0.05); v.stop(t+dur+0.05); r.stop(t+dur+0.05);
+}
+/* what each world says */
+function holstBody(b, vel, glancing){
+  const t = audio.ctx.currentTime + 0.01, k = state.key, big = 1;
+  const nm = (b.n||'').split("'")[0].split('+')[0];
+  if(b.sun){ orchTimp(31+k, t, vel, 2.5); orchBell(43+k, t+0.02, vel*0.8, 5); orchBrass(43+k, t+0.05, vel*0.6, 1.6, true); orchBrass(50+k, t+0.05, vel*0.5, 1.6, true); return; }
+  if(b.debris){ orchLegno(t, vel, 60+Math.round(b.r)); orchCelesta(72+k+Math.round(Math.random()*12), t, vel*0.5); return; }
+  switch(nm){
+    case 'Mars': {   // the 5/4 ostinato of the Bringer of War, on the timpani, col legno beneath
+      const beat = 0.56, hits = [[0,1],[1/3,0.5],[2/3,0.5],[1,1],[2,0.9],[3,1],[3.5,0.6],[4,0.9]];
+      for(const [bt,v] of hits){ orchLegno(t+bt*beat, v*vel, 43); if(v>=0.9) orchTimp(43+k-12, t+bt*beat, v*vel, 0.9); }
+      orchBrass(43+k, t+2*beat, vel*0.7, 1.1); orchBrass(46+k, t+3*beat, vel*0.8, 1.2); break; }
+    case 'Venus': { orchBrass(64+k, t, vel*0.6, 1.2, true); orchBrass(68+k, t+0.7, vel*0.5, 1.2, true); orchBrass(71+k, t+1.4, vel*0.5, 1.6, true);
+      for(const m of [76,80,83,88]) orchCelesta(m+k, t+0.1+Math.random()*0.4, vel*0.4); break; }
+    case 'Mercury': { const run=[70,74,77,72,76,79,74,78,82,77,81,84]; run.forEach((m,i)=>orchCelesta(m+k, t+i*0.085, vel*(0.5+0.4*Math.random()))); break; }
+    case 'Earth': { orchChoir([48,55,60,64].map(m=>m+k), t, vel*0.9, 1.6); orchBrass(60+k, t+0.2, vel*0.35, 1.0, true); orchCelesta(84+k, t+0.6, vel*0.3); break; }
+    case 'Ceres': { orchLegno(t, vel, 50); orchLegno(t+0.09, vel*0.7, 53); break; }
+    case 'Jupiter': {   // kettle drums first, then a fanfare from the Bringer of Jollity's band
+      for(let i=0;i<6;i++) orchTimp(39+k, t+i*0.07, vel*(0.35+i*0.11), 0.5); orchTimp(39+k, t+0.45, vel, 1.8);
+      [[63,0.5],[67,0.65],[70,0.8],[75,1.0]].forEach(([m,dt])=>orchBrass(m+k, t+dt, vel*0.9, dt<1?0.18:0.9)); break; }
+    case 'Saturn': {   // the Bringer of Old Age: a tolling bell, kettle drum, the slow tick-tock of two chords
+      orchTimp(36+k, t, vel, 2.2); orchBell(52+k, t+0.05, vel*0.9, 4.5);
+      for(let i=0;i<4;i++){ const ch = i%2 ? [64,67,71] : [65,69,72]; for(const m of ch) orchCelesta(m+k, t+0.5+i*0.85, vel*0.35); } break; }
+    case 'Uranus': {   // the Magician's four notes: G, E flat, A, B
+      [55,51,57,59].forEach((m,i)=>orchBrass(m+k-12, t+i*0.36, vel*0.95, 0.3)); orchTimp(43+k, t+1.5, vel*0.8, 1.2);
+      for(let i=0;i<4;i++) orchLegno(t+1.55+i*0.12, vel*0.6, 43); break; }
+    case 'Neptune': { orchChoir([64,67,71,78].map(m=>m+k), t, vel*0.8, 2.8); [72,76,79,83,86,88,91].forEach((m,i)=>orchCelesta(m+k, t+0.4+i*0.09, vel*0.25)); break; }
+    case 'Pluto': { [91,95,98,93,96].forEach((m,i)=>orchCelesta(m+k, t+i*0.13, vel*0.35)); orchChoir([76,79].map(m=>m+k), t+0.2, vel*0.3, 1.2); break; }
+    default: { orchCelesta(72+k, t, vel*0.5); }
+  }
+  if(glancing) return;
+}
+function holstMoon(b, m, vel){
+  const t = audio.ctx.currentTime + 0.005, st = scaleSteps();
+  const deg = (Math.abs(Math.round(m.orb*7+m.d*3)) % (st.length*2)), base = m.major ? 79 : 86;
+  orchCelesta(quantMidi(base + state.key + degSemis(deg)), t, (vel==null?0.8:vel)*(m.major?0.7:0.45));
+}
+function holstRing(band, speed){
+  const t = audio.ctx.currentTime + 0.005, st = scaleSteps();
+  orchCelesta(quantMidi(84 + state.key + degSemis((band*2) % (st.length*2))), t, 0.35+0.4*speed);
+  if(speed>0.5) orchCelesta(quantMidi(91 + state.key + degSemis((band*2+1) % (st.length*2))), t+0.03, 0.3);
+}
+function holstAsteroid(a){ const t = audio.ctx.currentTime + 0.005; orchLegno(t, 0.7, 60 + Math.round(a.r*4)); }
+function holstBoom(vel, size, sun){
+  const t = audio.ctx.currentTime + 0.005, ctx = audio.ctx, out = orchOut(); if(!out) return;
+  orchTimp(29+state.key, t, vel, 2.5*(0.5+size)); orchTimp(24+state.key, t+0.05, vel*0.8, 3);
+  const n=ctx.createBufferSource(); n.buffer=orchNoise(); n.loop=true; const lp=ctx.createBiquadFilter(); lp.type='lowpass'; lp.frequency.setValueAtTime(4000,t); lp.frequency.exponentialRampToValueAtTime(120,t+1.2+size);
+  const g=ctx.createGain(); g.gain.setValueAtTime(0.0001,t); g.gain.exponentialRampToValueAtTime(0.5*vel,t+0.02); g.gain.exponentialRampToValueAtTime(0.0001,t+1.4+size);
+  n.connect(lp); lp.connect(g); g.connect(out); n.start(t); n.stop(t+1.6+size);
+  for(let i=0;i<8;i++) orchCelesta(84+state.key+Math.floor(Math.random()*14), t+0.15+Math.random()*0.9, 0.25);
+  if(sun) orchBrass(36+state.key, t+0.1, vel*0.7, 1.4);
+}
+function holstMerge(size){ const t = audio.ctx.currentTime + 0.005; orchTimp(31+state.key, t, 0.8, 2.2); orchChoir([48,55,60,64].map(m=>m+state.key), t+0.05, 0.8, 1.6+size); orchBell(60+state.key, t+0.3, 0.5, 3); }
+function holstLaunch(kind){ const t = audio.ctx.currentTime + 0.005; orchWhoosh(t, true, kind==='rocket'?1.2:1.8, 0.8); orchTimp(36+state.key, t, 0.5, 0.8); }
+function holstLand(kind){ const t = audio.ctx.currentTime + 0.005; orchWhoosh(t, false, 0.5, 0.5); orchTimp(43+state.key, t+0.45, 0.6, 0.6); if(kind==='starship') [72,76,79].forEach((m,i)=>orchCelesta(m+state.key, t+0.6+i*0.12, 0.5)); else orchCelesta(88+state.key, t+0.6, 0.5); }
+function holstAlien(arrive){ const t = audio.ctx.currentTime + 0.005; orchWarble(t, arrive?2.2:0.9, arrive?0.9:0.6); }
+function holstCue(what){
+  const t = audio.ctx.currentTime + 0.02, k = state.key;
+  if(what==='enter'){ orchTimp(36+k, t, 0.7, 2); orchChoir([48,55,60,64,67].map(m=>m+k), t+0.05, 0.7, 2.4); [72,76,79,84].forEach((m,i)=>orchCelesta(m+k, t+0.3+i*0.15, 0.4)); }
+  else { orchTimp(31+k, t, 1, 2.5); orchTimp(31+k, t+0.35, 1, 2.5); [55,51,57,59].forEach((m,i)=>orchBrass(m+k-12, t+0.5+i*0.3, 0.9, 0.28)); }
+}
 
 /* ================= drawing ================= */
 function beatPhase(){
@@ -4753,6 +5237,7 @@ function frameBody(){
   }
   if(audio) for(const o of objects){ if(o.type==='scene') sceneTick(o, dt); else if(o.type==='motion') motionTick(o); else if(o.type==='hum' && (frameN&1)===0) humTick(o); }
   for(const o of objects) if(o.type==='water') waterTick(o, dt);
+  if(spheres.on) spheresTick(dt);
   frameN++;
   if(audio) ballsTick(dt);
   if(audio && objects.some(o=>o.type==='space' && o.option%3===1)) updateSpace();
@@ -4795,11 +5280,11 @@ function frameBody(){
   }
   g.globalAlpha=1;
 
-  for(const o of objects) drawConnection(o);
-  drawMotes(dt);
+  if(spheres.on) spheresDraw();
+  if(!spheres.on){ for(const o of objects) drawConnection(o); drawMotes(dt); }
 
   // proximity-FM links: a jagged thread between the two oscillators
-  for(const o of objects) if(o.type==='osc' && o.fmTo){
+  if(!spheres.on) for(const o of objects) if(o.type==='osc' && o.fmTo){
     const t = objects.find(z=>z.id===o.fmTo);
     if(!t) continue;
     const dx=t.x-o.x, dy=t.y-o.y, len=Math.hypot(dx,dy)||1;
@@ -4838,21 +5323,23 @@ function frameBody(){
     else audio.lvHist=null;
   }
   g.save();
-  if(level > 0.01){
-    g.strokeStyle=COL.line; g.globalAlpha=0.25+level*0.5; g.lineWidth=2.5;
-    g.beginPath(); g.arc(CX,CY,(16+level*30)*S,0,TAU); g.stroke();
-    g.globalAlpha=1;
-  }
-  g.fillStyle='#ffffff'; glow(COL.line, 22);
-  g.beginPath(); g.arc(CX,CY,(6+(REDUCED?0:3.5*ease))*S,0,TAU); g.fill();
-  if(!REDUCED){
-    g.strokeStyle=COL.line; g.globalAlpha=ease*0.5; g.lineWidth=1.5;
-    g.beginPath(); g.arc(CX,CY,(10+42*ph)*S,0,TAU); g.stroke();
+  if(!spheres.on){   // the centre: the pulsing output; in the sky it is the Sun instead
+    if(level > 0.01){
+      g.strokeStyle=COL.line; g.globalAlpha=0.25+level*0.5; g.lineWidth=2.5;
+      g.beginPath(); g.arc(CX,CY,(16+level*30)*S,0,TAU); g.stroke();
+      g.globalAlpha=1;
+    }
+    g.fillStyle='#ffffff'; glow(COL.line, 22);
+    g.beginPath(); g.arc(CX,CY,(6+(REDUCED?0:3.5*ease))*S,0,TAU); g.fill();
+    if(!REDUCED){
+      g.strokeStyle=COL.line; g.globalAlpha=ease*0.5; g.lineWidth=1.5;
+      g.beginPath(); g.arc(CX,CY,(10+42*ph)*S,0,TAU); g.stroke();
+    }
   }
   g.restore();
 
-  for(const o of objects) drawObject(o);
-  drawBalls();
+  for(const o of objects) if(!spheres.on || o===spheres.puck) drawObject(o);
+  if(!spheres.on) drawBalls();
   if(hands.mode!=='off') for(const hd of hands.list){   // hands over the table: a ring that grows as the hand rises
     g.save(); g.strokeStyle=hd.pinch?COL.gen:'#fff3d6'; g.globalAlpha=0.8; g.lineWidth=2;
     g.beginPath(); g.arc(hd.x,hd.y,(12+hd.h*16)*S,0,TAU); g.stroke();
