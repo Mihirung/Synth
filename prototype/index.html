@@ -770,6 +770,7 @@ function teardownNodes(o){
     for(const k of ['vib','trem','bendC']) if(o[k]){ try{ o[k].stop(); }catch(e){} }
     if(o.sendG){ for(const k in o.sendG){ try{ o.sendG[k].disconnect(); }catch(e){} } o.sendG=null; }
     if(o.stemTap){ try{ o.stemTap.disconnect(); }catch(e){} o.stemTap.onaudioprocess=null; o.stemTap=null; }
+    if(o.bus){ try{ o.bus.chL.stop(); }catch(e){} for(const n of o.bus.nodes){ try{ n.disconnect(); }catch(e){} } o.bus=null; }
     try{ if(o.src3) o.src3.stop(); }catch(e){}
     for(const k of ['src','src2','src3','preF','fmGain','amp','gate','out','an','pan','biq','inG','dl','fb','fbSat','fbLP','dry','wet','depthG','carrier','ring','dryG','shaper','conv','micSrc','chDelay','chLfo','chDepth','vib','vibG','trem','tremG','bendC','thGain','humG','humG2','humG3','humAn'])
       if(o[k]){ try{ o[k].disconnect(); }catch(e){} o[k]=null; }
@@ -4339,9 +4340,16 @@ function spheresPhysics(dt){
           if(rel<0){ b.vx -= 1.9*rel*nx; b.vy -= 1.9*rel*ny; sphSpark(b.x-nx*b.r, b.y-ny*b.r, 4, b.col); if(audio) holstBody(b, 0.5, true); }
           b.x = f.x+nx*rr; b.y = f.y+ny*rr; }
       }
-      // the rim keeps the mayhem on the table
+      // the rim: most worlds that reach it are lost to interstellar space; a few come back
       const dc = Math.hypot(b.x-CX, b.y-CY), lim = TABLE_R - b.r - 2;
-      if(dc > lim){ const nx=(b.x-CX)/dc, ny=(b.y-CY)/dc, dot=b.vx*nx+b.vy*ny; if(dot>0){ b.vx -= 1.85*dot*nx; b.vy -= 1.85*dot*ny; } b.x=CX+nx*lim; b.y=CY+ny*lim; }
+      if(b.leaving){ if(dc > TABLE_R*1.5) b.alive = false; }
+      else if(dc > lim){
+        const nx=(b.x-CX)/dc, ny=(b.y-CY)/dc, dot=b.vx*nx+b.vy*ny;
+        if(dot>0 && sphRand() < (b.debris ? 0.85 : 0.6)){
+          b.leaving = true;
+          if(!b.debris){ spheres.note = { txt:(b.n.split("'")[0].split('+')[0]).toUpperCase()+' HAS LEFT THE SOLAR SYSTEM', t:3 }; if(audio) holstLeave(); }
+        } else { if(dot>0){ b.vx -= 1.85*dot*nx; b.vy -= 1.85*dot*ny; } b.x=CX+nx*lim; b.y=CY+ny*lim; }
+      }
     }
     for(const f of spheres.fingers.values()) if(f.hold && f.hold.alive){ f.hold.x = f.x; f.hold.y = f.y; f.hold.vx = f.vx; f.hold.vy = f.vy; }
     // collisions: slow ones merge, fast ones shatter
@@ -4517,6 +4525,8 @@ function spheresTick(dt){
   sphShipTick(dt);
   for(let i=spheres.sparks.length-1;i>=0;i--){ const s=spheres.sparks[i]; s.life-=dt; s.x+=s.vx*dt; s.y+=s.vy*dt; s.vx*=0.97; s.vy*=0.97; if(s.life<=0) spheres.sparks.splice(i,1); }
   spheres.flash = Math.max(0, spheres.flash - dt*1.5);
+  if(spheres.note){ spheres.note.t -= dt; if(spheres.note.t<=0) spheres.note = null; }
+  sphBedTick(dt);
 }
 /* ---- the picture ---- */
 function spheresDraw(){
@@ -4570,46 +4580,95 @@ function spheresDraw(){
   for(const f of spheres.fingers.values()){ g.strokeStyle='rgba(255,243,214,0.8)'; g.lineWidth=2; g.beginPath(); g.arc(f.x,f.y,18*S,0,TAU); g.stroke(); }
   if(spheres.flash>0){ g.fillStyle='rgba(255,240,210,'+(spheres.flash*0.35).toFixed(2)+')'; g.fillRect(CX-TABLE_R,CY-TABLE_R,TABLE_R*2,TABLE_R*2); }
   g.restore();
+  if(spheres.note){ g.fillStyle='rgba(255,243,214,'+Math.min(1,spheres.note.t).toFixed(2)+')'; g.font=`600 ${10*S}px "Chakra Petch", sans-serif`; g.textAlign='center'; g.textBaseline='middle'; g.fillText(spheres.note.txt, CX, CY-TABLE_R+22*S); }
   g.fillStyle='rgba(199,211,224,0.55)'; g.font=`600 ${9*S}px "Chakra Petch", sans-serif`; g.textAlign='center'; g.textBaseline='top';
   g.fillText(spheres.god ? 'GOD MODE · flick a world, block an orbit' : 'THE MUSIC OF THE SPHERES · touch a world', CX, CY+TABLE_R-16*S);
 }
-/* ---- the orchestra: a few instruments, in the manner of Holst ---- */
-function orchOut(){ const p = spheres.puck; return p && p.amp ? p.amp : (audio ? audio.master : null); }
-function orchNoise(){ if(!audio.noiseBuf){ const sr=audio.ctx.sampleRate, b=audio.ctx.createBuffer(1,sr,sr), d=b.getChannelData(0); for(let i=0;i<sr;i++) d[i]=Math.random()*2-1; audio.noiseBuf=b; } return audio.noiseBuf; }
-function orchTimp(midi, t, vel, len){   // a kettle drum: a sine that drops in pitch, a thump of noise, a long boom
-  const ctx=audio.ctx, out=orchOut(); if(!out) return; const f=pitchHz(midi);
-  const o=ctx.createOscillator(); o.type='sine'; o.frequency.setValueAtTime(f*1.6,t); o.frequency.exponentialRampToValueAtTime(f,t+0.05);
-  const g=ctx.createGain(); g.gain.setValueAtTime(0.0001,t); g.gain.exponentialRampToValueAtTime(0.7*vel,t+0.006); g.gain.exponentialRampToValueAtTime(0.0001,t+(len||1.4));
-  const n=ctx.createBufferSource(); n.buffer=orchNoise(); const nf=ctx.createBiquadFilter(); nf.type='lowpass'; nf.frequency.value=600; const ng=ctx.createGain(); ng.gain.setValueAtTime(0.5*vel,t); ng.gain.exponentialRampToValueAtTime(0.0001,t+0.06);
-  o.connect(g); g.connect(out); n.connect(nf); nf.connect(ng); ng.connect(out); o.start(t); o.stop(t+(len||1.4)+0.1); n.start(t); n.stop(t+0.1);
+/* ---- the orchestra ----
+   No samples, so the sections are modelled: strings as three detuned sawtooths
+   a voice with a slow vibrato and a swell, brass as a filter that opens with the
+   note, horns softer, a choir as "ah" formants, a harp from the Karplus-Strong
+   string, timpani as a pitch-dropping sine with a thump, tubular bells as
+   inharmonic partials, col legno as a wooden click. Everything plays into a
+   big hall with a section chorus, which is most of what makes an orchestra
+   sound like one. The cues quote each movement's signature: the 5/4 ostinato
+   and the G / D-flat clash of Mars, the four notes of Uranus and their
+   timpani echo, Saturn's tick-tock and tolling bell, Neptune's E minor /
+   G-sharp minor choir, and Jupiter's hymn (reconstructed from memory, in
+   E flat). The Sun is the tutti. */
+function sphBus(){
+  const p = spheres.puck; if(!audio || !p || !p.amp) return null;
+  if(p.bus) return p.bus.in;
+  const ctx=audio.ctx;
+  const inp=ctx.createGain(); inp.gain.value=1;
+  const tone=ctx.createBiquadFilter(); tone.type='lowpass'; tone.frequency.value=7000; tone.Q.value=0.5;
+  const dry=ctx.createGain(); dry.gain.value=0.5;
+  const pre=ctx.createDelay(0.1); pre.delayTime.value=0.03;
+  const conv=ctx.createConvolver(); conv.buffer=makeImpulse(3.6);
+  const wet=ctx.createGain(); wet.gain.value=0.6;
+  const ch=ctx.createDelay(0.05); ch.delayTime.value=0.018;
+  const chL=ctx.createOscillator(); chL.frequency.value=0.4; const chD=ctx.createGain(); chD.gain.value=0.003; chL.connect(chD); chD.connect(ch.delayTime); chL.start();
+  const chG=ctx.createGain(); chG.gain.value=0.4;
+  inp.connect(tone); tone.connect(dry); dry.connect(p.amp);
+  tone.connect(ch); ch.connect(chG); chG.connect(p.amp);
+  tone.connect(pre); pre.connect(conv); conv.connect(wet); wet.connect(p.amp);
+  p.bus = { in:inp, conv, chL, nodes:[inp,tone,dry,pre,conv,wet,ch,chD,chG] };
+  return inp;
 }
-function orchBrass(midi, t, vel, dur, soft){   // sawtooths through a filter that opens with the note
-  const ctx=audio.ctx, out=orchOut(); if(!out) return; const f=pitchHz(midi), a=soft?0.09:0.03;
-  const g=ctx.createGain(); g.gain.setValueAtTime(0.0001,t); g.gain.linearRampToValueAtTime(0.22*vel,t+a); g.gain.setValueAtTime(0.22*vel,t+dur); g.gain.exponentialRampToValueAtTime(0.0001,t+dur+0.25);
-  const lp=ctx.createBiquadFilter(); lp.type='lowpass'; lp.Q.value=1.2; lp.frequency.setValueAtTime(f*(soft?2:3),t); lp.frequency.linearRampToValueAtTime(f*(soft?4:9),t+a*2); lp.frequency.setTargetAtTime(f*(soft?3:5),t+dur,0.1);
-  for(const det of [-6,5]){ const o=ctx.createOscillator(); o.type=soft?'triangle':'sawtooth'; o.frequency.value=f; o.detune.value=det; o.connect(lp); o.start(t); o.stop(t+dur+0.4); }
-  if(!soft){ const o=ctx.createOscillator(); o.type='sawtooth'; o.frequency.value=f/2; const sg=ctx.createGain(); sg.gain.value=0.5; o.connect(sg); sg.connect(lp); o.start(t); o.stop(t+dur+0.4); }
+function orchOut(){ return sphBus() || (audio ? audio.master : null); }
+function orchNoise(){ if(!audio.noiseBuf){ const sr=audio.ctx.sampleRate, b=audio.ctx.createBuffer(1,sr,sr), d=b.getChannelData(0); for(let i=0;i<sr;i++) d[i]=Math.random()*2-1; audio.noiseBuf=b; } return audio.noiseBuf; }
+function orchStrings(midis, t, vel, dur, bright){   // a section: three voices a note, vibrato that arrives late, a swell
+  const ctx=audio.ctx, out=orchOut(); if(!out) return;
+  const g=ctx.createGain(); g.gain.setValueAtTime(0.0001,t); g.gain.linearRampToValueAtTime(0.075*vel,t+Math.min(0.25,dur*0.5)); g.gain.setValueAtTime(0.075*vel,t+dur); g.gain.linearRampToValueAtTime(0.0001,t+dur+0.4);
+  const lp=ctx.createBiquadFilter(); lp.type='lowpass'; lp.frequency.value=bright?4800:2800; lp.Q.value=0.7;
+  const vib=ctx.createOscillator(); vib.frequency.value=5.3; const vg=ctx.createGain(); vg.gain.setValueAtTime(0,t); vg.gain.linearRampToValueAtTime(8,t+0.45);
+  vib.connect(vg); vib.start(t); vib.stop(t+dur+0.5);
+  for(const m of midis) for(const det of [-9,0,8]){ const o=ctx.createOscillator(); o.type='sawtooth'; o.frequency.value=pitchHz(m); o.detune.value=det; vg.connect(o.detune); o.connect(lp); o.start(t); o.stop(t+dur+0.5); }
   lp.connect(g); g.connect(out);
 }
-function orchChoir(midis, t, vel, dur){   // wordless voices: two formants of "ah" on detuned saws
-  const ctx=audio.ctx, out=orchOut(); if(!out) return;
-  const g=ctx.createGain(); g.gain.setValueAtTime(0.0001,t); g.gain.linearRampToValueAtTime(0.12*vel,t+0.5); g.gain.setValueAtTime(0.12*vel,t+dur); g.gain.linearRampToValueAtTime(0.0001,t+dur+1.6);
-  const f1=ctx.createBiquadFilter(); f1.type='bandpass'; f1.frequency.value=720; f1.Q.value=5; const f2=ctx.createBiquadFilter(); f2.type='bandpass'; f2.frequency.value=1150; f2.Q.value=6;
-  const mix=ctx.createGain(); mix.gain.value=1; f1.connect(g); f2.connect(g);
-  for(const m of midis) for(const det of [-7,6]){ const o=ctx.createOscillator(); o.type='sawtooth'; o.frequency.value=pitchHz(m); o.detune.value=det; o.connect(mix); o.start(t); o.stop(t+dur+1.8); }
-  mix.connect(f1); mix.connect(f2); g.connect(out);
-}
-function orchCelesta(midi, t, vel){   // a bell-like ping: a sine with a bright partial, quick to fade
+function orchTimp(midi, t, vel, len){
   const ctx=audio.ctx, out=orchOut(); if(!out) return; const f=pitchHz(midi);
-  for(const [mul,amp,dec] of [[1,0.22,0.9],[4,0.05,0.25],[2.76,0.03,0.4]]){ const o=ctx.createOscillator(); o.type='sine'; o.frequency.value=f*mul; const g=ctx.createGain();
+  const o=ctx.createOscillator(); o.type='sine'; o.frequency.setValueAtTime(f*1.7,t); o.frequency.exponentialRampToValueAtTime(f,t+0.06);
+  const g=ctx.createGain(); g.gain.setValueAtTime(0.0001,t); g.gain.exponentialRampToValueAtTime(0.8*vel,t+0.006); g.gain.exponentialRampToValueAtTime(0.0001,t+(len||1.4));
+  const o2=ctx.createOscillator(); o2.type='sine'; o2.frequency.value=f*1.5; const g2=ctx.createGain(); g2.gain.setValueAtTime(0.0001,t); g2.gain.exponentialRampToValueAtTime(0.18*vel,t+0.005); g2.gain.exponentialRampToValueAtTime(0.0001,t+(len||1.4)*0.35);
+  const n=ctx.createBufferSource(); n.buffer=orchNoise(); const nf=ctx.createBiquadFilter(); nf.type='lowpass'; nf.frequency.value=700; const ng=ctx.createGain(); ng.gain.setValueAtTime(0.5*vel,t); ng.gain.exponentialRampToValueAtTime(0.0001,t+0.05);
+  o.connect(g); g.connect(out); o2.connect(g2); g2.connect(out); n.connect(nf); nf.connect(ng); ng.connect(out);
+  o.start(t); o.stop(t+(len||1.4)+0.1); o2.start(t); o2.stop(t+(len||1.4)); n.start(t); n.stop(t+0.1);
+}
+function orchRoll(midi, t, dur, vel){ const n=Math.max(2,Math.round(dur/0.055)); for(let i=0;i<n;i++) orchTimp(midi, t+i*0.055, vel*(0.25+0.75*i/n), 0.45); orchTimp(midi, t+dur, vel, 2); }
+function orchBrass(midi, t, vel, dur, soft){   // trumpets and trombones, or horns when soft
+  const ctx=audio.ctx, out=orchOut(); if(!out) return; const f=pitchHz(midi), a=soft?0.1:0.035;
+  const g=ctx.createGain(); g.gain.setValueAtTime(0.0001,t); g.gain.linearRampToValueAtTime(0.2*vel,t+a); g.gain.setValueAtTime(0.2*vel,t+dur); g.gain.exponentialRampToValueAtTime(0.0001,t+dur+0.3);
+  const lp=ctx.createBiquadFilter(); lp.type='lowpass'; lp.Q.value=1.4; lp.frequency.setValueAtTime(f*(soft?2:2.5),t); lp.frequency.linearRampToValueAtTime(f*(soft?4.5:10),t+a*2.2); lp.frequency.setTargetAtTime(f*(soft?3.5:6),t+dur*0.6,0.15);
+  const vib=ctx.createOscillator(); vib.frequency.value=4.8; const vg=ctx.createGain(); vg.gain.setValueAtTime(0,t); vg.gain.linearRampToValueAtTime(soft?5:3,t+0.4); vib.connect(vg); vib.start(t); vib.stop(t+dur+0.4);
+  for(const det of [-5,4]){ const o=ctx.createOscillator(); o.type=soft?'triangle':'sawtooth'; o.frequency.value=f; o.detune.value=det; vg.connect(o.detune); o.connect(lp); o.start(t); o.stop(t+dur+0.4); }
+  if(!soft){ const o=ctx.createOscillator(); o.type='square'; o.frequency.value=f; const sg=ctx.createGain(); sg.gain.value=0.25; o.connect(sg); sg.connect(lp); o.start(t); o.stop(t+dur+0.4); }
+  lp.connect(g); g.connect(out);
+}
+function orchChoir(midis, t, vel, dur){
+  const ctx=audio.ctx, out=orchOut(); if(!out) return;
+  const g=ctx.createGain(); g.gain.setValueAtTime(0.0001,t); g.gain.linearRampToValueAtTime(0.11*vel,t+0.6); g.gain.setValueAtTime(0.11*vel,t+dur); g.gain.linearRampToValueAtTime(0.0001,t+dur+1.8);
+  const f1=ctx.createBiquadFilter(); f1.type='bandpass'; f1.frequency.value=700; f1.Q.value=5; const f2=ctx.createBiquadFilter(); f2.type='bandpass'; f2.frequency.value=1150; f2.Q.value=6; const f3=ctx.createBiquadFilter(); f3.type='bandpass'; f3.frequency.value=2600; f3.Q.value=8;
+  const mix=ctx.createGain(); mix.gain.value=1; const g3=ctx.createGain(); g3.gain.value=0.35; f1.connect(g); f2.connect(g); f3.connect(g3); g3.connect(g);
+  const vib=ctx.createOscillator(); vib.frequency.value=5; const vg=ctx.createGain(); vg.gain.setValueAtTime(0,t); vg.gain.linearRampToValueAtTime(6,t+0.8); vib.connect(vg); vib.start(t); vib.stop(t+dur+2);
+  for(const m of midis) for(const det of [-8,0,7]){ const o=ctx.createOscillator(); o.type='sawtooth'; o.frequency.value=pitchHz(m); o.detune.value=det; vg.connect(o.detune); o.connect(mix); o.start(t); o.stop(t+dur+2); }
+  mix.connect(f1); mix.connect(f2); mix.connect(f3); g.connect(out);
+}
+function orchHarp(midi, t, vel){
+  const ctx=audio.ctx, out=orchOut(); if(!out) return;
+  const src=ctx.createBufferSource(); src.buffer=ksBuffer(pitchHz(midi), 0); const g=ctx.createGain(); g.gain.value=0.3*vel; src.connect(g); g.connect(out); try{ src.start(t); }catch(e){}
+}
+function orchCelesta(midi, t, vel){
+  const ctx=audio.ctx, out=orchOut(); if(!out) return; const f=pitchHz(midi);
+  for(const [mul,amp,dec] of [[1,0.22,1.1],[4,0.05,0.3],[2.76,0.03,0.5]]){ const o=ctx.createOscillator(); o.type='sine'; o.frequency.value=f*mul; const g=ctx.createGain();
     g.gain.setValueAtTime(0.0001,t); g.gain.exponentialRampToValueAtTime(amp*vel,t+0.004); g.gain.exponentialRampToValueAtTime(0.0001,t+dec); o.connect(g); g.connect(out); o.start(t); o.stop(t+dec+0.05); }
 }
-function orchBell(midi, t, vel, dur){   // a tolling bell: inharmonic partials
+function orchBell(midi, t, vel, dur){
   const ctx=audio.ctx, out=orchOut(); if(!out) return; const f=pitchHz(midi);
-  for(const [mul,amp,dec] of [[0.5,0.16,dur],[1,0.2,dur*0.8],[1.19,0.08,dur*0.6],[1.56,0.07,dur*0.5],[2,0.06,dur*0.4],[2.51,0.05,dur*0.3]]){ const o=ctx.createOscillator(); o.type='sine'; o.frequency.value=f*mul; const g=ctx.createGain();
-    g.gain.setValueAtTime(0.0001,t); g.gain.exponentialRampToValueAtTime(amp*vel,t+0.01); g.gain.exponentialRampToValueAtTime(0.0001,t+dec); o.connect(g); g.connect(out); o.start(t); o.stop(t+dec+0.05); }
+  for(const [mul,amp,dec] of [[0.5,0.16,dur],[1,0.2,dur*0.8],[1.19,0.08,dur*0.6],[1.56,0.07,dur*0.5],[2,0.06,dur*0.4],[2.51,0.05,dur*0.3],[2.66,0.03,dur*0.25]]){ const o=ctx.createOscillator(); o.type='sine'; o.frequency.value=f*mul; const g=ctx.createGain();
+    g.gain.setValueAtTime(0.0001,t); g.gain.exponentialRampToValueAtTime(amp*vel,t+0.012); g.gain.exponentialRampToValueAtTime(0.0001,t+dec); o.connect(g); g.connect(out); o.start(t); o.stop(t+dec+0.05); }
 }
-function orchLegno(t, vel, midi){   // col legno: the wood of the bow on the string
+function orchLegno(t, vel, midi){
   const ctx=audio.ctx, out=orchOut(); if(!out) return;
   const n=ctx.createBufferSource(); n.buffer=orchNoise(); const bp=ctx.createBiquadFilter(); bp.type='bandpass'; bp.frequency.value=1800+Math.random()*800; bp.Q.value=3;
   const g=ctx.createGain(); g.gain.setValueAtTime(0.35*vel,t); g.gain.exponentialRampToValueAtTime(0.0001,t+0.03); n.connect(bp); bp.connect(g); g.connect(out); n.start(t); n.stop(t+0.05);
@@ -4622,7 +4681,7 @@ function orchWhoosh(t, up, dur, vel){
   const g=ctx.createGain(); g.gain.setValueAtTime(0.0001,t); g.gain.linearRampToValueAtTime(0.25*vel,t+dur*0.3); g.gain.exponentialRampToValueAtTime(0.0001,t+dur);
   n.connect(bp); bp.connect(g); g.connect(out); n.start(t); n.stop(t+dur+0.05);
 }
-function orchWarble(t, dur, vel){   // the visitor: a tone with a fast vibrato through a ring
+function orchWarble(t, dur, vel){
   const ctx=audio.ctx, out=orchOut(); if(!out) return;
   const o=ctx.createOscillator(); o.type='sine'; o.frequency.setValueAtTime(900,t); o.frequency.linearRampToValueAtTime(1400,t+dur*0.5); o.frequency.linearRampToValueAtTime(700,t+dur);
   const v=ctx.createOscillator(); v.frequency.value=9; const vg=ctx.createGain(); vg.gain.value=90; v.connect(vg); vg.connect(o.frequency);
@@ -4630,45 +4689,96 @@ function orchWarble(t, dur, vel){   // the visitor: a tone with a fast vibrato t
   const g=ctx.createGain(); g.gain.setValueAtTime(0.0001,t); g.gain.linearRampToValueAtTime(0.12*vel,t+0.15); g.gain.linearRampToValueAtTime(0.0001,t+dur);
   o.connect(rg); rg.connect(g); o.connect(g); g.connect(out); o.start(t); v.start(t); r.start(t); o.stop(t+dur+0.05); v.stop(t+dur+0.05); r.stop(t+dur+0.05);
 }
+/* a very soft bed under the orrery: Neptune's two chords, E minor and G sharp minor, swelling in turn */
+function sphBedTick(dt){
+  if(!audio || !spheres.on || !spheres.puck || !spheres.puck.amp) return;
+  spheres.bedT = (spheres.bedT||0) - dt;
+  if(spheres.bedT > 0) return;
+  spheres.bedT = 9; spheres.bedN = (spheres.bedN||0) + 1;
+  const k = state.key, chord = spheres.bedN%2 ? [40,47,52,55,59] : [44,51,56,59,63];
+  orchStrings(chord.map(m=>m+k), audio.ctx.currentTime+0.02, spheres.god ? 0.22 : 0.32, 8.6);
+}
 /* what each world says */
 function holstBody(b, vel, glancing){
-  const t = audio.ctx.currentTime + 0.01, k = state.key, big = 1;
+  const t = audio.ctx.currentTime + 0.01, k = state.key;
   const nm = (b.n||'').split("'")[0].split('+')[0];
-  if(b.sun){ orchTimp(31+k, t, vel, 2.5); orchBell(43+k, t+0.02, vel*0.8, 5); orchBrass(43+k, t+0.05, vel*0.6, 1.6, true); orchBrass(50+k, t+0.05, vel*0.5, 1.6, true); return; }
+  b.cue = (b.cue||0) + 1;
+  if(glancing){ orchLegno(t, vel*0.6, 48+Math.round(b.r)); orchTimp(36+k, t, vel*0.4, 0.5); return; }
+  if(b.sun){   // the tutti: a roll into the great E flat chord, bells, choir
+    orchRoll(39+k, t, 0.9, 1); orchTimp(27+k, t+0.9, 1, 3);
+    for(const m of [51,58,63,67,70]) orchBrass(m+k, t+0.9, 0.85, 2.6);
+    orchStrings([63,67,70,75,79].map(m=>m+k), t+0.9, 0.9, 2.8, true); orchBell(63+k, t+0.95, 0.7, 5); orchChoir([63,67,70].map(m=>m+k), t+1.1, 0.6, 2.2);
+    return; }
   if(b.debris){ orchLegno(t, vel, 60+Math.round(b.r)); orchCelesta(72+k+Math.round(Math.random()*12), t, vel*0.5); return; }
   switch(nm){
-    case 'Mars': {   // the 5/4 ostinato of the Bringer of War, on the timpani, col legno beneath
-      const beat = 0.56, hits = [[0,1],[1/3,0.5],[2/3,0.5],[1,1],[2,0.9],[3,1],[3.5,0.6],[4,0.9]];
-      for(const [bt,v] of hits){ orchLegno(t+bt*beat, v*vel, 43); if(v>=0.9) orchTimp(43+k-12, t+bt*beat, v*vel, 0.9); }
-      orchBrass(43+k, t+2*beat, vel*0.7, 1.1); orchBrass(46+k, t+3*beat, vel*0.8, 1.2); break; }
-    case 'Venus': { orchBrass(64+k, t, vel*0.6, 1.2, true); orchBrass(68+k, t+0.7, vel*0.5, 1.2, true); orchBrass(71+k, t+1.4, vel*0.5, 1.6, true);
-      for(const m of [76,80,83,88]) orchCelesta(m+k, t+0.1+Math.random()*0.4, vel*0.4); break; }
-    case 'Mercury': { const run=[70,74,77,72,76,79,74,78,82,77,81,84]; run.forEach((m,i)=>orchCelesta(m+k, t+i*0.085, vel*(0.5+0.4*Math.random()))); break; }
-    case 'Earth': { orchChoir([48,55,60,64].map(m=>m+k), t, vel*0.9, 1.6); orchBrass(60+k, t+0.2, vel*0.35, 1.0, true); orchCelesta(84+k, t+0.6, vel*0.3); break; }
-    case 'Ceres': { orchLegno(t, vel, 50); orchLegno(t+0.09, vel*0.7, 53); break; }
-    case 'Jupiter': {   // kettle drums first, then a fanfare from the Bringer of Jollity's band
-      for(let i=0;i<6;i++) orchTimp(39+k, t+i*0.07, vel*(0.35+i*0.11), 0.5); orchTimp(39+k, t+0.45, vel, 1.8);
-      [[63,0.5],[67,0.65],[70,0.8],[75,1.0]].forEach(([m,dt])=>orchBrass(m+k, t+dt, vel*0.9, dt<1?0.18:0.9)); break; }
-    case 'Saturn': {   // the Bringer of Old Age: a tolling bell, kettle drum, the slow tick-tock of two chords
-      orchTimp(36+k, t, vel, 2.2); orchBell(52+k, t+0.05, vel*0.9, 4.5);
-      for(let i=0;i<4;i++){ const ch = i%2 ? [64,67,71] : [65,69,72]; for(const m of ch) orchCelesta(m+k, t+0.5+i*0.85, vel*0.35); } break; }
-    case 'Uranus': {   // the Magician's four notes: G, E flat, A, B
-      [55,51,57,59].forEach((m,i)=>orchBrass(m+k-12, t+i*0.36, vel*0.95, 0.3)); orchTimp(43+k, t+1.5, vel*0.8, 1.2);
-      for(let i=0;i<4;i++) orchLegno(t+1.55+i*0.12, vel*0.6, 43); break; }
-    case 'Neptune': { orchChoir([64,67,71,78].map(m=>m+k), t, vel*0.8, 2.8); [72,76,79,83,86,88,91].forEach((m,i)=>orchCelesta(m+k, t+0.4+i*0.09, vel*0.25)); break; }
-    case 'Pluto': { [91,95,98,93,96].forEach((m,i)=>orchCelesta(m+k, t+i*0.13, vel*0.35)); orchChoir([76,79].map(m=>m+k), t+0.2, vel*0.3, 1.2); break; }
-    default: { orchCelesta(72+k, t, vel*0.5); }
+    case 'Mars': {   // the Bringer of War: two bars of the 5/4 ostinato on G, col legno strings, harp and timpani, then the D flat clash and the stab
+      const beat = 0.58, hits = [[0,1],[1/3,0.55],[2/3,0.55],[1,1],[2,0.9],[3,1],[3.5,0.6],[4,0.9]];
+      for(let bar=0; bar<2; bar++) for(const [bt,v] of hits){ const tt=t+(bar*5+bt)*beat; orchLegno(tt, v*vel, 43); orchHarp(43+k-12, tt, v*vel*0.7); if(v>=0.9) orchTimp(31+k, tt, v*vel*(0.7+bar*0.3), 0.8); }
+      orchStrings([31,43].map(m=>m+k), t, vel*0.8, 10*beat);
+      orchBrass(43+k-12, t, vel*0.5, 10*beat); orchBrass(43+k, t+2*beat, vel*0.55, 8*beat);
+      for(const m of [49,53,56]) orchBrass(m+k, t+5*beat, vel*0.8, 2.6*beat);                 // D flat major over the G
+      for(const m of [43,49,55,58]) orchBrass(m+k, t+9*beat, vel, 1.4*beat); orchTimp(31+k, t+9*beat, vel, 2); orchTimp(31+k, t+9.5*beat, vel, 2);
+      break; }
+    case 'Venus': {   // the Bringer of Peace: a solo horn rising, flutes answering in descending chords, then the violin's tune in the strings
+      [64,68,71].forEach((m,i)=>orchBrass(m+k, t+i*0.55, vel*0.55, 0.9, true));
+      [[76,79,83],[74,78,81],[72,76,79]].forEach((ch,i)=>{ for(const m of ch) orchCelesta(m+k, t+1.9+i*0.55, vel*0.35); });
+      [[71,0.5],[73,0.5],[76,0.9],[74,0.5],[71,1.2]].reduce((tt,[m,d])=>{ orchStrings([m+k], t+3.4+tt, vel*0.55, d); return tt+d; }, 0);
+      orchHarp(52+k, t+3.4, vel*0.5); orchHarp(59+k, t+3.9, vel*0.4); orchHarp(64+k, t+4.4, vel*0.4);
+      break; }
+    case 'Mercury': {   // the Winged Messenger: scurrying in two keys at once, B flat and E, then the solo violin's little tune
+      const run=[70,74,77,64,68,71,74,77,82,71,76,80,77,82,86,76];
+      run.forEach((m,i)=>{ orchCelesta(m+k, t+i*0.075, vel*(0.45+0.4*Math.random())); if(i%2===0) orchHarp(m+k-12, t+i*0.075, vel*0.35); });
+      [[82,0.15],[84,0.15],[86,0.3],[82,0.15],[79,0.15],[81,0.45]].reduce((tt,[m,d])=>{ orchStrings([m+k], t+1.35+tt, vel*0.5, d, true); return tt+d; }, 0);
+      break; }
+    case 'Earth': { orchChoir([48,55,60,64].map(m=>m+k), t, vel*0.9, 1.8); orchBrass(60+k, t+0.3, vel*0.35, 1.2, true); orchStrings([64,67,72].map(m=>m+k), t+0.2, vel*0.5, 2); orchCelesta(84+k, t+0.8, vel*0.3); break; }
+    case 'Ceres': { orchLegno(t, vel, 50); orchLegno(t+0.09, vel*0.7, 53); orchHarp(62+k, t, vel*0.4); break; }
+    case 'Jupiter': {   // the Bringer of Jollity: strings bustle, the horns' call and kettle drums; every other time, the hymn
+      if(b.cue%2===1){
+        for(let i=0;i<10;i++) orchStrings([67+k, 71+k], t+i*0.07, 0.5, 0.06, true);
+        [67,69,72,74,72,69,67,64,67].forEach((m,i)=>orchBrass(m+k, t+0.75+i*0.16, vel*0.85, i===8?0.6:0.15, true));
+        orchRoll(39+k, t+0.75, 0.7, vel); orchTimp(39+k, t+2.2, vel, 1.8);
+        for(const m of [63,67,70,75]) orchBrass(m+k, t+2.2, vel*0.9, 0.9);
+      } else {   // the hymn in E flat: the melody in the brass, the strings beneath, a roll into it
+        const beat = 0.52;
+        const mel = [[58,1],[60,1],[63,2],[65,1],[67,1],[65,2],[63,1],[60,1],[58,3],[63,1],[65,1],[67,2],[68,1],[67,1],[65,2],[63,1],[60,1],[58,3]];
+        const chords = [[51,58,63,67],[44,56,60,63],[46,58,62,65],[51,58,63,67],[51,58,63,67],[44,56,60,63],[46,58,62,65],[51,58,63,67]];
+        let tt = 0; mel.forEach(([m,d],i)=>{ orchBrass(m+k, t+tt*beat, vel*0.8, d*beat*0.95, true); orchStrings([m+k+12], t+tt*beat, vel*0.35, d*beat*0.95); tt += d; });
+        for(let bar=0; bar<8; bar++) orchStrings(chords[bar].map(m=>m+k), t+bar*3*beat, vel*0.45, 3*beat);
+        orchTimp(39+k, t, vel*0.6, 1.5); orchTimp(39+k, t+12*beat, vel*0.6, 1.5); orchHarp(51+k-12, t, vel*0.6);
+      }
+      break; }
+    case 'Saturn': {   // the Bringer of Old Age: the flutes' and harps' tick-tock of two chords, the trombones descending, the bell tolling
+      const A=[59,64,67,71], B=[57,62,66,69];
+      for(let i=0;i<6;i++){ const ch = i%2 ? B : A; for(const m of ch){ orchCelesta(m+k, t+i*0.85, vel*0.3); orchHarp(m+k-12, t+i*0.85, vel*0.3); } }
+      [55,53,52,50].forEach((m,i)=>orchBrass(m+k, t+1.5+i*0.85, vel*0.6, 0.9, true));
+      [3.4,4.3,5.2].forEach((tt,i)=>{ orchBell(52+k, t+tt, vel*(0.7+0.1*i), 4.5); orchTimp(28+k, t+tt, vel*0.8, 2); });
+      orchStrings([40,47,52].map(m=>m+k), t, vel*0.5, 6);
+      break; }
+    case 'Uranus': {   // the Magician: four notes, G, E flat, A, B, in the trumpets and low brass, echoed by the timpani, then the bassoons' galumph
+      [55,51,57,59].forEach((m,i)=>{ orchBrass(m+k, t+i*0.36, vel*0.95, 0.32); orchBrass(m+k-12, t+i*0.36, vel*0.8, 0.32); });
+      [55,51,57,59].forEach((m,i)=>orchTimp(m+k-24, t+1.6+i*0.28, vel*0.9, 0.5));
+      [43,43,46,43,41,43,46,48].forEach((m,i)=>{ orchBrass(m+k, t+2.9+i*0.2, vel*0.5, 0.11, true); orchLegno(t+2.9+i*0.2, vel*0.6, m+k); });
+      break; }
+    case 'Neptune': {   // the Mystic: a wordless choir moving between E minor and G sharp minor, the harp rising and falling, celesta
+      orchChoir([64,67,71,76].map(m=>m+k), t, vel*0.8, 2.6); orchChoir([68,71,75,80].map(m=>m+k), t+2.8, vel*0.7, 2.6);
+      [52,55,59,64,67,71,76,79,76,71,67,64].forEach((m,i)=>orchHarp(m+k, t+0.3+i*0.11, vel*0.3));
+      [88,91,95].forEach((m,i)=>orchCelesta(m+k, t+1.2+i*0.7, vel*0.25));
+      orchStrings([40,47].map(m=>m+k), t, vel*0.35, 5.5);
+      break; }
+    case 'Pluto': { [91,95,98,93,96].forEach((m,i)=>orchCelesta(m+k, t+i*0.13, vel*0.35)); orchChoir([76,79].map(m=>m+k), t+0.2, vel*0.3, 1.2); orchStrings([88].map(m=>m+k), t, vel*0.25, 1.5, true); break; }
+    default: { orchCelesta(72+k, t, vel*0.5); orchHarp(60+k, t, vel*0.4); }
   }
-  if(glancing) return;
 }
 function holstMoon(b, m, vel){
   const t = audio.ctx.currentTime + 0.005, st = scaleSteps();
   const deg = (Math.abs(Math.round(m.orb*7+m.d*3)) % (st.length*2)), base = m.major ? 79 : 86;
-  orchCelesta(quantMidi(base + state.key + degSemis(deg)), t, (vel==null?0.8:vel)*(m.major?0.7:0.45));
+  const midi = quantMidi(base + state.key + degSemis(deg));
+  orchCelesta(midi, t, (vel==null?0.8:vel)*(m.major?0.7:0.45)); if(m.major) orchHarp(midi-12, t, (vel==null?0.8:vel)*0.4);
 }
 function holstRing(band, speed){
   const t = audio.ctx.currentTime + 0.005, st = scaleSteps();
   orchCelesta(quantMidi(84 + state.key + degSemis((band*2) % (st.length*2))), t, 0.35+0.4*speed);
+  orchHarp(quantMidi(72 + state.key + degSemis((band*2) % (st.length*2))), t, 0.3+0.3*speed);
   if(speed>0.5) orchCelesta(quantMidi(91 + state.key + degSemis((band*2+1) % (st.length*2))), t+0.03, 0.3);
 }
 function holstAsteroid(a){ const t = audio.ctx.currentTime + 0.005; orchLegno(t, 0.7, 60 + Math.round(a.r*4)); }
@@ -4678,17 +4788,19 @@ function holstBoom(vel, size, sun){
   const n=ctx.createBufferSource(); n.buffer=orchNoise(); n.loop=true; const lp=ctx.createBiquadFilter(); lp.type='lowpass'; lp.frequency.setValueAtTime(4000,t); lp.frequency.exponentialRampToValueAtTime(120,t+1.2+size);
   const g=ctx.createGain(); g.gain.setValueAtTime(0.0001,t); g.gain.exponentialRampToValueAtTime(0.5*vel,t+0.02); g.gain.exponentialRampToValueAtTime(0.0001,t+1.4+size);
   n.connect(lp); lp.connect(g); g.connect(out); n.start(t); n.stop(t+1.6+size);
+  for(const m of [43,49,55,58]) orchBrass(m+state.key, t+0.02, vel*0.8, 0.5);   // the Mars chord, for a catastrophe
   for(let i=0;i<8;i++) orchCelesta(84+state.key+Math.floor(Math.random()*14), t+0.15+Math.random()*0.9, 0.25);
   if(sun) orchBrass(36+state.key, t+0.1, vel*0.7, 1.4);
 }
-function holstMerge(size){ const t = audio.ctx.currentTime + 0.005; orchTimp(31+state.key, t, 0.8, 2.2); orchChoir([48,55,60,64].map(m=>m+state.key), t+0.05, 0.8, 1.6+size); orchBell(60+state.key, t+0.3, 0.5, 3); }
+function holstMerge(size){ const t = audio.ctx.currentTime + 0.005; orchTimp(31+state.key, t, 0.8, 2.2); orchChoir([48,55,60,64].map(m=>m+state.key), t+0.05, 0.8, 1.6+size); orchStrings([55,60,64,67].map(m=>m+state.key), t+0.1, 0.5, 2+size); orchBell(60+state.key, t+0.3, 0.5, 3); }
+function holstLeave(){ const t = audio.ctx.currentTime + 0.005; orchWhoosh(t, false, 1.6, 0.5); orchChoir([64,67,71].map(m=>m+state.key), t, 0.5, 1.2); orchStrings([52,59].map(m=>m+state.key), t, 0.35, 2.4); }
 function holstLaunch(kind){ const t = audio.ctx.currentTime + 0.005; orchWhoosh(t, true, kind==='rocket'?1.2:1.8, 0.8); orchTimp(36+state.key, t, 0.5, 0.8); }
 function holstLand(kind){ const t = audio.ctx.currentTime + 0.005; orchWhoosh(t, false, 0.5, 0.5); orchTimp(43+state.key, t+0.45, 0.6, 0.6); if(kind==='starship') [72,76,79].forEach((m,i)=>orchCelesta(m+state.key, t+0.6+i*0.12, 0.5)); else orchCelesta(88+state.key, t+0.6, 0.5); }
 function holstAlien(arrive){ const t = audio.ctx.currentTime + 0.005; orchWarble(t, arrive?2.2:0.9, arrive?0.9:0.6); }
 function holstCue(what){
   const t = audio.ctx.currentTime + 0.02, k = state.key;
-  if(what==='enter'){ orchTimp(36+k, t, 0.7, 2); orchChoir([48,55,60,64,67].map(m=>m+k), t+0.05, 0.7, 2.4); [72,76,79,84].forEach((m,i)=>orchCelesta(m+k, t+0.3+i*0.15, 0.4)); }
-  else { orchTimp(31+k, t, 1, 2.5); orchTimp(31+k, t+0.35, 1, 2.5); [55,51,57,59].forEach((m,i)=>orchBrass(m+k-12, t+0.5+i*0.3, 0.9, 0.28)); }
+  if(what==='enter'){ orchTimp(36+k, t, 0.7, 2); orchChoir([48,55,60,64,67].map(m=>m+k), t+0.05, 0.7, 2.4); orchStrings([40,47,52,55].map(m=>m+k), t, 0.4, 3); [72,76,79,84].forEach((m,i)=>orchHarp(m+k, t+0.3+i*0.15, 0.5)); spheres.bedT = 3; }
+  else { orchTimp(31+k, t, 1, 2.5); orchTimp(31+k, t+0.35, 1, 2.5); [55,51,57,59].forEach((m,i)=>{ orchBrass(m+k, t+0.5+i*0.3, 0.95, 0.28); orchBrass(m+k-12, t+0.5+i*0.3, 0.8, 0.28); }); }
 }
 
 /* ================= drawing ================= */

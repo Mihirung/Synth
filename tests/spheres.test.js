@@ -85,9 +85,24 @@ const CHROME = process.env.PLAYWRIGHT_CHROMIUM || (fs.existsSync('/opt/pw-browse
   });
   check('collisions: slow = merge, fast = shatter into debris, the Sun consumes', col.afterMerge===col.n0-1 && col.merged && col.afterShatter>col.afterMerge && col.debris>=3 && col.eaten && col.sunGrew && col.sparks>20, JSON.stringify(col));
 
+  // 4b. the rim: a world flung at the edge usually leaves the solar system, sometimes bounces back
+  const rim = await page.evaluate(()=>{
+    let left=0, bounced=0;
+    for(let trial=0; trial<40; trial++){
+      spheres.bodies = spheres.bodies.filter(b=>b.sun);
+      const b = { n:'Testworld', x:CX+TABLE_R*0.92, y:CY, vx:TABLE_R*3, vy:0, m:1, r:5*S, col:'#fff', hue:'#888', moons:[], alive:true, spin:0 };
+      spheres.bodies.push(b);
+      for(let i=0;i<10;i++) spheresPhysics(1/60);   // long enough to reach the rim, short enough that a bounce cannot cross the disc and reach the Sun
+      if(b.leaving || !b.alive) left++; else bounced++;
+    }
+    const noteShown = !!spheres.note;
+    return { left, bounced, noteShown };
+  });
+  check('the rim: most worlds that reach it leave (about 60%), the rest bounce, and it says who left', rim.left>=16 && rim.bounced>=6 && rim.left+rim.bounced===40 && rim.noteShown, JSON.stringify(rim));
+
   // 5. ships: a rocket to the Moon lands, a starship tries for Mars, a visitor comes and goes
   const ships = await page.evaluate(async()=>{
-    cycleOption(spheres.puck);   // back to the orrery: the solar system is rebuilt
+    spheres.bodies = spheres.bodies.filter(b=>b.sun); cycleOption(spheres.puck);   // back to the orrery: the solar system is rebuilt
     const rebuilt = spheres.bodies.length===11 && !spheres.god;
     spheres.nextRocket = 0; spheres.nextShip = 0; spheres.nextAlien = 0;
     spheresTick(1/60);
