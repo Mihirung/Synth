@@ -73,6 +73,7 @@ excluded, with reason.
 | Stereo | **done** | *Space* puck: position, orbit or radial width |
 | Stems export | **done** | *Stems* puck: a multichannel WAV, a channel per object plus master (hosted build) |
 | Persistent imports | **done** | Imports live in IndexedDB and return after a reload, up to six, all warpable |
+| Waterphone | **done** | Modal model in the worklet: ten cantilever rods, fourteen bowl modes, a sloshing-water oscillator that bends every partial; bowed, struck, tilted |
 | Printed kit | **done** | STL/OBJ cube and pucks with marker pockets, 8-bit marker sheets, printable cards |
 | Hand instruments | **done** | Theremin, air drums, harp, marbles, conductor, air knob: touch everywhere, hands via the device camera or the table camera (docs/08) |
 | Voice as an instrument | **done** | *Hum* puck: autocorrelation pitch tracking drives an in-key synth, with harmony and octave faces |

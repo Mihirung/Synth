@@ -23,6 +23,7 @@ height above the table. Either way the picture never leaves the device.
 | **hum** | hum or sing into the microphone | — | octave, −2 to +2 | level | FOLLOW · NOTES · HARMONY · OCTAVES |
 | **conductor** | tap its ring in time | beat time in the air; strikes are beats | — | how quickly the tempo follows | TEMPO · TEMPO + DYNAMICS |
 | **air knob** | — | sits by any block; raise a hand to turn that block's ring | — | — | TURN · SLIDE · BOTH |
+| **waterphone** | hold a rod to bow it, tap one to strike it, move or turn the puck to slosh the water | a resting fingertip bows, a fast one strikes, a sweep over the bowl tilts it, a strike over the bowl is a mallet on the dome | how much water | level | WHALE · STORM · GONG · GHOST |
 
 **Theremin.** Two sine partials with a slow hand-tremor vibrato, silent until played, so
 it never drones. FREE is a true theremin (continuous pitch); IN KEY quantises to the
@@ -65,6 +66,37 @@ face your hand's height is the dynamics: bring the table up and down like an orc
 **Air knob.** The camera version of a hand on a knob. Put it by a filter and raise your
 hand: the filter opens. TURN, SLIDE or BOTH (height turns the ring, left-to-right slides
 the arc).
+
+**Waterphone.** Richard Waters's waterphone is a stainless bowl with a neck, brass rods
+of different lengths welded round its rim, and water inside; bowed or struck, then tilted
+so the water moves, it makes the sliding, inharmonic wail that scores half of horror
+cinema. The model here is **modal**, built as per-sample DSP in the same AudioWorklet as
+the analogue engines, so it runs in every sound mode:
+
+- *Ten rods*, each a clamped-free bar with partials at 1 : 6.27 : 17.55 (the cantilever
+  ratios), tuned inharmonically to each other so neighbouring rods beat, with decays of
+  six, three and a half, and under two seconds.
+- *The bowl*: fourteen shell modes in a bell-like inharmonic series, decaying for up to
+  eight seconds, pulled down by a fifth when the bowl is full (mass loading).
+- *The water* is a damped sloshing oscillator, about 1 to 1.6 Hz, driven by every tilt,
+  turn, move and strike. Its displacement bends every partial by its own amount and sign
+  (the bowl's low modes by up to twelve per cent, the rods by a few), damps the bowl when
+  it washes over it, and adds a faint gurgle. That is the wail, and it carries on after
+  you stop.
+- *Bowing* is stick-slip approximated as a sawtooth locked to the rod's current,
+  water-bent resonance, with bow scratch that follows speed and a subharmonic groan under
+  heavy pressure. Light pressure (or the GHOST face) makes the second partial sing, the
+  whistling harmonics players get by bowing near the tip.
+- *Striking* is a short noise burst weighted toward the struck rod, or onto the bowl for a
+  gong when a marble or an air strike lands on the dome.
+
+Several fingers bow several rods. Faces: WHALE (bowing, the default), STORM (deep water
+and random gusts, so it plays itself as a horror bed), GONG (bowl-heavy strikes, longer
+decays), GHOST (harmonic bowing). A physical cube sloshes the water when you tilt it. Put
+a **reverb** behind it; every recording of the real thing has one. The numerical test in
+`tests/waterphone-dsp.test.js` checks the partial ratios, a bow's sustain and release, the
+bend under a slosh, that ten hard bows plus dome strikes stay bounded, the faces, and the
+cost (about two per cent of real time).
 
 ## How the hands are read
 

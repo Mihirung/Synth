@@ -248,6 +248,7 @@
   <button class="spawn adv" data-type="hum" title="hum or sing: the table plays your tune"><span class="chipico pl" data-g="HUM"></span>hum</button>
   <button class="spawn adv" data-type="conduct" title="beat time in the air and the table follows"><span class="chipico pl c" data-g="♩"></span>conductor</button>
   <button class="spawn adv" data-type="air" title="raise a hand to turn the nearest block's ring"><span class="chipico pl c" data-g="✋"></span>air knob</button>
+  <button class="spawn adv" data-type="water" title="a waterphone: bow or strike its rods, tilt the water"><span class="chipico pl" data-g="≈"></span>waterphone</button>
 </div>
 <div id="dock2" aria-label="advanced tray" hidden>
   <div class="lbl">advanced pucks</div>
@@ -308,10 +309,10 @@ const FAMILY = { osc:'gen', sampler:'gen', rec:'gen', mic:'gen',
                  lfo:'ctl', seq:'ctl', tempo:'ctl',
                  key:'ctl', tune:'ctl', env:'ctl', xpress:'ctl', steps:'ctl', euclid:'ctl', chance:'ctl', chain:'ctl',
                  scene:'ctl', motion:'ctl', warp:'ctl', send:'ctl', space:'ctl', master:'ctl', stems:'ctl',
-                 theremin:'gen', drums:'gen', harp:'gen', marbles:'gen', hum:'gen', conduct:'ctl', air:'ctl' };
+                 theremin:'gen', drums:'gen', harp:'gen', marbles:'gen', hum:'gen', conduct:'ctl', air:'ctl', water:'gen' };
 /* the play tray: instruments for hands (camera) and voice, all playable by touch too */
-const PLAY = new Set(['theremin','drums','harp','marbles','hum','conduct','air']);
-const HANDY = new Set(['theremin','drums','harp','conduct','air']);   // these ask for hand tracking
+const PLAY = new Set(['theremin','drums','harp','marbles','hum','conduct','air','water']);
+const HANDY = new Set(['theremin','drums','harp','conduct','air','water']);   // these ask for hand tracking
 /* the advanced pucks: hexagonal, one drawer down, so the main tray stays a child's tray */
 const ADV = new Set(['key','tune','env','xpress','steps','euclid','chance','chain','scene','motion','warp','send','space','master','stems']);
 const GLOBAL_ADV = new Set(['key','tune','scene','space','master','stems']);          // work anywhere on the table
@@ -325,6 +326,7 @@ const PLAY_LEGEND = {
   hum:     { name:'HUM', turn:'octave −2 … +2', slide:'level', faces:['FOLLOW','NOTES','HARMONY','OCTAVES'] },
   conduct: { name:'CONDUCTOR', turn:'—', slide:'how quickly it follows', faces:['TEMPO','TEMPO + DYNAMICS'] },
   air:     { name:'AIR KNOB', turn:'—', slide:'—', faces:['TURN','SLIDE','BOTH'] },
+  water:   { name:'WATERPHONE', turn:'how much water', slide:'level', faces:['WHALE','STORM','GONG','GHOST'] },
 };
 const DRUM_PADS = ['KICK','SNARE','HAT','CLAP'];
 const ADV_LEGEND = {   // printed on the cards and used by the readouts
@@ -638,7 +640,7 @@ function defaults(type){
            key:{arc:0.06}, tune:{arc:0.5}, env:{arc:0.51}, xpress:{arc:0.5}, steps:{arc:0.4}, euclid:{arc:0},
            chance:{arc:0.2}, chain:{arc:0.2}, scene:{arc:0.25}, motion:{arc:0.3}, warp:{arc:0.3}, send:{arc:0.5},
            space:{arc:0.3}, master:{arc:0.4}, stems:{arc:0.5},
-           theremin:{arc:0.6}, drums:{arc:0.8}, harp:{arc:0.7}, marbles:{arc:0.6}, hum:{arc:0.7}, conduct:{arc:0.5}, air:{arc:0.5} }[type];
+           theremin:{arc:0.6}, drums:{arc:0.8}, harp:{arc:0.7}, marbles:{arc:0.6}, hum:{arc:0.7}, conduct:{arc:0.5}, air:{arc:0.5}, water:{arc:0.75} }[type];
 }
 function spawn(type, x, y){
   const o = { id:nextId++, type, x, y, angle:0, arc:defaults(type).arc,
@@ -676,6 +678,7 @@ function spawn(type, x, y){
   if(type==='harp'){ o.angle = 0.5*TAU; o.strFlash=[]; }
   if(type==='marbles') o.angle = 0.5*TAU;
   if(type==='hum'){ o.angle = 0.5*TAU; o.humState='wait'; }
+  if(type==='water'){ o.angle = 0.5*TAU; o.rodFlash=[]; o.rodBow={}; o.wsS=0; o.wsV=0; o.handBow={}; }
   objects.push(o);
   if(audio){
     buildNodes(o);
@@ -843,7 +846,7 @@ function readout(o){
     case 'send': return ['SEND · '+ADV_LEGEND.send.faces[o.option%2], 'level '+Math.round(sendLevel(o)*100)+'% · reach '+Math.round(sendReach(o)/TABLE_R*100)+'%'+(o.hop==='C'?' · unbound':'')];
     case 'space': return ['SPACE · '+ADV_LEGEND.space.faces[o.option%3], 'width '+Math.round(spaceWidth(o)*100)+'%'];
     case 'master': return ['MASTER · '+ADV_LEGEND.master.faces[o.option%4], 'volume '+Math.round(masterVol(o)*100)+'% · glue '+Math.round(o.arc*100)+'%'];
-    case 'theremin': case 'drums': case 'harp': case 'marbles': case 'hum': case 'conduct': case 'air': return playReadout(o);
+    case 'theremin': case 'drums': case 'harp': case 'marbles': case 'hum': case 'conduct': case 'air': case 'water': return playReadout(o);
     case 'stems': return ['STEMS · '+stemBars(o)+' BAR'+(stemBars(o)>1?'S':''),
                           o.stemState==='idle' ? 'tap or replace to arm' : o.stemState==='armed' ? 'starts next bar…'
                         : o.stemState==='recording' ? 'recording '+(o.stemN||0)+' stems…' : o.stemState==='saving' ? 'saving…' : (o.stemMsg||'saved')];
@@ -860,6 +863,7 @@ function playReadout(o){
     case 'hum': return ['HUM · '+PLAY_LEGEND.hum.faces[o.option%4], o.humState==='wait' ? 'allow microphone…' : o.humState==='denied' ? 'mic blocked' : (o.humNote!=null ? noteName(o.humNote)+' · ' : 'sing… · ')+(humOct(o)>0?'+':'')+humOct(o)+' oct'];
     case 'conduct': return ['CONDUCTOR · '+PLAY_LEGEND.conduct.faces[o.option%2], (o.bpmT ? Math.round(o.bpmT)+' BPM felt · ' : 'beat time in the air · ')+hz];
     case 'air': return ['AIR KNOB · '+PLAY_LEGEND.air.faces[o.option%3], o.hop==='C' ? 'put it by a block' : 'raise a hand · '+hz];
+    case 'water': return ['WATERPHONE · '+PLAY_LEGEND.water.faces[o.option%4], 'water '+Math.round((o.angle/TAU)*100)+'% · '+(o.ana ? 'hold a rod to bow · tap to strike · move it to slosh' : 'filling…')];
   }
 }
 function thereminOct(o){ return 1 + Math.round((o.angle/TAU)*3); }
@@ -1053,11 +1057,117 @@ class AnalogOut{
     }
   }
 }
+/* ---- Waterphone: a modal model of Richard Waters's instrument ----
+   A stainless bowl (14 inharmonic shell modes, long decays), ten brass rods around its
+   rim (each a clamped-free bar: partials at 1 : 6.27 : 17.55), and water inside. The
+   water is a damped sloshing oscillator driven by every tilt, turn, move and strike;
+   its displacement mass-loads the bowl and rods, so every partial glides by its own
+   amount and sign: the wail. Rods are bowed (stick-slip approximated as a sawtooth
+   locked to the rod's current, water-bent resonance, with bow scratch and a groan
+   under heavy pressure) or struck (a short noise burst weighted toward the struck rod).
+   Two-pole resonators, normalised so a bow sits at unit level and a strike rings true. */
+class Waterphone{
+  constructor(sr){
+    this.sr=sr; this.rng=new Rng(4242); this.size=1; this.water=0.5; this.face=0;
+    this.ws=0; this.wv=0; this.gust=0.5;
+    this.exc=0; this.excDec=Math.exp(-1/(0.0035*sr)); this.excR=new Float64Array(10); this.excB=0;
+    this.gl=0; this.lp=0; this.dc1=0; this.dc2=0; this.cnt=0;
+    const rodF=[172,196,233,262,311,349,415,466,554,622], ratios=[1,6.27,17.55];
+    this.rods=rodF.map((f0,i)=>{ const f=f0*(1+(this.rng.next()-0.5)*0.03);
+      const modes=ratios.map((r,k)=>({ fr:f*r, amp:[1,0.32,0.1][k], t60:[6,3.5,1.8][k], wdep:(0.022+0.01*k)*(this.rng.next()<0.5?-1:1), y1:0,y2:0,c:0,rr:0,g:0,h:0,f:f*r }));
+      return { f, modes, bow:{ on:false, press:0.5, speed:0.3, env:0, ph:0, tone:0 } }; });
+    const bowlR=[1,1.33,1.71,2.09,2.41,2.87,3.31,3.78,4.26,4.9,5.57,6.4,7.3,8.5];
+    this.bowl=bowlR.map((r,k)=>({ fr:118*r*(1+(this.rng.next()-0.5)*0.025), amp:0.9*Math.pow(0.84,k), t60:7*Math.pow(0.86,k)+1.2,
+      wdep:(k<6?0.11:0.05)*(this.rng.next()<0.5?-1:1)*(1+this.rng.next()*0.5), y1:0,y2:0,c:0,rr:0,g:0,h:0,f:0 }));
+    this.coefs();
+  }
+  handle(m){
+    if(m.type==='cfg'){ if(m.water!=null) this.water=Math.max(0,Math.min(1,m.water)); if(m.size!=null) this.size=Math.max(0.4,Math.min(2,m.size)); if(m.face!=null) this.face=m.face|0; }
+    else if(m.type==='strike'){
+      const v=Math.max(0.05,Math.min(1,m.vel==null?0.7:m.vel)), k=m.rod==null?-1:m.rod;
+      this.exc=Math.max(this.exc, v);
+      for(let i=0;i<10;i++) this.excR[i]= k<0 ? 0.12 : (i===k?1:Math.abs(i-k)===1?0.25:0.04);
+      this.excB = k<0 ? 1 : (this.face===2 ? 0.8 : 0.35);
+      this.wv += v*0.6*(this.rng.next()-0.5);
+    }
+    else if(m.type==='bow'){ const rod=this.rods[m.rod|0]; if(!rod) return; const bw=rod.bow; bw.on=!!m.on;
+      if(m.press!=null) bw.press=Math.max(0,Math.min(1,m.press)); if(m.speed!=null) bw.speed=Math.max(0,Math.min(1,m.speed)); }
+    else if(m.type==='slosh'){ this.wv += Math.max(-6,Math.min(6,m.v||0)); }
+  }
+  coefs(){
+    const sr=this.sr, size=this.size, water=this.water, ws=this.ws;
+    const depth=(0.25+water)*(this.face===1?2:this.face===3?1.5:1);
+    const damp=1-0.45*water*Math.min(1,Math.abs(ws));
+    const dec=this.face===2?1.4:1;
+    for(const rod of this.rods) for(const m of rod.modes){
+      const f=Math.min(sr*0.45, m.fr*size*(1+m.wdep*ws*depth)), w=TAU*f/sr;
+      const r=Math.exp(-6.908/(m.t60*dec*sr)); m.f=f; m.c=2*r*Math.cos(w); m.rr=r*r; m.g=(1-r)*2*Math.sin(w); m.h=Math.sin(w);
+    }
+    for(const m of this.bowl){
+      const f=Math.min(sr*0.45, m.fr*size*(1-0.22*water)*(1+m.wdep*ws*depth)), w=TAU*f/sr;
+      const r=Math.exp(-6.908/(m.t60*dec*damp*sr)); m.f=f; m.c=2*r*Math.cos(w); m.rr=r*r; m.g=(1-r)*2*Math.sin(w); m.h=Math.sin(w);
+    }
+  }
+  waterStep(dt){
+    const w=TAU*(1.0+0.6*this.water), z=0.055;
+    this.wv += (-w*w*this.ws - 2*z*w*this.wv)*dt;
+    this.ws += this.wv*dt;
+    if(this.ws>1.2||this.ws<-1.2){ this.ws=Math.max(-1.2,Math.min(1.2,this.ws)); this.wv*=-0.3; }
+    if(this.face===1){ this.gust-=dt; if(this.gust<=0){ this.gust=1.2+this.rng.next()*3; this.wv+=(this.rng.next()-0.5)*5;
+      if(this.rng.next()<0.6) this.handle({type:'strike', rod:Math.floor(this.rng.next()*10), vel:0.15+this.rng.next()*0.35}); } }
+  }
+  process(out, n, t0){
+    const sr=this.sr, inv=1/sr, rng=this.rng, rods=this.rods, bowl=this.bowl;
+    const aC=1-Math.exp(-1/(0.16*sr)), rC=1-Math.exp(-1/(0.10*sr));
+    for(let i=0;i<n;i++){
+      if((this.cnt++ & 63)===0){ this.waterStep(64*inv); this.coefs(); }
+      const wn = rng.next()*2-1;
+      let e=0; if(this.exc>1e-4){ e=wn*this.exc*0.11; this.exc*=this.excDec; }
+      let s=0, leak=0, direct=0;
+      for(let k=0;k<rods.length;k++){
+        const rod=rods[k], bw=rod.bow, modes=rod.modes;
+        let bx=0;
+        if(bw.on || bw.env>1e-4){
+          bw.env += ((bw.on ? 0.3+0.7*bw.press : 0)-bw.env)*(bw.on?aC:rC);
+          if(bw.env>1e-4){
+            const tone = (this.face===3 || bw.press<0.3) ? 1 : 0;      // harmonic bowing: the second partial sings
+            bw.tone += (tone-bw.tone)*0.0004;
+            const fb = modes[0].f*(1-bw.tone) + modes[1].f*bw.tone;      // the bow locks to the rod's current, water-bent pitch
+            bw.ph += fb*inv; if(bw.ph>=1) bw.ph-=1;
+            const saw = 2*bw.ph-1, scratch = wn*(0.22+0.45*bw.speed);
+            const groan = bw.press>0.72 ? Math.sin(TAU*bw.ph*0.5)*0.6*(bw.press-0.72)/0.28 : 0;
+            bx = (saw*0.55 + scratch + groan)*bw.env;
+            direct += ((saw*0.55 + groan)*0.32 + scratch*0.06)*bw.env*(1-bw.tone*0.5);   // the stick-slip itself: the bow's harmonics
+          }
+        }
+        const ex = e*this.excR[k];
+        for(let j=0;j<3;j++){
+          const m=modes[j];
+          const drive = j===0 ? (1-bw.tone)*1.6 : j===1 ? (0.2+1.4*bw.tone) : 0.1;
+          const y = m.c*m.y1 - m.rr*m.y2 + ex*m.amp*m.h + bx*m.g*drive;
+          m.y2=m.y1; m.y1=y; s += y*m.amp;
+        }
+        leak += bx*0.1;
+      }
+      const eb = e*this.excB*0.9;
+      for(let j=0;j<bowl.length;j++){
+        const m=bowl[j];
+        const y = m.c*m.y1 - m.rr*m.y2 + eb*m.amp*m.h + leak*m.g*0.5;
+        m.y2=m.y1; m.y1=y; s += y*m.amp*0.8;
+      }
+      this.lp += (direct-this.lp)*0.3; s += this.lp;                       // bow harmonics, softened above ~3 kHz
+      this.gl += (wn-this.gl)*0.03;
+      s += this.gl*Math.min(1,Math.abs(this.wv)*0.5)*this.water*0.05;
+      const d = s-this.dc1+0.995*this.dc2; this.dc1=s; this.dc2=d;      // DC block, then a soft ceiling
+      out[i]=th(d*0.8)*0.75;
+    }
+  }
+}
 `;
 const WORKLET_SRC = DSP_CORE + `
 class LumaAnalog extends AudioWorkletProcessor{
   constructor(o){ super(); this.kind=o.processorOptions.kind;
-    this.core=new (this.kind==='osc'?AnalogOsc:this.kind==='filter'?AnalogFilter:AnalogOut)(sampleRate);
+    this.core=new (this.kind==='osc'?AnalogOsc:this.kind==='filter'?AnalogFilter:this.kind==='water'?Waterphone:AnalogOut)(sampleRate);
     this.port.onmessage=e=>this.core.handle(e.data); }
   static get parameterDescriptors(){ return [
     {name:'fm',defaultValue:0,automationRate:'a-rate'},
@@ -1066,6 +1176,7 @@ class LumaAnalog extends AudioWorkletProcessor{
   process(inputs,outputs,params){
     const out=outputs[0][0]; if(!out) return true;
     if(this.kind==='osc'){ this.core.process(out,out.length,currentTime,params.fm,params.bend); return true; }
+    if(this.kind==='water'){ this.core.process(out,out.length,currentTime); return true; }
     const inp=(inputs[0]&&inputs[0][0])||this.zero(out.length);
     if(this.kind==='filter') this.core.process(inp,out,out.length,params.cutoff);
     else this.core.process(inp,out,out.length);
@@ -1084,7 +1195,7 @@ function ensureAnalog(){
       await audio.ctx.audioWorklet.addModule(url);
       analogState.mode='worklet';
     }catch(e){
-      analogState.Core = new Function(DSP_CORE+'\nreturn {AnalogOsc,AnalogFilter,AnalogOut};')();
+      analogState.Core = new Function(DSP_CORE+'\nreturn {AnalogOsc,AnalogFilter,AnalogOut,Waterphone};')();
       analogState.mode='sp';
     }
     return analogState.mode;
@@ -1094,15 +1205,16 @@ function ensureAnalog(){
 function makeAnalog(kind){
   const ctx=audio.ctx;
   if(analogState.mode==='worklet'){
-    const node=new AudioWorkletNode(ctx,'luma-analog',{ numberOfInputs:kind==='osc'?0:1, numberOfOutputs:1,
+    const node=new AudioWorkletNode(ctx,'luma-analog',{ numberOfInputs:(kind==='osc'||kind==='water')?0:1, numberOfOutputs:1,
       outputChannelCount:[1], processorOptions:{kind} });
     return { node, send:m=>node.port.postMessage(m), param:n=>node.parameters.get(n) };
   }
   const C=analogState.Core;
-  const core=new (kind==='osc'?C.AnalogOsc:kind==='filter'?C.AnalogFilter:C.AnalogOut)(ctx.sampleRate);
+  const core=new (kind==='osc'?C.AnalogOsc:kind==='filter'?C.AnalogFilter:kind==='water'?C.Waterphone:C.AnalogOut)(ctx.sampleRate);
   const node=ctx.createScriptProcessor(512,1,1);
   node.onaudioprocess=e=>{ const out=e.outputBuffer.getChannelData(0), inp=e.inputBuffer.getChannelData(0);
     if(kind==='osc') core.process(out,out.length,e.playbackTime,null);
+    else if(kind==='water') core.process(out,out.length,e.playbackTime);
     else if(kind==='filter') core.process(inp,out,out.length,null);
     else core.process(inp,out,out.length); };
   return { node, send:m=>core.handle(m), param:()=>null, core };
@@ -1309,6 +1421,10 @@ function buildNodes(o){
     o.src.start(); o.src2.start(); o.vib.start();
   } else if(o.type==='drums' || o.type==='harp' || o.type==='marbles'){
     o.amp = ctx.createGain(); o.amp.gain.value = o.arc; o.amp.connect(o.out);
+  } else if(o.type==='water'){
+    o.amp = ctx.createGain(); o.amp.gain.value = o.arc; o.amp.connect(o.out);
+    ensureAnalog().then(()=>{ if(!audio || !objects.includes(o) || o.ana || !o.amp) return;
+      o.ana = makeAnalog('water'); o.ana.node.connect(o.amp); waterCfg(o); });
   } else if(o.type==='hum'){
     o.amp = ctx.createGain(); o.amp.gain.value = o.arc; o.amp.connect(o.out);
     o.humG = ctx.createGain(); o.humG.gain.value = 0; o.humG.connect(o.amp);
@@ -1476,6 +1592,8 @@ function applyParams(o){
     }
   } else if(o.type==='sampler' || o.type==='rec' || o.type==='mic' || o.type==='drums' || o.type==='harp' || o.type==='marbles' || o.type==='hum'){
     o.amp.gain.setTargetAtTime(o.arc, t, 0.02);
+  } else if(o.type==='water'){
+    o.amp.gain.setTargetAtTime(o.arc, t, 0.02); waterCfg(o);
   } else if(o.type==='dist'){
     o.shaper.curve = makeDistCurve(distDrive(o));
     o.dry.gain.setTargetAtTime(1-o.arc*0.7, t, 0.02);
@@ -1581,6 +1699,7 @@ function cycleOption(o){
   } else if(PLAY.has(o.type)){
     o.option = (o.option+1)%PLAY_LEGEND[o.type].faces.length;
     if(o.type==='hum') humFaces(o);
+    if(o.type==='water') waterCfg(o);
   }
   saveSoon();
 }
@@ -2045,9 +2164,51 @@ function ballPlays(q, owner, vel, t){
   else if(q.type==='sampler' || q.type==='rec'){ sliceOn(q, Math.floor(Math.random()*scaleSteps().length*2), t, 0.22, vel); }
   else if(q.type==='drums'){ drumHit(q, Math.floor(Math.random()*4), vel, t); }
   else if(q.type==='harp'){ const s = harpStrings(q); const k = Math.floor(Math.random()*s.length); q.strFlash[k]=t; ksPluck(q, pitchHz(s[k].midi), q.option%4, vel, t); }
+  else if(q.type==='water'){ waterStrike(q, Math.random()<0.5 ? -1 : Math.floor(Math.random()*10), vel); }
   else if(q.type==='filter'){ kickFilterEnvs(t, vel, 0.3); }
   else if(q.type==='mic' || q.type==='hum' || q.type==='theremin' || q.type==='marbles'){ if(owner) ksPluck(owner, pitchHz(72 + state.key + degSemis(Math.floor(Math.random()*scaleSteps().length))), 1, vel, t); }
   else if(owner){ const deg = Math.round((q.angle/TAU)*scaleSteps().length*2); ksPluck(owner, pitchHz(48 + state.key + degSemis(deg)), 2, vel, t); }
+}
+/* the waterphone: its rods are around the puck; hold one to bow it, tap one to
+   strike it, move or turn the puck (or tilt the cube) and the water sloshes */
+function waterCfg(o){ if(o.ana) o.ana.send({ type:'cfg', water:o.angle/TAU, size:1, face:o.option%4 }); }
+function waterSlosh(o, v){
+  if(!Number.isFinite(v) || Math.abs(v)<1e-4) return;
+  v = Math.max(-6, Math.min(6, v));
+  if(o.ana) o.ana.send({ type:'slosh', v });
+  o.wsV += v;
+}
+function waterTick(o, dt){   // the picture's water: the same damped slosh the sound uses
+  const w = TAU*(1+0.6*(o.angle/TAU)), z = 0.055;
+  o.wsV += (-w*w*o.wsS - 2*z*w*o.wsV)*dt; o.wsS += o.wsV*dt;
+  if(o.wsS>1.2||o.wsS<-1.2){ o.wsS = Math.max(-1.2,Math.min(1.2,o.wsS)); o.wsV *= -0.3; }
+}
+function waterRods(o){
+  const r0 = R_ARC1()+6*S, out = [];
+  for(let k=0;k<10;k++){
+    const a = -Math.PI/2 + k/10*TAU, len = TABLE_R*(k%2 ? 0.16 : 0.22);
+    out.push({ k, a, x1:o.x+Math.cos(a)*r0, y1:o.y+Math.sin(a)*r0, x2:o.x+Math.cos(a)*(r0+len), y2:o.y+Math.sin(a)*(r0+len), r0, r1:r0+len });
+  }
+  return out;
+}
+function waterRodAt(o, x, y){   // which rod a point is on, or -1
+  const d = Math.hypot(x-o.x, y-o.y); if(d <= R_ARC1()+4 || d > R_ARC1()+6*S+TABLE_R*0.22+10*S) return -1;
+  const a = Math.atan2(y-o.y, x-o.x);
+  let best=-1, bd=TAU/18;
+  for(const r of waterRods(o)){ let da = Math.abs(Math.atan2(Math.sin(a-r.a), Math.cos(a-r.a))); if(da<bd && d <= r.r1+8*S){ bd=da; best=r.k; } }
+  return best;
+}
+function waterStrike(o, rod, vel){
+  if(!audio) return;
+  if(o.ana) o.ana.send({ type:'strike', rod, vel });
+  const t = audio.ctx.currentTime; o.flashAt = t; if(rod>=0) o.rodFlash[rod] = t; else o.domeFlash = t;
+  waterSlosh(o, (Math.random()-0.5)*vel*1.5);
+  kickFilterEnvs(t, vel, 0.4);
+}
+function waterBow(o, rod, on, press, speed, who){
+  if(o.ana) o.ana.send({ type:'bow', rod, on, press, speed });
+  if(on) o.rodBow[rod] = who || 'x'; else if(o.rodBow[rod]===(who||'x') || !who) delete o.rodBow[rod];
+  if(on && audio) o.flashAt = audio.ctx.currentTime;
 }
 /* the conductor: strikes in the air are beats; their spacing is the tempo */
 function conductBeat(o, tMs){
@@ -2734,6 +2895,12 @@ canvas.addEventListener('pointerdown', e=>{
     if(z.kind==='pad'){ drumHit(z.o, z.pad, 0.6+0.4*pointerPress(e)); drags.set(e.pointerId, { mode:'drum', obj:z.o, pad:z.pad }); return; }
     if(z.kind==='field'){ thereminTouch(z.o, x, y); drags.set(e.pointerId, { mode:'theremin', obj:z.o }); return; }
     if(z.kind==='strings'){ drags.set(e.pointerId, { mode:'stroke', pts:[{x,y}], cuts:new Set(), harp:true }); return; }
+    if(z.kind==='rod'){
+      const press = e.pointerType==='mouse' ? 0.55 : 0.4+0.6*pointerPress(e);
+      waterBow(z.o, z.rod, true, press, 0.3, 'p'+e.pointerId);
+      drags.set(e.pointerId, { mode:'bow', obj:z.o, rod:z.rod, t0:performance.now(), sx:x, sy:y, lx:x, ly:y, lt:performance.now(), moved:false, press });
+      return;
+    }
   }
   // empty table: begin a stroke — a swipe cuts lines, a doodle can become a waveform
   try{ canvas.setPointerCapture(e.pointerId); }catch(err){}
@@ -2750,6 +2917,7 @@ function zoneAt(x,y){
       }
     }
     else if(o.type==='theremin'){ if(d > R_ARC1()+4 && d <= thereminField()) return { o, kind:'field' }; }
+    else if(o.type==='water'){ const rod = waterRodAt(o,x,y); if(rod>=0) return { o, kind:'rod', rod }; }
   }
   return null;
 }
@@ -2813,16 +2981,29 @@ canvas.addEventListener('pointermove', e=>{
   if(!dr) return;
   const { obj } = dr, x=e.clientX, y=e.clientY;
   if(dr.mode==='move'){
+    const ox=obj.x, oy=obj.y;
     obj.x = x+dr.dx; obj.y = y+dr.dy;
     if(Math.hypot(x-dr.sx, y-dr.sy) > 6*S) dr.moved = true;
+    if(obj.type==='water') waterSlosh(obj, (obj.x-ox)/TABLE_R*10 + (obj.y-oy)/TABLE_R*6);
     computePatch(); saveSoon();
   } else if(dr.mode==='rotate'){
+    const oa = obj.angle;
     obj.angle = ((pAngle(obj,x,y)-dr.off) % TAU + TAU) % TAU;
+    if(obj.type==='water'){ let da=obj.angle-oa; if(da>Math.PI) da-=TAU; if(da<-Math.PI) da+=TAU; waterSlosh(obj, da*4); }
     applyParams(obj);
   } else if(dr.mode==='arc'){
     applyArcFromPointer(obj,x,y);
   } else if(dr.mode==='key'){
     setPressure(obj, pointerPress(e), 'pointer');
+  } else if(dr.mode==='bow'){
+    const now = performance.now(), dtm = Math.max(0.008, (now-dr.lt)/1000);
+    const sp = Math.hypot(x-dr.lx, y-dr.ly)/dtm; dr.lx=x; dr.ly=y; dr.lt=now;
+    if(Math.hypot(x-dr.sx, y-dr.sy) > 6*S) dr.moved = true;
+    const press = e.pointerType==='mouse' ? dr.press : 0.4+0.6*pointerPress(e);
+    const rod = waterRodAt(obj,x,y);
+    if(rod>=0 && rod!==dr.rod){ waterBow(obj, dr.rod, false, 0, 0, 'p'+e.pointerId); dr.rod = rod; waterBow(obj, rod, true, press, 0.3, 'p'+e.pointerId); }
+    else if(rod>=0) waterBow(obj, rod, true, press, Math.min(1, sp/(TABLE_R*1.5)), 'p'+e.pointerId);
+    else if(rod<0 && obj.rodBow[dr.rod]==='p'+e.pointerId) waterBow(obj, dr.rod, false, 0, 0, 'p'+e.pointerId);
   } else if(dr.mode==='drum'){
     const pad = drumPadAt(obj,x,y); if(pad>=0 && pad!==dr.pad){ dr.pad=pad; drumHit(obj, pad, 0.6+0.4*pointerPress(e)); }
   } else if(dr.mode==='theremin'){
@@ -2867,6 +3048,10 @@ function endDrag(e){
     setPressure(dr.obj, 0, 'pointer');
   }
   if(dr.mode==='theremin'){ dr.obj.thTouch=false; if(!dr.obj.thHand) thereminSet(dr.obj, null); }
+  if(dr.mode==='bow'){
+    waterBow(dr.obj, dr.rod, false, 0, 0, 'p'+e.pointerId);
+    if(!dr.moved && performance.now()-dr.t0 < 140) waterStrike(dr.obj, dr.rod, 0.45+0.55*dr.press);   // a tap is a mallet
+  }
   if(dr.mode==='flick'){
     const p0=dr.pts[0], p1=dr.pts[dr.pts.length-1];
     const mx=p1.x-p0.x, my=p1.y-p0.y, moved=Math.hypot(mx,my);
@@ -2967,7 +3152,7 @@ function setPlayDrawer(on){
    Fiducial class IDs map onto object types in blocks of 8.              */
 const TUIO_TYPES = ['osc','sampler','seq','filter','delay','mod','lfo','dist','reverb','rec','mic','tempo','chorus','crush',
                     'key','tune','env','xpress','steps','euclid','chance','chain','scene','motion','warp','send','space','master','stems',
-                    'theremin','drums','harp','marbles','hum','conduct','air'];
+                    'theremin','drums','harp','marbles','hum','conduct','air','water'];
 const tuioObjs = new Map();
 function tuioConnect(url){
   const ws = new WebSocket(url);
@@ -3267,6 +3452,7 @@ function camFrame(meta){
     if(lift<0.05) e.r0=e.r0*0.98+m.r*0.02;                      // the resting size drifts with focus, never with a lift
     e.lift=e.lift*0.6+lift*0.4;
     const tilt=Math.max(0,Math.min(1,(1-(m.asp==null?1:m.asp))/0.35));
+    if(o.type==='water'){ const dtl = tilt-(o.tilt||0); o.tilt=tilt; if(Math.abs(dtl)>0.02) waterSlosh(o, dtl*8); }
     if(o.type==='osc' || o.type==='filter'){
       if(Math.abs(e.lift-(o.lift||0))>0.02){ o.lift=e.lift; setPressure(o, e.lift, 'lift'); }
       if(o.type==='osc' && Math.abs(tilt-(o.tilt||0))>0.03){ o.tilt=tilt; o.tiltBend=tilt*150; setPressure(o, o.lift||0, 'lift'); }
@@ -3367,7 +3553,7 @@ function handsStart(){
 function onHands(res){
   const lm=res.multiHandLandmarks||[]; cam.cursors=[];
   const seen=new Set(), now=performance.now();
-  const dt=Math.max(0.01, Math.min(0.2, (now-(hands.last||now))/1000)); hands.last=now;
+  const dt=Math.max(0.01, Math.min(0.2, (now-(hands.last||now))/1000)); hands.last=now; hands.dt=dt;
   const list=[];
   lm.forEach((pts,i)=>{
     const t=pts[4], f=pts[8], w=pts[0], m=pts[9];
@@ -3419,7 +3605,30 @@ function handsPlay(){
     else if(o.type==='harp'){ for(const hd of hands.list) if(hd.prevTip) harpSweep(o, hd.prevTip, hd.tip, Math.min(1, 0.4+Math.hypot(hd.vx,hd.vy)/(TABLE_R*3))); }
     else if(o.type==='conduct'){ for(const hd of hands.list){ if(hd.hit) conductBeat(o, now); conductDyn(o, hd.h); } }
     else if(o.type==='air') airHands(o);
+    else if(o.type==='water') waterHands(o);
   }
+}
+function waterHands(o){
+  const seen = new Set();
+  for(const hd of hands.list){
+    const d = Math.hypot(hd.x-o.x, hd.y-o.y), inBowl = d < R_ARC1()+6*S+TABLE_R*0.22+10*S;
+    if(!inBowl){ if(o.handBow[hd.i]!=null){ waterBow(o, o.handBow[hd.i], false, 0, 0, 'h'+hd.i); delete o.handBow[hd.i]; } continue; }
+    seen.add(hd.i);
+    if(hd.hit){ waterStrike(o, d <= R_ARC1()+4 ? -1 : waterRodAt(o, hd.x, hd.y), hd.hit); }
+    waterSlosh(o, (hd.vx/TABLE_R)*hands.dt*7);                       // a hand sweeping over the bowl tilts it
+    const speed = Math.hypot(hd.vx, hd.vy)/TABLE_R;
+    if(hd.prevTip && speed > 1.6){                                     // a fast fingertip across a rod is a strike
+      for(const r of waterRods(o)) if(segIntersect(hd.prevTip, hd.tip, {x:r.x1,y:r.y1}, {x:r.x2,y:r.y2})){
+        const t = audio.ctx.currentTime; if(!o.rodFlash[r.k] || t-o.rodFlash[r.k] > 0.08) waterStrike(o, r.k, Math.min(1, 0.3+speed*0.25)); }
+    }
+    const rod = waterRodAt(o, hd.tip.x, hd.tip.y);                      // a slow fingertip resting on a rod bows it
+    const cur = o.handBow[hd.i];
+    if(rod>=0 && speed < 0.9){
+      if(cur!=null && cur!==rod){ waterBow(o, cur, false, 0, 0, 'h'+hd.i); }
+      waterBow(o, rod, true, 0.3+0.7*hd.h, Math.min(1, speed), 'h'+hd.i); o.handBow[hd.i] = rod;
+    } else if(cur!=null){ waterBow(o, cur, false, 0, 0, 'h'+hd.i); delete o.handBow[hd.i]; }
+  }
+  for(const k in o.handBow) if(!seen.has(+k)){ waterBow(o, o.handBow[k], false, 0, 0, 'h'+k); delete o.handBow[k]; }
 }
 function thereminHands(o){
   const hs = hands.list;
@@ -3544,6 +3753,7 @@ const CARD_TEXT = {
   hum:'Hum or sing into the microphone and a synth follows your voice. Faces: follow every slide, snap to notes, add a harmony, or add octaves.',
   conduct:'Beat time in the air (or tap its ring) and the whole table takes your tempo. The second face also follows your hand\'s height as dynamics.',
   air:'Sits by any block. Raise or lower a hand to turn that block\'s ring without touching it; faces choose the ring, the slider, or both.',
+  water:'A waterphone: a bowl of water with brass rods around it. Hold a rod to bow it, tap one to strike it, and move or turn the puck (or tilt the cube) to slosh the water, which bends every note. Faces: whale, storm (it plays itself), gong, ghost. Put a reverb behind it.',
 };
 async function markerSheet(){
   const html=markerSheetHTML(), filename='lumatable-markers.html';
@@ -4099,6 +4309,21 @@ function drawObject(o){
       g.strokeStyle=col; g.globalAlpha=0.5; g.beginPath(); g.moveTo(o.x,o.y); g.lineTo(o.thAt.x,o.thAt.y); g.stroke(); }
     g.globalAlpha=outside?0.35:1;
   }
+  if(o.type==='water'){   // the rods around the bowl, and the water inside it
+    for(const r of waterRods(o)){
+      const fl = Math.max(0, 1-(now-(o.rodFlash[r.k]||-9))*2.2), bowed = o.rodBow[r.k]!=null;
+      g.strokeStyle = bowed ? '#fff3d6' : fl>0 ? '#ffe2a8' : '#e0b86a'; g.lineWidth = (2.2 + fl*1.2)*S; g.lineCap='round';
+      g.globalAlpha = (outside?0.35:1)*(0.55 + fl*0.45 + (bowed?0.45:0));
+      if(bowed || fl>0) glow('#ffb84d', 10*(fl+(bowed?0.8:0)));
+      g.beginPath();
+      if(fl>0 || bowed){ const n=10, dx=r.x2-r.x1, dy=r.y2-r.y1, len=Math.hypot(dx,dy)||1, px=-dy/len, py=dx/len, amp=(bowed?1.2:3*fl)*S*Math.sin(performance.now()/(bowed?60:14));
+        for(let i=0;i<=n;i++){ const f=i/n, w=Math.sin(f*Math.PI)*amp; g[i?'lineTo':'moveTo'](r.x1+dx*f+px*w, r.y1+dy*f+py*w); } }
+      else { g.moveTo(r.x1,r.y1); g.lineTo(r.x2,r.y2); }
+      g.stroke(); noGlow();
+      g.fillStyle = bowed ? '#fff3d6' : '#e0b86a'; g.beginPath(); g.arc(r.x2,r.y2,2.6*S,0,TAU); g.fill();
+    }
+    g.globalAlpha=outside?0.35:1;
+  }
   if(o.type==='marbles' || o.type==='conduct'){   // the ring you flick or tap
     const fl = o.type==='conduct' ? Math.max(0, 1-(performance.now()-(o.beatAt||-9e9))/250) : 0;
     g.strokeStyle=col; g.globalAlpha=(outside?0.35:1)*(0.22+fl*0.6); g.lineWidth=1.5+fl*2; g.setLineDash([3,6]);
@@ -4145,6 +4370,8 @@ function drawObject(o){
     g.save(); g.translate(o.x,o.y); g.rotate(Math.PI/4);
     const r=rb*0.8; g.roundRect(-r,-r,r*2,r*2,5*S);
     g.restore();
+  } else if(o.type==='water'){   // the bowl
+    g.arc(o.x,o.y,rb*0.98,0,TAU);
   } else if(ADV.has(o.type)){   // the advanced pucks are hexagons, like the printed ones
     const r=rb*0.98;
     for(let k=0;k<6;k++){ const a=k*TAU/6 - Math.PI/2; g[k?'lineTo':'moveTo'](o.x+Math.cos(a)*r, o.y+Math.sin(a)*r); }
@@ -4225,6 +4452,20 @@ function drawObject(o){
     g.arc(o.x+Math.sin(sway)*rb*0.45, o.y+rb*0.45-Math.cos(sway)*rb*0.75, 2.6*S, 0, TAU); g.fill();
   }
   else if(ADV.has(o.type)) drawAdvIcon(o, col, rb);
+  else if(o.type==='water'){   // water in the bowl, tilted by the slosh
+    const lvl = 0.15 + (o.angle/TAU)*0.7, r = rb*0.82, tilt = Math.max(-0.9, Math.min(0.9, o.wsS))*0.55;
+    const df = Math.max(0, 1-(now-(o.domeFlash||-9))*3);
+    g.save(); g.beginPath(); g.arc(o.x,o.y,r,0,TAU); g.clip();
+    g.translate(o.x,o.y); g.rotate(tilt);
+    const top = r - lvl*2*r;
+    const wg = g.createLinearGradient(0,top,0,r); wg.addColorStop(0,'rgba(95,180,220,0.75)'); wg.addColorStop(1,'rgba(40,90,150,0.85)');
+    g.fillStyle = wg; g.beginPath(); g.moveTo(-r,top);
+    for(let i=0;i<=12;i++){ const f=i/12, x=-r+f*2*r, y=top+Math.sin(f*TAU+performance.now()/300)*Math.abs(o.wsV)*0.6*S; g.lineTo(x,y); }
+    g.lineTo(r,r); g.lineTo(-r,r); g.closePath(); g.fill();
+    g.strokeStyle='#cfefff'; g.globalAlpha=0.7; g.lineWidth=1; g.beginPath(); g.moveTo(-r,top); g.lineTo(r,top); g.stroke();
+    g.restore();
+    if(df>0){ g.save(); g.strokeStyle='#fff3d6'; g.globalAlpha=df*0.9; g.lineWidth=2.5; glow('#ffb84d',12*df); g.beginPath(); g.arc(o.x,o.y,rb*0.98,0,TAU); g.stroke(); g.restore(); noGlow(); }
+  }
   else if(PLAY.has(o.type)) drawPlayIcon(o, col, rb);
   else if(o.type==='sampler'){
     g.fillStyle=col; g.font=`600 ${8.5*S}px "Chakra Petch", sans-serif`;
@@ -4423,6 +4664,7 @@ function frameBody(){
     }
   }
   if(audio) for(const o of objects){ if(o.type==='scene') sceneTick(o, dt); else if(o.type==='motion') motionTick(o); else if(o.type==='hum' && (frameN&1)===0) humTick(o); }
+  for(const o of objects) if(o.type==='water') waterTick(o, dt);
   frameN++;
   if(audio) ballsTick(dt);
   if(audio && objects.some(o=>o.type==='space' && o.option%3===1)) updateSpace();

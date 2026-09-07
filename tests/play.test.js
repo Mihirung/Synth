@@ -21,7 +21,7 @@ const CHROME = process.env.PLAYWRIGHT_CHROMIUM || (fs.existsSync('/opt/pw-browse
   // drawer
   await page.click('#playBtn');
   const dr = await page.evaluate(()=>({ play: getComputedStyle($('dock3')).display!=='none', n: $('dock3').querySelectorAll('.spawn').length, adv: getComputedStyle($('dock2')).display }));
-  check('play drawer opens with seven instruments', dr.play && dr.n===7 && dr.adv==='none', JSON.stringify(dr));
+  check('play drawer opens with eight instruments', dr.play && dr.n===8 && dr.adv==='none', JSON.stringify(dr));
 
   // drum kit and touch pads
   const drums = await page.evaluate(async()=>{
