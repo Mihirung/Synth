@@ -98,7 +98,7 @@ const CHROME = process.env.PLAYWRIGHT_CHROMIUM || (fs.existsSync('/opt/pw-browse
     const noteShown = !!spheres.note;
     return { left, bounced, noteShown };
   });
-  check('the rim: most worlds that reach it leave (about 60%), the rest bounce, and it says who left', rim.left>=16 && rim.bounced>=6 && rim.left+rim.bounced===40 && rim.noteShown, JSON.stringify(rim));
+  check('the rim: one world in five that reaches it leaves (about 20%), the rest bounce, and it says who left', rim.left>=2 && rim.left<=16 && rim.bounced>=24 && rim.left+rim.bounced===40 && rim.noteShown, JSON.stringify(rim));
 
   // 5. ships: a rocket to the Moon lands, a starship tries for Mars, a visitor comes and goes
   const ships = await page.evaluate(async()=>{
