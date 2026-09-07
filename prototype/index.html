@@ -120,13 +120,16 @@
   #advBtn .chipico{border:2px dashed var(--ctl);border-radius:50%;opacity:.8}
   #advBtn .chipico::after{content:'+';position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:var(--ctl);font-size:15px;line-height:1}
   #advBtn.open .chipico::after{content:'−'}
-  #dock2,#dock3{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(var(--dockH,96px) + 8px);z-index:3;
+  #dock2,#dock3{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(var(--dockH,96px) + 22px);z-index:3;
     display:flex;gap:2px;padding:6px 10px 7px;border:1px solid rgba(217,139,224,.28);border-radius:14px;
     background:rgba(16,12,30,.58);touch-action:none;max-width:96vw;flex-wrap:wrap;justify-content:center;
     backdrop-filter:blur(16px) saturate(1.3);-webkit-backdrop-filter:blur(16px) saturate(1.3);
     box-shadow:inset 0 1px 0 rgba(255,255,255,.05),0 12px 44px rgba(0,0,0,.5)}
   #dock2[hidden],#dock3[hidden]{display:none}
   #dock2 .lbl,#dock3 .lbl{width:100%;text-align:center;font-size:8px;letter-spacing:.3em;text-transform:uppercase;color:#8f7fa6;padding:0 0 3px}
+  .trayBack{display:none;color:var(--text)}
+  .trayBack .chipico{border:2px solid var(--dim);border-radius:50%}
+  .trayBack .chipico::after{content:'‹';position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:var(--text);font-size:18px;line-height:1;padding-bottom:3px}
   #syncPanel{position:fixed;top:54px;right:16px;z-index:5;width:300px;padding:14px 16px;border-radius:14px;
     background:rgba(10,17,30,.72);border:1px solid rgba(255,255,255,.1);
     backdrop-filter:blur(16px) saturate(1.3);-webkit-backdrop-filter:blur(16px) saturate(1.3);
@@ -174,7 +177,11 @@
     .spawn .chipico{ width:22px; height:22px; }
     .spawn{ font-size:8.5px; letter-spacing:.1em; }
     #syncPanel{ width:calc(100vw - 24px); right:12px; left:12px; top:auto; bottom:88px; }
-    #dock2,#dock3{ left:6px; right:6px; transform:none; max-width:none; border-radius:12px; padding:5px 4px 6px; }
+    /* a phone has no room to stack trays: play and more become pages of the one bottom dock */
+    #dock2,#dock3{ left:0; right:0; bottom:0; transform:none; max-width:100%; border-radius:16px 16px 0 0;
+      padding:7px 6px calc(7px + env(safe-area-inset-bottom)); gap:2px; }
+    body.tray-play #dock, body.tray-adv #dock{ display:none; }
+    .trayBack{ display:flex; }
     #camWrap{ width:130px; right:8px; bottom:96px; }
   }
 </style>
@@ -207,7 +214,7 @@
   <button id="hintClose" aria-label="close">×</button>
   <h2>How to play</h2>
   <ul>
-    <li>Drag blocks from the tray onto the disc; drag one off the disc to remove it.</li>
+    <li>Tap a block in the tray to put it on the disc, or drag it where you want it; drag one off the disc to remove it.</li>
     <li>Turn a block's inner ring for its main control; slide the outer arc for the second.</li>
     <li>Tap a block to change its mode (waveform, filter type, loop…). On a real cube, turn it to another face.</li>
     <li>Place a <b>Rec</b> block to record the next bars and loop them; tap it to record again. Turn it to set the length.</li>
@@ -241,6 +248,7 @@
 </div>
 <div id="dock3" aria-label="play tray" hidden>
   <div class="lbl">play with your hands and voice</div>
+  <button class="spawn trayBack" id="playBack" title="back to the main tray"><span class="chipico"></span>back</button>
   <button class="spawn adv" data-type="theremin" title="a theremin: wave a hand in its field"><span class="chipico pl" data-g="⌇"></span>theremin</button>
   <button class="spawn adv" data-type="drums" title="air drums: hit the pads with your hands or fingers"><span class="chipico pl" data-g="DR"></span>air drums</button>
   <button class="spawn adv" data-type="harp" title="a harp: sweep across its strings"><span class="chipico pl" data-g="|||"></span>harp</button>
@@ -252,6 +260,7 @@
 </div>
 <div id="dock2" aria-label="advanced tray" hidden>
   <div class="lbl">advanced pucks</div>
+  <button class="spawn trayBack" id="advBack" title="back to the main tray"><span class="chipico"></span>back</button>
   <button class="spawn adv" data-type="key" title="key and scale as a puck"><span class="chipico hx" data-g="K"></span>key</button>
   <button class="spawn adv" data-type="tune" title="tuning systems: just, meantone, 19-EDO, slendro…"><span class="chipico hx" data-g="¢"></span>tuning</button>
   <button class="spawn adv" data-type="env" title="ADSR envelope for an oscillator or a filter"><span class="chipico hx" data-g="⌒"></span>envelope</button>
@@ -3102,12 +3111,15 @@ for(const btn of document.querySelectorAll('.spawn[data-type]')){
     e.preventDefault();
     btn.setPointerCapture(e.pointerId);
     pushUndo();
+    const sx=e.clientX, sy=e.clientY;
     const o = spawn(btn.dataset.type, e.clientX, e.clientY-70);
-    const move = ev=>{ o.x=ev.clientX; o.y=ev.clientY-70; computePatch(); };
+    let moved = false;
+    const move = ev=>{ o.x=ev.clientX; o.y=ev.clientY-70; if(Math.hypot(ev.clientX-sx, ev.clientY-sy) > 8) moved = true; computePatch(); };
     const up = ()=>{
       btn.removeEventListener('pointermove', move);
       btn.removeEventListener('pointerup', up);
       btn.removeEventListener('pointercancel', up);
+      if(distC(o) > TABLE_R-8 && !moved){ placeFree(o); computePatch(); }   // a tap: the disc finds it a place
       if(distC(o) > TABLE_R-8) destroyObject(o); else { saveSoon(); addRipple(o.x,o.y,0.75); onPlace(o); }
     };
     btn.addEventListener('pointermove', move);
@@ -3131,19 +3143,30 @@ function onReplace(o){
   else if(o.type==='scene'){ sceneCapture(o); sceneMorph(o); }
 }
 const advDrawer = { open:false, play:false };
-function setAdvDrawer(on){
-  advDrawer.open = !!on; if(advDrawer.open) advDrawer.play = false;
+function applyDrawers(){
   $('dock2').hidden = !advDrawer.open; $('dock3').hidden = !advDrawer.play;
   $('advBtn').classList.toggle('open', advDrawer.open); $('playBtn').classList.toggle('open', advDrawer.play);
+  document.body.classList.toggle('tray-adv', advDrawer.open); document.body.classList.toggle('tray-play', advDrawer.play);
   try{ localStorage.setItem('lumatable-adv', advDrawer.open ? '1' : '0'); localStorage.setItem('lumatable-play', advDrawer.play ? '1' : '0'); }catch(e){}
   resize();
 }
-function setPlayDrawer(on){
-  advDrawer.play = !!on; if(advDrawer.play) advDrawer.open = false;
-  $('dock3').hidden = !advDrawer.play; $('dock2').hidden = !advDrawer.open;
-  $('playBtn').classList.toggle('open', advDrawer.play); $('advBtn').classList.toggle('open', advDrawer.open);
-  try{ localStorage.setItem('lumatable-adv', advDrawer.open ? '1' : '0'); localStorage.setItem('lumatable-play', advDrawer.play ? '1' : '0'); }catch(e){}
-  resize();
+function setAdvDrawer(on){ advDrawer.open = !!on; if(advDrawer.open) advDrawer.play = false; applyDrawers(); }
+function setPlayDrawer(on){ advDrawer.play = !!on; if(advDrawer.play) advDrawer.open = false; applyDrawers(); }
+/* a tap that works everywhere: touch and pen fire on pointerup, the mouse (and keyboards) on click */
+function onTap(el, fn){
+  let last = 0;
+  el.addEventListener('pointerup', e=>{ if(e.pointerType==='mouse') return; last = performance.now(); fn(); });
+  el.addEventListener('click', ()=>{ if(performance.now()-last > 600) fn(); });
+}
+/* a tap on a tray button (no drag) puts the object on the disc, in a free spot */
+function placeFree(o){
+  const others = objects.filter(q=>q!==o), gap = R_ARC1()*2.05;
+  const fits = (x,y)=> Math.hypot(x-CX,y-CY) < TABLE_R-R_ARC1()-6*S && others.every(q=>Math.hypot(q.x-x,q.y-y) > gap);
+  for(let r=0.34; r<=0.78; r+=0.14) for(let k=0;k<12;k++){
+    const a = -Math.PI/2 + k/12*TAU + r*3, x = CX+Math.cos(a)*TABLE_R*r, y = CY+Math.sin(a)*TABLE_R*r;
+    if(fits(x,y)){ o.x=x; o.y=y; return; }
+  }
+  const a = Math.random()*TAU; o.x = CX+Math.cos(a)*TABLE_R*0.45; o.y = CY+Math.sin(a)*TABLE_R*0.45;
 }
 
 /* ================= surface input: TUIO (physical table) =================
@@ -4020,8 +4043,10 @@ $('helpChip').addEventListener('click', ()=>{ const h=$('hint'); h.hidden=!h.hid
 $('hintClose').addEventListener('click', ()=>{ $('hint').hidden=true; });
 $('clearChip').addEventListener('click', ()=>{ pushUndo(); for(const o of [...objects]) destroyObject(o); });
 $('undoChip').addEventListener('click', doUndo);
-$('advBtn').addEventListener('click', ()=>setAdvDrawer(!advDrawer.open));
-$('playBtn').addEventListener('click', ()=>setPlayDrawer(!advDrawer.play));
+onTap($('advBtn'), ()=>setAdvDrawer(!advDrawer.open));
+onTap($('playBtn'), ()=>setPlayDrawer(!advDrawer.play));
+onTap($('advBack'), ()=>setAdvDrawer(false));
+onTap($('playBack'), ()=>setPlayDrawer(false));
 try{ if(localStorage.getItem('lumatable-play')==='1') setPlayDrawer(true); else if(localStorage.getItem('lumatable-adv')==='1') setAdvDrawer(true); }catch(e){}
 
 /* computer-keyboard playing: the home row plays the current scale into every

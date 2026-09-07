@@ -30,7 +30,7 @@ const CHROME = process.env.PLAYWRIGHT_CHROMIUM || (fs.existsSync('/opt/pw-browse
 
   // 1. drawer
   await page.click('#advBtn');
-  const drawerShown = await page.evaluate(()=>getComputedStyle(document.getElementById('dock2')).display!=='none' && document.getElementById('dock2').querySelectorAll('.spawn').length);
+  const drawerShown = await page.evaluate(()=>getComputedStyle(document.getElementById('dock2')).display!=='none' && document.getElementById('dock2').querySelectorAll('.spawn[data-type]').length);
   check('advanced drawer opens with pucks', drawerShown===15, 'pucks='+drawerShown);
 
   // 2. tuning maths

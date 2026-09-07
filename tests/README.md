@@ -9,6 +9,7 @@ node tests/advanced-camera.test.js   # analogue engine with envelopes, pen press
 node tests/play.test.js              # the play tray: drums, harp, theremin, marbles, hum, and synthetic hand landmarks
 node tests/waterphone-dsp.test.js    # the waterphone model, numerically: strike, bow, water bending, stress, faces, speed (no browser)
 node tests/waterphone.test.js        # the waterphone in the browser: bow, strike, slosh, hands, marbles, persistence
+node tests/phone.test.js             # iPhone emulation: trays as pages of the dock, tap-to-place, back; desktop drawers still stack
 ```
 
 Each prints a PASS/FAIL line per check and exits non-zero on any failure or page error.
