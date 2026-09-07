@@ -110,6 +110,8 @@
   .chipico.di{border:2px solid var(--ctl);border-radius:5px;transform:rotate(45deg) scale(.84)}
   .chipico.ri{border:2px solid var(--ctl);border-radius:50%}
   .chipico.ri::after{content:'';position:absolute;inset:9px;border-radius:50%;background:var(--ctl)}
+  .chipico.so{border:2px solid var(--ctl);border-radius:50%}
+  .chipico.so::after{content:'';position:absolute;left:9px;top:6px;border-left:9px solid var(--ctl);border-top:6px solid transparent;border-bottom:6px solid transparent}
   /* the advanced tray: hexagonal pucks, one level below the kid's tray */
   .spawn.adv{color:#8f7fa6}
   .chipico.hx{background:var(--ctl);clip-path:polygon(25% 2%,75% 2%,98% 50%,75% 98%,25% 98%,2% 50%)}
@@ -247,6 +249,13 @@
     <p>Draw a wiggly line next to an <span class="cg">osc</span>. The wiggle becomes its sound.</p>
     <p>Tap the tiny keys above an <span class="cg">osc</span> for a piano. Or play the <span class="kbd">A</span> to <span class="kbd">L</span> keys.</p>
     <p>A <span class="cg">rec</span> block listens for a few bars, then plays it back, round and round. A <span class="cg">mic</span> block hears you.</p>
+    <h3>Make a real song</h3>
+    <p>Tap the <span class="cc">song</span> block. The edge of the circle becomes your song: <b>intro, verse, chorus</b> and so on, all the way round. That is about three minutes.</p>
+    <p>Tap a <span class="cg">rec</span> block while the table is playing. It listens for a few bars, then a <b>wobbly blob</b> pops out next to it. That blob is your recording.</p>
+    <p><b>Drag the blob to the edge</b> and let go. It sticks to the song there. Put the next blob before it, after it, or on top of it.</p>
+    <p>Press <b>▶ in the middle</b> to hear your song. <b>■</b> goes back to the start. The little arrow <b>saves</b> the whole song as a music file.</p>
+    <p>Record the drums first. Then press ▶ and record the bass over the top. The song never records itself, so nothing doubles up.</p>
+    <p>Turn the song block's ring to play just one part round and round. Tap a blob to hear it on its own. Drag a blob off the circle to throw it away.</p>
   </section>
   <section class="page" data-page="play" hidden>
     <h3>Play with your hands and voice</h3>
@@ -281,6 +290,7 @@
   <button class="spawn" data-type="sampler"><span class="chipico sq dot"></span>loops</button>
   <button class="spawn" data-type="rec"><span class="chipico sq ring"></span>rec</button>
   <button class="spawn" data-type="mic"><span class="chipico sq bar"></span>mic</button>
+  <button class="spawn" data-type="song" title="a three-minute song around the rim: record blobs, lay them down, play, save"><span class="chipico so"></span>song</button>
   <button class="spawn" data-type="seq"><span class="chipico ri"></span>seq</button>
   <button class="spawn" data-type="filter"><span class="chipico ci"></span>filter</button>
   <button class="spawn" data-type="delay"><span class="chipico ci dot"></span>delay</button>
@@ -369,7 +379,7 @@ const FAMILY = { osc:'gen', sampler:'gen', rec:'gen', mic:'gen',
                  lfo:'ctl', seq:'ctl', tempo:'ctl',
                  key:'ctl', tune:'ctl', env:'ctl', xpress:'ctl', steps:'ctl', euclid:'ctl', chance:'ctl', chain:'ctl',
                  scene:'ctl', motion:'ctl', warp:'ctl', send:'ctl', space:'ctl', master:'ctl', stems:'ctl',
-                 theremin:'gen', drums:'gen', harp:'gen', marbles:'gen', hum:'gen', conduct:'ctl', air:'ctl', water:'gen', spheres:'gen' };
+                 theremin:'gen', drums:'gen', harp:'gen', marbles:'gen', hum:'gen', conduct:'ctl', air:'ctl', water:'gen', spheres:'gen', song:'ctl' };
 /* the play tray: instruments for hands (camera) and voice, all playable by touch too */
 const PLAY = new Set(['theremin','drums','harp','marbles','hum','conduct','air','water','spheres']);
 const HANDY = new Set(['theremin','drums','harp','conduct','air','water']);   // these ask for hand tracking
@@ -388,6 +398,7 @@ const PLAY_LEGEND = {
   air:     { name:'AIR KNOB', turn:'—', slide:'—', faces:['TURN','SLIDE','BOTH'] },
   water:   { name:'WATERPHONE', turn:'how much water', slide:'level', faces:['WHALE','STORM','GONG','GHOST'] },
   spheres: { name:'PLANETS', turn:'how fast a year goes (4 s – 2 min)', slide:'level', faces:['ORRERY','GOD MODE'] },
+  song:    { name:'SONG', turn:'which part to loop (straight up: the whole song)', slide:'song level', faces:['POP SONG','LITTLE SONG','FREE'] },
 };
 const DRUM_PADS = ['KICK','SNARE','HAT','CLAP'];
 const ADV_LEGEND = {   // printed on the cards and used by the readouts
@@ -448,7 +459,7 @@ const LOOPS = ['KICK','BEAT','HATS','BASS','CHORD','ARP'];   // 'MINE' appended 
 const SWINGS = [ {n:'off',v:0}, {n:'lite',v:0.18}, {n:'full',v:0.30} ];
 const DIVS = [ {n:'1/16',b:0.25}, {n:'1/8',b:0.5}, {n:'1/8·',b:0.75}, {n:'1/4',b:1}, {n:'1/2',b:2}, {n:'3/4',b:3} ];
 const LFO_DIVS = [ {n:'4 bar',b:16}, {n:'2 bar',b:8}, {n:'1 bar',b:4}, {n:'1/2',b:2}, {n:'1/4',b:1}, {n:'1/8',b:0.5}, {n:'1/16',b:0.25} ];
-const REC_BARS = [1,2,4,8];
+const REC_BARS = [1,2,4,8,16];
 const SEQ_PATTERNS = [
   [[0,0],null,[2,0],null,[4,0],[3,0],null,[2,0],[0,0],null,[2,0],null,[5,0],null,[4,0],[3,0]],
   [[0,0],null,null,[0,0],null,[4,0],null,null,[2,0],null,null,[2,0],[5,0],null,[4,0],null],
@@ -701,7 +712,7 @@ function defaults(type){
            key:{arc:0.06}, tune:{arc:0.5}, env:{arc:0.51}, xpress:{arc:0.5}, steps:{arc:0.4}, euclid:{arc:0},
            chance:{arc:0.2}, chain:{arc:0.2}, scene:{arc:0.25}, motion:{arc:0.3}, warp:{arc:0.3}, send:{arc:0.5},
            space:{arc:0.3}, master:{arc:0.4}, stems:{arc:0.5},
-           theremin:{arc:0.6}, drums:{arc:0.8}, harp:{arc:0.7}, marbles:{arc:0.6}, hum:{arc:0.7}, conduct:{arc:0.5}, air:{arc:0.5}, water:{arc:0.75}, spheres:{arc:0.8} }[type];
+           theremin:{arc:0.6}, drums:{arc:0.8}, harp:{arc:0.7}, marbles:{arc:0.6}, hum:{arc:0.7}, conduct:{arc:0.5}, air:{arc:0.5}, water:{arc:0.75}, spheres:{arc:0.8}, song:{arc:0.9} }[type];
 }
 function spawn(type, x, y){
   const o = { id:nextId++, type, x, y, angle:0, arc:defaults(type).arc,
@@ -741,6 +752,7 @@ function spawn(type, x, y){
   if(type==='hum'){ o.angle = 0.5*TAU; o.humState='wait'; }
   if(type==='water'){ o.angle = 0.5*TAU; o.rodFlash=[]; o.rodBow={}; o.wsS=0; o.wsV=0; o.handBow={}; }
   if(type==='spheres') o.angle = 0.4*TAU;          // a year in about 16 seconds
+  if(type==='song'){ o.angle = 0; song.puck = o; song.lastRange = ''; }   // the ring straight up: the whole song
   objects.push(o);
   if(type==='spheres') spheresEnter(o);
   if(audio){
@@ -781,6 +793,7 @@ function teardownNodes(o){
 function destroyObject(o){
   teardownNodes(o);
   if(spheres.puck===o) spheresExit();
+  if(song.puck===o){ song.puck = objects.find(q=>q!==o && q.type==='song') || null; if(!song.puck) songStop(); }
   if(o.type==='scene' && o.morphOrigin) sceneRestoreOrigin(o);
   if(o.type==='master' && audio) applyMaster(null);
   const i = objects.indexOf(o);
@@ -888,7 +901,7 @@ function readout(o){
                         (lfoSynced(o) ? lfoDiv(o).n : lfoRate(o).toFixed(2)+' Hz')+' · '+Math.round(o.arc*100)+'%'];
     case 'seq': return ['SEQUENCER · '+'ABCD'[o.option%4], 'shift '+seqOffset(o)+' · gate '+Math.round((0.1+o.arc*0.85)*100)+'%'];
     case 'rec': return ['RECORD · '+recBars(o)+' BAR'+(recBars(o)>1?'S':''),
-                        o.recState==='idle' ? 'double-tap to record'
+                        o.recState==='idle' ? (song.puck ? 'tap: record a blob for the song' : 'double-tap to record')
                       : o.recState==='armed' ? 'starts next bar…'
                       : o.recState==='recording' ? 'recording…'
                       : 'loop · '+Math.round(o.arc*100)+'%'];
@@ -911,7 +924,7 @@ function readout(o){
     case 'send': return ['SEND · '+ADV_LEGEND.send.faces[o.option%2], 'level '+Math.round(sendLevel(o)*100)+'% · reach '+Math.round(sendReach(o)/TABLE_R*100)+'%'+(o.hop==='C'?' · unbound':'')];
     case 'space': return ['SPACE · '+ADV_LEGEND.space.faces[o.option%3], 'width '+Math.round(spaceWidth(o)*100)+'%'];
     case 'master': return ['MASTER · '+ADV_LEGEND.master.faces[o.option%4], 'volume '+Math.round(masterVol(o)*100)+'% · glue '+Math.round(o.arc*100)+'%'];
-    case 'theremin': case 'drums': case 'harp': case 'marbles': case 'hum': case 'conduct': case 'air': case 'water': case 'spheres': return playReadout(o);
+    case 'theremin': case 'drums': case 'harp': case 'marbles': case 'hum': case 'conduct': case 'air': case 'water': case 'spheres': case 'song': return playReadout(o);
     case 'stems': return ['STEMS · '+stemBars(o)+' BAR'+(stemBars(o)>1?'S':''),
                           o.stemState==='idle' ? 'tap or replace to arm' : o.stemState==='armed' ? 'starts next bar…'
                         : o.stemState==='recording' ? 'recording '+(o.stemN||0)+' stems…' : o.stemState==='saving' ? 'saving…' : (o.stemMsg||'saved')];
@@ -929,6 +942,7 @@ function playReadout(o){
     case 'conduct': return ['CONDUCTOR · '+PLAY_LEGEND.conduct.faces[o.option%2], (o.bpmT ? Math.round(o.bpmT)+' BPM felt · ' : 'beat time in the air · ')+hz];
     case 'air': return ['AIR KNOB · '+PLAY_LEGEND.air.faces[o.option%3], o.hop==='C' ? 'put it by a block' : 'raise a hand · '+hz];
     case 'water': return ['WATERPHONE · '+PLAY_LEGEND.water.faces[o.option%4], 'water '+Math.round((o.angle/TAU)*100)+'% · '+(o.ana ? 'hold a rod to bow · tap to strike · move it to slosh' : 'filling…')];
+    case 'song': { const [A,B]=songLoopRange(), whole=A===0&&B===songBars(), p=songPartAt(A); return ['SONG · '+songForm().n, (whole ? 'whole song' : 'loop '+(p&&p.n?p.n.toUpperCase():'part'))+' · '+songTimeStr(song.pos)+' / '+songTimeStr(songBars())+(song.playing?' ▶':'')+' · '+song.blobs.filter(b=>b.placed).length+' on the rim']; }
     case 'spheres': return ['PLANETS · '+PLAY_LEGEND.spheres.faces[o.option%2], 'a year every '+Math.round(spheresYearS(o))+' s · '+(o.option%2 ? 'flick a world, block an orbit' : 'touch a world to hear it')];
   }
 }
@@ -1473,9 +1487,10 @@ function buildNodes(o){
     o.wet = ctx.createGain(); o.wet.gain.value = o.arc;
     o.inG.connect(o.dry); o.dry.connect(o.out);
     o.inG.connect(o.shaper); o.shaper.connect(o.wet); o.wet.connect(o.out);
-  } else if(o.type==='tempo' || ADV.has(o.type) || o.type==='conduct' || o.type==='air'){
+  } else if(o.type==='tempo' || ADV.has(o.type) || o.type==='conduct' || o.type==='air' || o.type==='song'){
     /* control pucks: no audio path of their own */
     if(o.type==='master') applyMaster(o);
+    if(o.type==='song') songBus().gain.value = o.arc;
   } else if(o.type==='theremin'){
     o.amp = ctx.createGain(); o.amp.gain.value = 1; o.amp.connect(o.out);
     o.thGain = ctx.createGain(); o.thGain.gain.value = 0; o.thGain.connect(o.amp);
@@ -1658,6 +1673,8 @@ function applyParams(o){
     }
   } else if(o.type==='sampler' || o.type==='rec' || o.type==='mic' || o.type==='drums' || o.type==='harp' || o.type==='marbles' || o.type==='hum' || o.type==='spheres'){
     o.amp.gain.setTargetAtTime(o.arc, t, 0.02);
+  } else if(o.type==='song'){
+    songBus().gain.setTargetAtTime(o.arc, t, 0.02);
   } else if(o.type==='water'){
     o.amp.gain.setTargetAtTime(o.arc, t, 0.02); waterCfg(o);
   } else if(o.type==='dist'){
@@ -1762,6 +1779,8 @@ function cycleOption(o){
     o.option = (o.option+1)%4; motionClear(o);
   } else if(ADV.has(o.type)){
     o.option = (o.option+1)%ADV_LEGEND[o.type].faces.length;
+  } else if(o.type==='song'){
+    o.option = (o.option+1)%SONG_FORMS.length; songStop();   // a new shape for the song: the blobs keep their bars
   } else if(PLAY.has(o.type)){
     o.option = (o.option+1)%PLAY_LEGEND[o.type].faces.length;
     if(o.type==='hum') humFaces(o);
@@ -2614,6 +2633,7 @@ function finishCapture(c){
   const buf = audio.ctx.createBuffer(1, total, sr);
   buf.getChannelData(0).set(out);
   const bars = Math.round((c.until - c.from)/(16*stepDur()));
+  if(song.puck && peak > 0.001){ o.ownLoop = null; o.recState = 'idle'; o.flashAt = visNow(); songAddBlob(o, buf, bars); return; }   // with a song on the table the take becomes a blob
   o.ownLoop = { beats: Math.max(4, bars*4), buffer: buf };
   o.recState = peak > 0.001 ? 'play' : 'idle';
 }
@@ -2678,6 +2698,7 @@ function setBpm(v){
     transport.nextTime = Math.max(transport.nextTime, now);
     transport.anchor = transport.nextTime - transport.step*stepDur();
     for(const o of objects) if(o.type==='delay' || (o.type==='lfo' && lfoSynced(o))) applyParams(o);
+    if(song.playing) songReschedule();
   }
   saveSoon();
 }
@@ -2935,6 +2956,16 @@ canvas.addEventListener('pointerdown', e=>{
     const b=pianoBtn(o);
     if(Math.hypot(x-b.x,y-b.y)<=b.r+4){ o.piano=!o.piano; saveSoon(); return; }
   }
+  if(song.puck){   // the song's transport at the origin, and its blobs, sit on top of everything
+    for(const b of songBtns()) if(Math.hypot(x-b.x, y-b.y) <= b.r+4*S){ songButton(b.k); addRipple(b.x, b.y, 0.3); return; }
+    const bl = songBlobAt(x,y);
+    if(bl){
+      try{ canvas.setPointerCapture(e.pointerId); }catch(err){}
+      songGrab(bl, x, y);
+      drags.set(e.pointerId, { mode:'blob', blob:bl, sx:x, sy:y, moved:false });
+      return;
+    }
+  }
   const hit = objectAt(x,y);
   if(hit){
     const { o, d } = hit;
@@ -3054,6 +3085,7 @@ canvas.addEventListener('pointermove', e=>{
   if(!dr) return;
   const { obj } = dr, x=e.clientX, y=e.clientY;
   if(dr.mode==='sky'){ spheresPointerMove(e, x, y); return; }
+  if(dr.mode==='blob'){ song.dragX = x; song.dragY = y; if(!dr.moved && Math.hypot(x-dr.sx, y-dr.sy) > 8*S){ dr.moved = true; songLift(dr.blob, x, y); } return; }
   if(dr.mode==='move'){
     const ox=obj.x, oy=obj.y;
     obj.x = x+dr.dx; obj.y = y+dr.dy;
@@ -3114,6 +3146,7 @@ function endDrag(e){
   drags.delete(e.pointerId);
   if(!dr) return;
   if(dr.mode==='sky'){ spheresPointerUp(e, dr); return; }
+  if(dr.mode==='blob'){ songDragEnd(dr.blob, dr.moved); return; }
   if(dr.mode==='move'){
     if(distC(dr.obj) > TABLE_R-8){ pushUndo(); destroyObject(dr.obj); }
     else if(!dr.moved) cycleOption(dr.obj);   // single tap = flip the cube to its next face
@@ -3241,7 +3274,7 @@ function placeFree(o){
    Fiducial class IDs map onto object types in blocks of 8.              */
 const TUIO_TYPES = ['osc','sampler','seq','filter','delay','mod','lfo','dist','reverb','rec','mic','tempo','chorus','crush',
                     'key','tune','env','xpress','steps','euclid','chance','chain','scene','motion','warp','send','space','master','stems',
-                    'theremin','drums','harp','marbles','hum','conduct','air','water','spheres'];
+                    'theremin','drums','harp','marbles','hum','conduct','air','water','spheres','song'];
 const tuioObjs = new Map();
 function tuioConnect(url){
   const ws = new WebSocket(url);
@@ -3843,6 +3876,7 @@ const CARD_TEXT = {
   conduct:'Beat time in the air (or tap its ring) and the whole table takes your tempo. The second face also follows your hand\'s height as dynamics.',
   air:'Sits by any block. Raise or lower a hand to turn that block\'s ring without touching it; faces choose the ring, the slider, or both.',
   water:'A waterphone: a bowl of water with brass rods around it. Hold a rod to bow it, tap one to strike it, and move or turn the puck (or tilt the cube) to slosh the water, which bends every note. Faces: whale, storm (it plays itself), gong, ghost. Put a reverb behind it.',
+  song:'The rim becomes a three-minute song: intro, verses, choruses, a middle eight, an outro. A rec block\'s takes become blobs; drag them onto the rim, before, after or on top of each other. Play, pause and stop at the centre; the arrow saves the song as an MP3. Turn to loop one part; flip for a shorter song shape.',
   spheres:'The disc becomes the solar system: the Sun in the middle, every planet on its real orbit, with its real number of moons. Touch a planet or a moon to hear it, in the manner of Holst. Turn to speed the years up. Flip to God mode: flick worlds, block their orbits with a finger, and watch them merge or shatter.',
 };
 async function markerSheet(){
@@ -4181,14 +4215,16 @@ $('recChip').addEventListener('click', async ()=>{
 });
 
 /* imported loops persist in IndexedDB, so they are back after a reload */
-function idbOpen(){ return new Promise((res,rej)=>{ try{ const r=indexedDB.open('lumatable',1); r.onupgradeneeded=()=>{ r.result.createObjectStore('imports',{keyPath:'name'}); }; r.onsuccess=()=>res(r.result); r.onerror=()=>rej(r.error); }catch(e){ rej(e); } }); }
-async function idbPut(rec){ const db=await idbOpen(); await new Promise((res,rej)=>{ const tx=db.transaction('imports','readwrite'); tx.objectStore('imports').put(rec); tx.oncomplete=res; tx.onerror=()=>rej(tx.error); }); }
-async function idbAll(){ const db=await idbOpen(); return new Promise((res,rej)=>{ const r=db.transaction('imports').objectStore('imports').getAll(); r.onsuccess=()=>res(r.result||[]); r.onerror=()=>rej(r.error); }); }
+function idbOpen(){ return new Promise((res,rej)=>{ try{ const r=indexedDB.open('lumatable',2); r.onupgradeneeded=()=>{ const db=r.result; if(!db.objectStoreNames.contains('imports')) db.createObjectStore('imports',{keyPath:'name'}); if(!db.objectStoreNames.contains('song')) db.createObjectStore('song',{keyPath:'id'}); }; r.onsuccess=()=>res(r.result); r.onerror=()=>rej(r.error); }catch(e){ rej(e); } }); }
+async function idbPut(rec, store='imports'){ const db=await idbOpen(); await new Promise((res,rej)=>{ const tx=db.transaction(store,'readwrite'); tx.objectStore(store).put(rec); tx.oncomplete=res; tx.onerror=()=>rej(tx.error); }); }
+async function idbAll(store='imports'){ const db=await idbOpen(); return new Promise((res,rej)=>{ const r=db.transaction(store).objectStore(store).getAll(); r.onsuccess=()=>res(r.result||[]); r.onerror=()=>rej(r.error); }); }
+async function idbDel(key, store='imports'){ const db=await idbOpen(); await new Promise((res,rej)=>{ const tx=db.transaction(store,'readwrite'); tx.objectStore(store).delete(key); tx.oncomplete=res; tx.onerror=()=>rej(tx.error); }); }
 function addImport(name, buffer, beats){ audio.buffers[name] = { beats, buffer }; if(!LOOPS.includes(name)) LOOPS.push(name); }
 async function restoreImports(){
   try{ const recs = await idbAll(); recs.sort((a,b)=>a.name.localeCompare(b.name));
     for(const r of recs){ if(!r || !r.data || !r.data.length) continue; const b = audio.ctx.createBuffer(1, r.data.length, r.sr||audio.ctx.sampleRate); b.getChannelData(0).set(r.data); addImport(r.name, b, r.beats||4); }
   }catch(e){}
+  await songRestore();
 }
 /* import an audio file as a loop (it becomes a MINE slot) */
 $('importBtn').addEventListener('click', ()=>{ if(audio) $('importFile').click(); });
@@ -4803,6 +4839,389 @@ function holstCue(what){
   else { orchTimp(31+k, t, 1, 2.5); orchTimp(31+k, t+0.35, 1, 2.5); [55,51,57,59].forEach((m,i)=>{ orchBrass(m+k, t+0.5+i*0.3, 0.95, 0.28); orchBrass(m+k-12, t+0.5+i*0.3, 0.8, 0.28); }); }
 }
 
+/* ================= the song: a three-minute timeline around the rim =================
+   The song puck turns the rim into a timeline of the parts of a pop song. A rec
+   block's captures no longer loop: each one becomes a blob of jelly that floats
+   beside the block. Drag a blob onto the rim to lay it down at a bar, before,
+   after or on top of another one. The centre gains play, pause and stop, and a
+   save button renders the whole song to an MP3 (or a WAV). Song playback comes
+   out of its own bus, which the rec block cannot hear, so you can record the
+   next part while the song plays.                                             */
+const SONG_FORMS = [
+  { n:'POP SONG',    parts:[['intro',8],['verse 1',16],['chorus',8],['verse 2',16],['chorus',8],['middle 8',8],['last chorus',16],['outro',8]] },   // 88 bars: 2:56 at 120 BPM
+  { n:'LITTLE SONG', parts:[['intro',4],['verse',8],['chorus',8],['verse',8],['chorus',8],['outro',4]] },                                          // 40 bars
+  { n:'FREE',        parts:[['',64]] },
+];
+const SONG_PART_COL = { intro:'#7fa8d8', verse:'#7fd8c8', chorus:'#ffb84d', middle:'#c99cff', last:'#ff8fb0', outro:'#9aa7b8', '':'#7fa8d8' };
+const SONG_LANES = 3;
+const song = { puck:null, blobs:[], playing:false, pos:0, t0:0, pending:null, sources:[], wrapAt:0, drag:null, dragX:0, dragY:0,
+               saving:null, msg:null, nextTake:1, lastRange:'', mp3Load:null };
+const songR0 = () => TABLE_R*0.905, songR1 = () => TABLE_R*0.985;
+const barDur = () => 16*stepDur();
+function songForm(){ return SONG_FORMS[(song.puck ? song.puck.option : 0) % SONG_FORMS.length]; }
+function songBars(){ return songForm().parts.reduce((a,p)=>a+p[1],0); }
+function songParts(){ let at=0; return songForm().parts.map(([n,len])=>{ const p={ n, at, len, col: SONG_PART_COL[n.split(' ')[0]] || '#7fa8d8' }; at+=len; return p; }); }
+function songPartAt(bar){ return songParts().find(p=>bar>=p.at && bar<p.at+p.len) || null; }
+const songBarAngle = () => TAU/songBars();
+const songAngleOfBar = b => -Math.PI/2 + b*songBarAngle();
+function songBarAt(x,y){ const a=((Math.atan2(y-CY,x-CX)+Math.PI/2)%TAU+TAU)%TAU; return a/songBarAngle(); }   // the fractional bar under a point
+function songLoopRange(){   // the puck's ring picks a part to play round and round; straight up is the whole song
+  const n = songBars();
+  if(!song.puck) return [0, n];
+  const parts = songParts(), k = Math.round((song.puck.angle/TAU)*(parts.length+1)) % (parts.length+1);
+  if(k===0) return [0, n];
+  const p = parts[k-1]; return [p.at, p.at+p.len];
+}
+function songTimeStr(bars){ const s = Math.max(0, Math.round(bars*barDur())); return Math.floor(s/60)+':'+String(s%60).padStart(2,'0'); }
+const songBlobR = b => (13 + 3.5*Math.log2(b.bars+1))*S;
+const songCol = (b, a) => `hsla(${b.hue},82%,66%,${a===undefined?1:a})`;
+function songPosAt(t){ return song.playing ? (t - song.t0)/barDur() : song.pos; }
+function songBus(){
+  if(!audio) return null;
+  if(!audio.songBus){
+    const g = audio.ctx.createGain(); g.gain.value = song.puck ? song.puck.arc : 0.9;
+    g.connect(audio.syncDelay); g.connect(audio.mediaDest); g.connect(audio.masterAn);   // out, into the header recording, onto the meter: never into the rec tap
+    audio.songBus = g;
+  }
+  return audio.songBus;
+}
+/* ---- blobs ---- */
+function songAddBlob(rec, buf, bars){
+  const k = song.blobs.filter(b=>!b.placed).length;
+  const a = Math.atan2(CY-rec.y, CX-rec.x) + (k%2 ? 1 : -1)*Math.ceil(k/2)*0.9;   // beside the block, on the side facing the centre, fanning out
+  const d = R_ARC1() + 34*S;
+  const x = rec.x + Math.cos(a)*d, y = rec.y + Math.sin(a)*d;
+  const b = { id:'b'+Date.now().toString(36)+Math.floor(Math.random()*1e4).toString(36), name:'take '+song.nextTake, buf, bars, sr:buf.sampleRate,
+              x, y, vx:0, vy:0, hx:x, hy:y, hue:(song.nextTake*47+20)%360, placed:false, bar:0, lane:0, ph:Math.random()*TAU, wob:0, muted:false, born:performance.now(), aud:null };
+  song.nextTake++;
+  songClampFree(b); b.x = b.hx; b.y = b.hy;
+  song.blobs.push(b); songSave(b); addRipple(b.x, b.y, 0.5);
+  return b;
+}
+function songClampFree(b){   // a free blob rests inside the disc, clear of the rim band
+  const dx=b.hx-CX, dy=b.hy-CY, d=Math.hypot(dx,dy), max=TABLE_R*0.84 - songBlobR(b);
+  if(d>max){ b.hx = CX + dx/d*max; b.hy = CY + dy/d*max; }
+}
+function songRemoveBlob(b){
+  songStopBlob(b); if(b.aud){ try{ b.aud.stop(); }catch(e){} b.aud=null; }
+  const i = song.blobs.indexOf(b); if(i>=0) song.blobs.splice(i,1);
+  if(song.drag===b) song.drag = null;
+  idbDel(b.id, 'song').catch(()=>{});
+}
+function songOccupied(lane, bar, bars, self){
+  return song.blobs.some(q=>q!==self && q.placed && q.lane===lane && q.bar < bar+bars && bar < q.bar+q.bars);
+}
+function songFreeLane(b, bar, want){   // the lane under the finger if it is free over those bars, else the nearest free one, else the finger's (they overlap)
+  const order = [want]; for(let k=1;k<SONG_LANES;k++){ if(want-k>=0) order.push(want-k); if(want+k<SONG_LANES) order.push(want+k); }
+  for(const l of order) if(!songOccupied(l, bar, b.bars, b)) return l;
+  return want;
+}
+function songDropTarget(b, x, y){   // where a blob would land: on the rim (bar + lane), free on the disc, or in the bin
+  const dc = Math.hypot(x-CX, y-CY);
+  if(dc > TABLE_R*1.04) return { kind:'bin' };
+  if(dc > TABLE_R*0.86){
+    const bar = Math.max(0, Math.min(songBars()-1, Math.round(songBarAt(x,y))));
+    const want = Math.max(0, Math.min(SONG_LANES-1, Math.floor((dc - songR0())/((songR1()-songR0())/SONG_LANES))));
+    return { kind:'rim', bar, lane: songFreeLane(b, bar, want) };
+  }
+  return { kind:'free' };
+}
+function songBlobAt(x,y){
+  for(let i=song.blobs.length-1;i>=0;i--){ const b=song.blobs[i]; if(!b.placed && Math.hypot(x-b.x,y-b.y) <= songBlobR(b)+6*S) return b; }
+  const dc = Math.hypot(x-CX, y-CY);
+  if(dc < songR0()-8*S || dc > songR1()+8*S) return null;
+  const bar = songBarAt(x,y), h=(songR1()-songR0())/SONG_LANES, laneF=(dc-songR0())/h;
+  let best=null, bd=1e9;
+  for(const b of song.blobs){ if(!b.placed || bar < b.bar || bar >= b.bar+b.bars) continue; const d=Math.abs(b.lane+0.5-laneF); if(d<bd){ bd=d; best=b; } }
+  return best;
+}
+function songGrab(b, x, y){ song.dragX = x; song.dragY = y; if(!b.placed) song.drag = b; }   // a free blob follows the finger at once
+function songLift(b, x, y){   // a blob on the rim comes off it only once the finger really moves, so a tap can still play it
+  if(song.drag===b) return;
+  b.placed = false; songStopBlob(b); b.x = x; b.y = y; b.vx = b.vy = 0; song.drag = b;
+}
+function songDragEnd(b, moved){
+  const x = song.dragX, y = song.dragY;
+  if(!moved){ if(song.drag===b) song.drag = null; songAudition(b); return; }
+  song.drag = null;
+  const tg = songDropTarget(b, x, y);
+  if(tg.kind==='bin'){ songRemoveBlob(b); addRipple(x, y, 0.6); return; }
+  if(tg.kind==='rim'){
+    b.placed = true; b.bar = tg.bar; b.lane = tg.lane; b.vx = b.vy = 0; b.hx = x; b.hy = y;
+    if(song.playing && audio){ const when = audio.ctx.currentTime + 0.03; songScheduleBlob(b, when, songPosAt(when)); }
+    addRipple(x, y, 0.35);
+  } else { b.placed = false; b.hx = x; b.hy = y; songClampFree(b); }
+  songSave(b);
+}
+function songAudition(b){   // a tap plays the blob once on its own; another tap stops it
+  if(!audio) return;
+  if(b.aud){ try{ b.aud.stop(); }catch(e){} b.aud = null; return; }
+  const src = audio.ctx.createBufferSource(); src.buffer = b.buf; src.connect(songBus());
+  src.onended = ()=>{ if(b.aud===src) b.aud = null; };
+  src.start(); b.aud = src; addRipple(b.x, b.y, 0.3);
+}
+/* ---- transport ---- */
+function songScheduleBlob(b, when, fromBar){   // start one placed blob so that it sits on the grid from `fromBar` at time `when`
+  const [A,B] = songLoopRange(), bd = barDur();
+  if(!b.placed || b.muted) return;
+  const s = b.bar, e = Math.min(b.bar + b.bars, B);
+  if(e <= fromBar || s >= B) return;
+  const startBar = Math.max(s, fromBar), offset = (startBar - s)*bd, dur = (e - startBar)*bd;
+  if(dur <= 0.002 || offset >= b.buf.duration) return;
+  const src = audio.ctx.createBufferSource(); src.buffer = b.buf; src.connect(songBus());
+  const t = when + (startBar - fromBar)*bd;
+  try{ src.start(t, offset, dur + 0.005); }catch(err){ return; }
+  song.sources.push({ src, blob:b, t, until:t+dur });
+}
+function songSchedulePass(fromBar, when){
+  const [A,B] = songLoopRange();
+  for(const b of song.blobs) songScheduleBlob(b, when, fromBar);
+  song.wrapAt = when + (B - fromBar)*barDur();
+}
+function songStopBlob(b){ for(const s of song.sources) if(s.blob===b){ try{ s.src.stop(); }catch(e){} } song.sources = song.sources.filter(s=>s.blob!==b); }
+function songStopSources(){ for(const s of song.sources){ try{ s.src.stop(); }catch(e){} } song.sources = []; song.pending = null; }
+function songPlay(){
+  if(!audio || !song.puck || song.playing) return;
+  const [A,B] = songLoopRange();
+  if(song.pos < A || song.pos >= B) song.pos = A;
+  song.pos = Math.floor(song.pos);
+  const from = nextBarTime();                 // on the table's next bar, so live loops and the song share a grid
+  song.t0 = from - song.pos*barDur();
+  song.playing = true;
+  songSchedulePass(song.pos, from);
+}
+function songPause(){ if(!song.playing) return; song.pos = Math.floor(songPosAt(audio.ctx.currentTime)); song.playing = false; songStopSources(); }
+function songStop(){ if(song.playing){ song.playing = false; songStopSources(); } song.pos = songLoopRange()[0]; }
+function songReschedule(){ const was = song.playing; if(was){ song.pos = Math.floor(songPosAt(audio.ctx.currentTime)); song.playing = false; songStopSources(); songPlay(); } }
+function songButton(k){
+  if(k==='play'){ if(song.playing) songPause(); else songPlay(); }
+  else if(k==='stop') songStop();
+  else if(k==='save') songExport();
+}
+function songBtns(){ return [ { k:'stop', x:CX-36*S, y:CY, r:11*S }, { k:'play', x:CX, y:CY, r:15*S }, { k:'save', x:CX+36*S, y:CY, r:11*S } ]; }
+function songTick(dt){
+  const nowS = performance.now()/1000;
+  for(const b of song.blobs){
+    const dragging = song.drag===b;
+    if(b.placed && !dragging) continue;
+    const tx = dragging ? song.dragX : b.hx + Math.cos(nowS*0.7+b.ph)*3*S, ty = dragging ? song.dragY : b.hy + Math.sin(nowS*0.9+b.ph)*3*S;
+    const k = dragging ? 380 : 18, c = dragging ? 27 : 5;    // a spring: honey under a finger, a slow bob at rest
+    let ax = k*(tx-b.x) - c*b.vx, ay = k*(ty-b.y) - c*b.vy;
+    if(!dragging) for(const q of song.blobs){
+      if(q===b || q.placed || song.drag===q) continue;
+      const dx=b.x-q.x, dy=b.y-q.y, d=Math.hypot(dx,dy)||1, min=songBlobR(b)+songBlobR(q)+4*S;
+      if(d<min){ ax += (dx/d)*(min-d)*40; ay += (dy/d)*(min-d)*40; }
+    }
+    b.vx += ax*dt; b.vy += ay*dt; b.x += b.vx*dt; b.y += b.vy*dt;
+    b.wob = b.wob*0.9 + Math.hypot(b.vx,b.vy)*0.1;
+  }
+  if(song.msg){ song.msg.t -= dt; if(song.msg.t<=0) song.msg = null; }
+  if(!audio) return;
+  const now = audio.ctx.currentTime;
+  if(song.pending && now >= song.pending.at){ song.t0 = song.pending.t0; song.pending = null; }
+  if(song.playing){
+    const [A,B] = songLoopRange(), whole = A===0 && B===songBars();
+    if(whole){ if(now >= song.wrapAt){ song.playing = false; songStopSources(); song.pos = 0; } }   // the end of the song: stop
+    else if(now > song.wrapAt - 0.3){ const at = song.wrapAt; songSchedulePass(A, at); song.pending = { at, t0: at - A*barDur() }; }   // a part on loop: go round again, on the grid
+    if(song.playing){ song.pos = Math.max(0, songPosAt(now)); song.sources = song.sources.filter(s=>s.until > now - 1); }
+  }
+  const rg = songLoopRange().join('-');
+  if(song.puck && rg!==song.lastRange){ song.lastRange = rg; if(song.playing) songReschedule(); }
+}
+/* ---- saving: an offline render of every blob on the rim, then MP3 (lamejs from the CDN) or WAV ---- */
+function songMp3(){
+  if(window.lamejs) return Promise.resolve(window.lamejs);
+  if(song.mp3Load) return song.mp3Load;
+  const urls = ['https://cdnjs.cloudflare.com/ajax/libs/lamejs/1.2.0/lame.min.js','https://cdn.jsdelivr.net/npm/lamejs@1.2.0/lame.min.js'];
+  song.mp3Load = (async()=>{
+    for(const u of urls){
+      const ok = await new Promise(res=>{ try{ const s=document.createElement('script'); s.src=u; s.onload=()=>res(true); s.onerror=()=>res(false); document.head.appendChild(s); setTimeout(()=>res(false), 9000); }catch(e){ res(false); } });
+      if(ok && window.lamejs) return window.lamejs;
+    }
+    song.mp3Load = null; return null;
+  })();
+  return song.mp3Load;
+}
+function songEncodeMp3(lame, pcm, sr){
+  const enc = new lame.Mp3Encoder(1, sr, 160), chunks=[], block=1152, s16=new Int16Array(block);
+  for(let i=0;i<pcm.length;i+=block){
+    const n = Math.min(block, pcm.length-i);
+    for(let j=0;j<n;j++){ const x=Math.max(-1,Math.min(1,pcm[i+j])); s16[j] = x<0 ? x*32768 : x*32767; }
+    const out = enc.encodeBuffer(n===block ? s16 : s16.subarray(0,n));
+    if(out && out.length) chunks.push(out.slice());
+  }
+  const end = enc.flush(); if(end && end.length) chunks.push(end.slice());
+  return new Blob(chunks, { type:'audio/mpeg' });
+}
+async function songRender(){   // the mixdown as one mono Float32Array, from bar 0 to the end of the last blob
+  const placed = song.blobs.filter(b=>b.placed && !b.muted);
+  if(!placed.length) return null;
+  const bd = barDur(), sr = audio.ctx.sampleRate;
+  const endBar = Math.min(songBars(), Math.max(...placed.map(b=>b.bar+b.bars)));
+  const off = new OfflineAudioContext(1, Math.ceil((endBar*bd + 1.0)*sr), sr);
+  const comp = off.createDynamicsCompressor(); comp.threshold.value=-10; comp.ratio.value=4; comp.attack.value=0.004; comp.release.value=0.2; comp.connect(off.destination);
+  const master = off.createGain(); master.gain.value = song.puck ? song.puck.arc : 0.9; master.connect(comp);
+  for(const b of placed){ const s=off.createBufferSource(); s.buffer=b.buf; s.connect(master); s.start(b.bar*bd, 0, Math.min(b.bars, songBars()-b.bar)*bd); }
+  const rendered = await off.startRendering();
+  const pcm = rendered.getChannelData(0);
+  let peak = 0; for(let i=0;i<pcm.length;i++) peak = Math.max(peak, Math.abs(pcm[i]));
+  if(peak > 0.95) for(let i=0;i<pcm.length;i++) pcm[i] *= 0.95/peak;   // never clip the file
+  return { pcm, sr };
+}
+async function songExport(){
+  if(!audio || song.saving) return;
+  if(!song.blobs.some(b=>b.placed && !b.muted)){ song.msg = { txt:'PUT A BLOB ON THE RIM FIRST', t:2.5 }; return; }
+  song.saving = 'rendering…';
+  try{
+    const r = await songRender();
+    song.saving = 'making the mp3…'; await new Promise(res=>setTimeout(res, 40));
+    let blob = null, name = 'lumatable-song.mp3';
+    try{ const lame = await songMp3(); if(lame) blob = songEncodeMp3(lame, r.pcm, r.sr); }catch(e){ blob = null; }
+    if(!blob){ blob = wavBlob([r.pcm], r.sr); name = 'lumatable-song.wav'; }
+    song.saving = 'saving…';
+    song.lastExport = { name, size: blob.size, type: blob.type };
+    await saveFile(name, blob, ok=>{ song.msg = { txt: ok ? 'SAVED '+name.toUpperCase() : 'SAVES IN THE HOSTED BUILD', t:3.5 }; });
+  }catch(e){ song.msg = { txt:'COULD NOT SAVE', t:3 }; }
+  song.saving = null;
+}
+/* ---- persistence: blobs live in IndexedDB, so the song is back after a reload ---- */
+function songSave(b){
+  idbPut({ id:b.id, name:b.name, data:b.buf.getChannelData(0), sr:b.sr, bars:b.bars, placed:b.placed, bar:b.bar, lane:b.lane,
+           nx:(b.hx-CX)/TABLE_R, ny:(b.hy-CY)/TABLE_R, hue:b.hue, muted:b.muted, take: parseInt(b.name.replace(/\D/g,''))||0 }, 'song').catch(()=>{});
+}
+async function songRestore(){
+  try{
+    const recs = await idbAll('song');
+    for(const r of recs){
+      if(!r || !r.data || !r.data.length || song.blobs.some(b=>b.id===r.id)) continue;
+      const buf = audio.ctx.createBuffer(1, r.data.length, r.sr||audio.ctx.sampleRate); buf.getChannelData(0).set(r.data);
+      const b = { id:r.id, name:r.name||('take '+(r.take||1)), buf, bars:r.bars||1, sr:buf.sampleRate, hx:CX+(r.nx||0)*TABLE_R, hy:CY+(r.ny||0)*TABLE_R,
+                  vx:0, vy:0, hue:r.hue||40, placed:!!r.placed, bar:r.bar|0, lane:r.lane|0, ph:Math.random()*TAU, wob:0, muted:!!r.muted, born:0, aud:null };
+      b.x = b.hx; b.y = b.hy; songClampFree(b);
+      song.blobs.push(b); song.nextTake = Math.max(song.nextTake, (r.take||0)+1);
+    }
+  }catch(e){}
+}
+/* ---- drawing ---- */
+function songDrawRim(){
+  const r0 = songR0(), r1 = songR1(), h = (r1-r0)/SONG_LANES, parts = songParts(), nb = songBars(), ba = songBarAngle();
+  const [A,B] = songLoopRange(), whole = A===0 && B===nb;
+  g.save(); g.lineCap='butt';
+  // the band
+  g.fillStyle='rgba(4,10,20,0.55)'; g.beginPath(); g.arc(CX,CY,r1,0,TAU); g.arc(CX,CY,r0,0,TAU,true); g.fill();
+  for(const p of parts){
+    const a0 = songAngleOfBar(p.at), a1 = songAngleOfBar(p.at+p.len);
+    const inLoop = whole || (p.at>=A && p.at<B);
+    g.globalAlpha = inLoop ? 0.16 : 0.06; g.fillStyle = p.col;
+    g.beginPath(); g.arc(CX,CY,r1,a0,a1); g.arc(CX,CY,r0,a1,a0,true); g.fill();
+    g.globalAlpha = inLoop ? 0.9 : 0.35; g.strokeStyle = p.col; g.lineWidth = 1.5;
+    g.beginPath(); g.moveTo(CX+Math.cos(a0)*(r0-3*S), CY+Math.sin(a0)*(r0-3*S)); g.lineTo(CX+Math.cos(a0)*(r1+2*S), CY+Math.sin(a0)*(r1+2*S)); g.stroke();
+    if(p.n){   // the part's name, along the inside of the band, always the right way up
+      const am = (a0+a1)/2, rr = r0 - 8*S, flip = Math.sin(am) > 0;
+      g.save(); g.translate(CX+Math.cos(am)*rr, CY+Math.sin(am)*rr); g.rotate(am + Math.PI/2 + (flip?Math.PI:0));
+      g.fillStyle = p.col; g.globalAlpha = inLoop ? 0.95 : 0.4; g.textAlign='center'; g.textBaseline='middle';
+      g.font = `600 ${(Math.min(W,H)<720 ? 7 : 8.5)*S}px "Chakra Petch", sans-serif`;
+      g.fillText(p.n.toUpperCase(), 0, flip ? -1.5*S : 1.5*S); g.restore();
+    }
+  }
+  g.globalAlpha = 0.35; g.strokeStyle = '#a9dcea'; g.lineWidth = 1;
+  for(let b=0;b<nb;b++){ const a=songAngleOfBar(b), len = (b%4===0 ? 5 : 2.5)*S; g.beginPath(); g.moveTo(CX+Math.cos(a)*(r1-len), CY+Math.sin(a)*(r1-len)); g.lineTo(CX+Math.cos(a)*r1, CY+Math.sin(a)*r1); g.stroke(); }
+  g.globalAlpha = 1;
+  // the blobs on the rim
+  const nowS = performance.now()/1000, pos = song.playing ? songPosAt(visNow()) : song.pos;
+  for(const b of song.blobs){
+    if(!b.placed) continue;
+    const s = b.bar, e = Math.min(b.bar+b.bars, nb), a0 = songAngleOfBar(s), a1 = songAngleOfBar(e);
+    const ri = r0 + b.lane*h + 1*S, ro = r0 + (b.lane+1)*h - 1*S;
+    const sounding = song.playing && pos>=s && pos<e, over = songOccupied(b.lane, b.bar, b.bars, b);
+    g.fillStyle = songCol(b, over ? 0.55 : 0.82); glow(songCol(b), sounding ? 14 : 5);
+    g.beginPath();
+    const n = Math.max(8, Math.ceil((a1-a0)/0.04));
+    for(let i=0;i<=n;i++){ const a=a0+(a1-a0)*i/n, w = (sounding ? 1.2 : 0.5)*S*Math.sin(a*40 + nowS*6 + b.ph); const r=ro+w; g[i?'lineTo':'moveTo'](CX+Math.cos(a)*r, CY+Math.sin(a)*r); }
+    for(let i=n;i>=0;i--){ const a=a0+(a1-a0)*i/n, w = 0.5*S*Math.sin(a*36 - nowS*5 + b.ph); const r=ri-w; g.lineTo(CX+Math.cos(a)*r, CY+Math.sin(a)*r); }
+    g.closePath(); g.fill(); noGlow();
+    if(b.muted){ g.strokeStyle='#fff'; g.globalAlpha=0.6; g.setLineDash([2*S,3*S]); g.lineWidth=1; g.stroke(); g.setLineDash([]); g.globalAlpha=1; }
+    if((a1-a0)*(ri+ro)/2 > 26*S){   // long enough for its name
+      const am=(a0+a1)/2, rr=(ri+ro)/2, flip = Math.sin(am) > 0;
+      g.save(); g.translate(CX+Math.cos(am)*rr, CY+Math.sin(am)*rr); g.rotate(am + Math.PI/2 + (flip?Math.PI:0));
+      g.fillStyle='#08111c'; g.globalAlpha=0.85; g.textAlign='center'; g.textBaseline='middle'; g.font=`700 ${Math.min(h*0.62, 7*S)}px "Chakra Petch", sans-serif`;
+      g.fillText(b.name.toUpperCase(), 0, 0); g.restore();
+    }
+  }
+  // where a dragged blob would land
+  if(song.drag){
+    const tg = songDropTarget(song.drag, song.dragX, song.dragY);
+    if(tg.kind==='rim'){
+      const b = song.drag, a0 = songAngleOfBar(tg.bar), a1 = songAngleOfBar(Math.min(nb, tg.bar+b.bars));
+      const ri = r0 + tg.lane*h + 1*S, ro = r0 + (tg.lane+1)*h - 1*S;
+      g.strokeStyle = songCol(b); g.globalAlpha = 0.9; g.lineWidth = 1.5; g.setLineDash([3*S,3*S]);
+      g.beginPath(); g.arc(CX,CY,ro,a0,a1); g.arc(CX,CY,ri,a1,a0,true); g.closePath(); g.stroke(); g.setLineDash([]); g.globalAlpha = 1;
+      const p = songPartAt(tg.bar);
+      g.fillStyle='#fff'; g.font=`600 ${9*S}px "Chakra Petch", sans-serif`; g.textAlign='center'; g.textBaseline='middle';
+      g.fillText('BAR '+(tg.bar+1)+(p&&p.n ? ' · '+p.n.toUpperCase() : ''), song.dragX, song.dragY - songBlobR(b) - 12*S);
+    } else if(tg.kind==='bin'){
+      g.fillStyle='#ff5d5d'; g.font=`600 ${9*S}px "Chakra Petch", sans-serif`; g.textAlign='center'; g.textBaseline='middle';
+      g.fillText('LET GO TO THROW IT AWAY', song.dragX, song.dragY - songBlobR(song.drag) - 12*S);
+    }
+  }
+  // the play head
+  {
+    const a = songAngleOfBar(pos), ca=Math.cos(a), sa=Math.sin(a);
+    if(song.playing){ g.fillStyle='#ffffff'; g.globalAlpha=0.10; g.beginPath(); g.arc(CX,CY,r1+3*S,a-0.35,a); g.arc(CX,CY,r0-4*S,a,a-0.35,true); g.fill(); g.globalAlpha=1; }
+    g.strokeStyle='#ffffff'; g.lineWidth=2.2; glow('#ffffff', 10);
+    g.beginPath(); g.moveTo(CX+ca*(r0-6*S), CY+sa*(r0-6*S)); g.lineTo(CX+ca*(r1+5*S), CY+sa*(r1+5*S)); g.stroke();
+    g.fillStyle='#ffffff'; g.beginPath(); g.arc(CX+ca*(r1+5*S), CY+sa*(r1+5*S), 3*S, 0, TAU); g.fill(); noGlow();
+  }
+  g.restore();
+}
+function songDrawBlob(b){
+  const r = songBlobR(b), nowS = performance.now()/1000, sp = Math.hypot(b.vx,b.vy);
+  const st = Math.min(0.32, sp/(TABLE_R*3.2)), va = Math.atan2(b.vy, b.vx);
+  const wobA = 0.045 + 0.09*Math.min(1, b.wob/(TABLE_R*0.5)) + (b.aud ? 0.05 : 0);
+  g.save(); g.translate(b.x, b.y); g.rotate(va); g.scale(1+st, 1-st*0.55); g.rotate(-va);
+  g.beginPath();
+  const N = 16; const pts=[];
+  for(let i=0;i<N;i++){ const a=i/N*TAU, rr = r*(1 + wobA*Math.sin(3*a + nowS*3.1 + b.ph) + wobA*0.7*Math.sin(5*a - nowS*2.3 + b.ph*2)); pts.push({x:Math.cos(a)*rr, y:Math.sin(a)*rr}); }
+  for(let i=0;i<N;i++){ const p=pts[i], q=pts[(i+1)%N], mx=(p.x+q.x)/2, my=(p.y+q.y)/2; if(i===0) g.moveTo(mx,my); const nq=pts[(i+2)%N]; g.quadraticCurveTo(q.x,q.y,(q.x+nq.x)/2,(q.y+nq.y)/2); }
+  g.closePath();
+  const gr = g.createRadialGradient(-r*0.35, -r*0.4, r*0.1, 0, 0, r*1.15);
+  gr.addColorStop(0, `hsla(${b.hue},90%,86%,0.95)`); gr.addColorStop(0.55, songCol(b, 0.86)); gr.addColorStop(1, `hsla(${b.hue},80%,42%,0.9)`);
+  g.fillStyle = gr; glow(songCol(b), b.aud ? 18 : 9); g.fill(); noGlow();
+  g.strokeStyle = `hsla(${b.hue},90%,90%,0.6)`; g.lineWidth = 1.2; g.stroke();
+  g.fillStyle = 'rgba(255,255,255,0.55)'; g.beginPath(); g.ellipse(-r*0.32, -r*0.42, r*0.22, r*0.13, -0.6, 0, TAU); g.fill();   // a wet highlight
+  g.fillStyle = '#08111c'; g.textAlign='center'; g.textBaseline='middle';
+  g.font = `700 ${Math.max(8, r*0.55)}px "Chakra Petch", sans-serif`; g.fillText(String(b.bars), 0, -r*0.06);
+  g.font = `600 ${Math.max(6, r*0.26)}px "Chakra Petch", sans-serif`; g.fillText(b.bars===1 ? 'BAR' : 'BARS', 0, r*0.36);
+  g.restore();
+  g.save(); g.fillStyle = songCol(b, 0.9); g.textAlign='center'; g.textBaseline='middle'; g.font = `600 ${7.5*S}px "Chakra Petch", sans-serif`;
+  g.fillText(b.name.toUpperCase(), b.x, b.y + r + 9*S); g.restore();
+}
+function songDrawTop(){
+  for(const b of song.blobs) if(!b.placed && b!==song.drag) songDrawBlob(b);
+  if(song.drag) songDrawBlob(song.drag);
+  // play · pause · stop · save, at the origin
+  g.save(); g.textAlign='center'; g.textBaseline='middle';
+  for(const bt of songBtns()){
+    const main = bt.k==='play';
+    g.fillStyle = 'rgba(6,14,26,0.82)'; g.strokeStyle = main ? '#ffffff' : '#8a97a8'; g.lineWidth = main ? 2 : 1.5;
+    if(main && song.playing) glow('#ffffff', 12);
+    g.beginPath(); g.arc(bt.x, bt.y, bt.r, 0, TAU); g.fill(); g.stroke(); noGlow();
+    g.fillStyle = main ? '#ffffff' : '#c7d2e0';
+    if(bt.k==='play'){
+      if(song.playing){ g.fillRect(bt.x-5*S, bt.y-5.5*S, 3.4*S, 11*S); g.fillRect(bt.x+1.6*S, bt.y-5.5*S, 3.4*S, 11*S); }
+      else { g.beginPath(); g.moveTo(bt.x-4.5*S, bt.y-6*S); g.lineTo(bt.x+6.5*S, bt.y); g.lineTo(bt.x-4.5*S, bt.y+6*S); g.closePath(); g.fill(); }
+    } else if(bt.k==='stop'){ g.fillRect(bt.x-4*S, bt.y-4*S, 8*S, 8*S); }
+    else { g.beginPath(); g.moveTo(bt.x-4*S, bt.y-1*S); g.lineTo(bt.x+4*S, bt.y-1*S); g.lineTo(bt.x, bt.y+4*S); g.closePath(); g.fill(); g.fillRect(bt.x-1.2*S, bt.y-5.5*S, 2.4*S, 4*S); }
+  }
+  const [A,B] = songLoopRange(), whole = A===0 && B===songBars(), p = songPartAt(Math.floor(song.pos)), nb = songBars();
+  g.fillStyle = '#c7d2e0'; g.globalAlpha = 0.9; g.font = `600 ${8.5*S}px "Chakra Petch", sans-serif`;
+  const line = songTimeStr(song.pos)+' / '+songTimeStr(nb)+(p&&p.n ? ' · '+p.n.toUpperCase() : '')+(whole ? '' : ' · LOOP');
+  g.fillText(song.saving ? song.saving.toUpperCase() : line, CX, CY+27*S);
+  if(song.msg){ g.fillStyle='#ffb84d'; g.fillText(song.msg.txt, CX, CY+39*S); }
+  else if(!song.blobs.length){ g.fillStyle='#8a97a8'; g.globalAlpha=0.8; g.fillText('TAP A REC BLOCK · IT MAKES A BLOB · DRAG THE BLOB TO THE RIM', CX, CY+39*S); }
+  g.restore();
+}
+
 /* ================= drawing ================= */
 function beatPhase(){
   if(!audio) return (performance.now()/1000 * state.bpm/60) % 1;
@@ -5106,6 +5525,10 @@ function drawObject(o){
     g.fillStyle=col; g.font=`600 ${8.5*S}px "Chakra Petch", sans-serif`;
     g.fillText('MIC', o.x, o.y+1);
   }
+  else if(o.type==='song'){   // a little record with a play mark
+    g.strokeStyle=col; g.lineWidth=2; g.beginPath(); g.arc(o.x,o.y,rb*0.5,0,TAU); g.stroke();
+    g.fillStyle=col; g.beginPath(); g.moveTo(o.x-rb*0.16,o.y-rb*0.22); g.lineTo(o.x+rb*0.24,o.y); g.lineTo(o.x-rb*0.16,o.y+rb*0.22); g.closePath(); g.fill();
+  }
   else if(o.type==='dist'){
     g.fillStyle=col; g.font=`600 ${10*S}px "Chakra Petch", sans-serif`;
     g.fillText('DR', o.x, o.y+1);
@@ -5350,6 +5773,7 @@ function frameBody(){
   if(audio) for(const o of objects){ if(o.type==='scene') sceneTick(o, dt); else if(o.type==='motion') motionTick(o); else if(o.type==='hum' && (frameN&1)===0) humTick(o); }
   for(const o of objects) if(o.type==='water') waterTick(o, dt);
   if(spheres.on) spheresTick(dt);
+  if(song.puck) songTick(dt);
   frameN++;
   if(audio) ballsTick(dt);
   if(audio && objects.some(o=>o.type==='space' && o.option%3===1)) updateSpace();
@@ -5392,6 +5816,7 @@ function frameBody(){
   }
   g.globalAlpha=1;
 
+  if(song.puck && !spheres.on) songDrawRim();
   if(spheres.on) spheresDraw();
   if(!spheres.on){ for(const o of objects) drawConnection(o); drawMotes(dt); }
 
@@ -5452,6 +5877,7 @@ function frameBody(){
 
   for(const o of objects) if(!spheres.on || o===spheres.puck) drawObject(o);
   if(!spheres.on) drawBalls();
+  if(song.puck && !spheres.on) songDrawTop();
   if(hands.mode!=='off') for(const hd of hands.list){   // hands over the table: a ring that grows as the hand rises
     g.save(); g.strokeStyle=hd.pinch?COL.gen:'#fff3d6'; g.globalAlpha=0.8; g.lineWidth=2;
     g.beginPath(); g.arc(hd.x,hd.y,(12+hd.h*16)*S,0,TAU); g.stroke();

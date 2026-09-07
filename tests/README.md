@@ -13,6 +13,7 @@ node tests/phone.test.js             # iPhone layout: tray pages, tap-to-place, 
 node tests/help.test.js              # the ? panel's tabs, desktop and phone
 node tests/lines.test.js             # cutting and mending lines by touch, purple reach
 node tests/spheres.test.js           # the orrery: moon counts, Kepler ratios, Holst touches, God-mode physics and collisions, ships
+node tests/song.test.js              # the song: a real take becomes a blob, blobs onto the rim by mouse, play/pause/stop, bus isolation, render and save, reload
 node tests/phone.test.js             # iPhone emulation: trays as pages of the dock, tap-to-place, back; desktop drawers still stack
 ```
 

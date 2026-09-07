@@ -34,6 +34,7 @@ synthesiser.
 | [docs/06-sound-engines.md](docs/06-sound-engines.md) | The analogue sound engines and the theory behind each |
 | [docs/07-advanced.md](docs/07-advanced.md) | The advanced pucks: tuning, envelopes, expression, chance, scenes, motion, warp, sends, stems, and the physical kit |
 | [docs/08-play.md](docs/08-play.md) | The play tray: theremin, air drums, harp, marbles, hum, conductor, air knob and waterphone, by touch, hands or voice |
+| [docs/09-song.md](docs/09-song.md) | The song block: a three-minute pop-song timeline around the rim, takes as draggable blobs, play/pause/stop at the centre, MP3/WAV export |
 | [hardware/README.md](hardware/README.md) | The printed kit: STL/OBJ parts, marker sheets and cards |
 | [tests/README.md](tests/README.md) | Headless end-to-end tests of the instrument (Playwright) |
 
@@ -106,6 +107,11 @@ most of Phase 2 of the plan:
   collisions that merge or shatter worlds, rockets, starships and visitors. All work by
   touch; with a webcam or the table camera, MediaPipe hand tracking on the device turns
   them into air instruments. See [docs/08-play.md](docs/08-play.md).
+- **The song block**: the rim becomes an 88-bar pop song (intro, verses, choruses, middle 8,
+  outro). A rec block's takes pop out as blobs of jelly; drag them onto the rim before, after
+  or on top of each other, play, pause and stop at the centre, loop one part, and save the
+  whole song as an MP3 (WAV offline). Song playback never reaches the recorder, so layers
+  can be overdubbed without doubling up. See [docs/09-song.md](docs/09-song.md).
 - **Printed kit**: [`hardware/print/`](hardware/print/) has a 60 mm cube and round and
   hexagonal 70 mm pucks as STL and OBJ with marker pockets, plus printable marker sheets
   (256 eight-bit ids) and a card per object. See [hardware/README.md](hardware/README.md).
