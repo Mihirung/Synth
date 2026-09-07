@@ -11,6 +11,7 @@ node tests/waterphone-dsp.test.js    # the waterphone model, numerically: strike
 node tests/waterphone.test.js        # the waterphone in the browser: bow, strike, slosh, hands, marbles, persistence
 node tests/phone.test.js             # iPhone layout: tray pages, tap-to-place, back
 node tests/wide.test.js              # widescreen layout: tray column left, buttons column right, drawers beside the tray, disc at full height; a squarer window stays classic
+node tests/calib.test.js             # while the camera calibrates no overlay covers a dot: preview, trays and header step aside on phone, wide and classic layouts
 node tests/help.test.js              # the ? panel's tabs, desktop and phone
 node tests/lines.test.js             # cutting and mending lines by touch, purple reach
 node tests/spheres.test.js           # the orrery: moon counts, Kepler ratios, Holst touches, God-mode physics and collisions, ships

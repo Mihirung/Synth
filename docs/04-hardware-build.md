@@ -45,7 +45,9 @@ Total: typically **£30 to £100** on top of a TV and phone you already have.
 - **Calibration is four dots, then it looks after itself.** The first time the camera
   starts (and whenever you hold *recalibrate*), the screen goes black and shows one bright
   dot at a time in four corners of the disc; the phone finds each and computes the
-  projective map from camera to screen. After that, four small dots flash in the dark
+  projective map from camera to screen. While the dots are up, every overlay steps aside
+  (the camera preview, the trays, the header), so nothing can cover a dot when the phone's
+  own screen is what the TV mirrors. After that, four small dots flash in the dark
   screen corners for half a second every couple of minutes (and whenever you tap *refine*):
   because a mapping already exists, the phone knows where each dot should appear and only
   accepts a blob close to that prediction, so cubes can't be mistaken for one, and it

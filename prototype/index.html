@@ -151,6 +151,8 @@
   #syncPanel .hint2{color:var(--dim);line-height:1.5;margin-bottom:8px}
   #syncPanel #syncInfo{color:var(--text);line-height:1.5;margin-bottom:10px;min-height:1.5em}
   #syncPanel .row{display:flex;gap:6px;flex-wrap:wrap}
+  /* while the camera calibrates or refines, nothing may cover the dots: every overlay steps aside (the phone's own screen is often what the camera sees, mirrored to the TV) */
+  body.calib header, body.calib #dock, body.calib #dock2, body.calib #dock3, body.calib #camWrap, body.calib #syncPanel, body.calib #hint{ visibility:hidden; pointer-events:none }
   #camWrap{position:fixed;right:14px;bottom:150px;width:200px;z-index:4;border:1px solid rgba(255,255,255,.12);
     border-radius:10px;overflow:hidden;background:#000;box-shadow:0 8px 30px rgba(0,0,0,.5)}
   #camWrap video{display:block;width:100%;height:auto}
@@ -5910,6 +5912,7 @@ function frame(){
   requestAnimationFrame(frame);
 }
 function frameBody(){
+  if(!!(cam.calib || cam.refine) !== !!cam.calibUI){ cam.calibUI = !!(cam.calib || cam.refine); document.body.classList.toggle('calib', cam.calibUI); }   // overlays step aside for the dots
   if(sync.flash && performance.now()<sync.flash.until){   // the measurement flash: a white frame the camera can't miss
     g.setTransform(DPR,0,0,DPR,0,0); g.fillStyle='#fff'; g.fillRect(0,0,W,H);
     if(gl) glPost(0,0); return;
