@@ -240,7 +240,7 @@
     <p><b>Tap the middle.</b> It flips to a new face: a new sound, a new pattern.</p>
     <h3>Lines</h3>
     <p>A line means <b>the sound goes this way</b>. It wiggles when sound is flowing.</p>
-    <p><b>Swipe across a line</b> to cut it. Swipe again to mend it.</p>
+    <p><b>Swipe across a line</b> to cut it. <b>Tap the line</b> (anywhere along it) to mend it.</p>
     <h3>Little tricks</h3>
     <p>Tap the pads around a <span class="cc">seq</span> block to make a tune. Pull a pad out for a higher note.</p>
     <p>Push two <span class="cg">osc</span> blocks together. They tickle each other.</p>
@@ -679,7 +679,7 @@ const R_RING0 = () => 30*S, R_RING1 = () => 42*S;
 const R_ARC0  = () => 46*S, R_ARC1 = () => 58*S;
 const R_PAD0  = () => 62*S, R_PAD1 = () => 84*S;
 const LINK    = () => TABLE_R*0.60;
-const CTL_LINK= () => TABLE_R*0.46;
+const CTL_LINK= () => TABLE_R*0.52;
 const ARC_START = 0.75*Math.PI, ARC_SPAN = 1.5*Math.PI;
 const hitR = o => (o.type==='seq' || o.type==='marbles' || o.type==='conduct') ? R_PAD1()+4 : R_ARC1()+6;
 
@@ -2869,15 +2869,17 @@ function objectAt(x,y){
   }
   return null;
 }
-function connAt(x,y){
+function connAt(x,y){   // the nearest audio line within a finger's width of the touch
+  let best=null, bd=22*S;
   for(const o of objects){
-    if(FAMILY[o.type]==='ctl' || o.hop===undefined) continue;
-    const t = o.hop==='C' ? {x:CX,y:CY} : objects.find(z=>z.id===o.hop);
-    if(!t) continue;
-    const mx=(o.x+t.x)/2, my=(o.y+t.y)/2;
-    if(Math.hypot(x-mx,y-my) < 16*S) return o;
+    if(FAMILY[o.type]==='ctl' || o.hop===undefined || o.fmTo) continue;
+    const seg = connEnds(o); if(!seg) continue;
+    const dx=seg.x2-seg.x1, dy=seg.y2-seg.y1, L2=dx*dx+dy*dy||1;
+    const f=Math.max(0.08, Math.min(0.92, ((x-seg.x1)*dx+(y-seg.y1)*dy)/L2));   // not the ends, which belong to the blocks
+    const d=Math.hypot(x-(seg.x1+dx*f), y-(seg.y1+dy*f));
+    if(d<bd){ bd=d; best=o; }
   }
-  return null;
+  return best;
 }
 const pAngle = (o,x,y) => Math.atan2(y-o.y, x-o.x);
 function padIndexAt(o,x,y){
@@ -3128,10 +3130,10 @@ function endDrag(e){
     saveSoon();
   }
   if(dr.mode==='stroke' && !dr.harp){
-    if(dr.pts.length <= 4){
-      const p = dr.pts[dr.pts.length-1];
+    const p0 = dr.pts[0], p = dr.pts[dr.pts.length-1];
+    if(Math.hypot(p.x-p0.x, p.y-p0.y) < 14*S && dr.cuts.size===0){   // a tap (a wobbly finger still counts) on a line cuts or mends it
       const c = connAt(p.x, p.y);
-      if(c) setMuted(c, !c.muted);
+      if(c){ setMuted(c, !c.muted); addRipple(p.x, p.y, 0.3); }
     } else if(dr.cuts.size===0 && !dr.plucked && dr.pts.length >= 12){
       tryAbsorbWave(dr.pts);
     }
@@ -4239,20 +4241,27 @@ function drawConnection(o){
   const x0=o.x+ux*R_BODY(), y0=o.y+uy*R_BODY();
   const L=len-R_BODY()-(o.hop==='C'?14*S:R_BODY());
   if(L<=0) return;
-  if(isCtl){
+  if(isCtl){   // a purple link: a faint thread with bright dots travelling along it
     g.save();
-    g.strokeStyle=COL.ctl; g.globalAlpha=0.85; g.lineWidth=1.5;
-    g.setLineDash([2,9]);
-    g.lineDashOffset = REDUCED?0:-performance.now()/24;
+    g.strokeStyle=COL.ctl; g.globalAlpha=0.35; g.lineWidth=1.2;
+    g.beginPath(); g.moveTo(x0,y0); g.lineTo(x0+ux*L,y0+uy*L); g.stroke();
+    g.lineCap='round'; g.lineWidth=3+1.2*S; g.globalAlpha=1; glow(COL.ctl, 8);   // dots that stay fat on a phone
+    g.setLineDash([0.01, 4+10*S]);
+    g.lineDashOffset = REDUCED?0:-performance.now()/22;
     g.beginPath(); g.moveTo(x0,y0); g.lineTo(x0+ux*L,y0+uy*L); g.stroke();
     g.restore();
     return;
   }
   if(o.fmTo) return;   // a modulating oscillator is silent: no audio line
   g.save();
-  if(o.muted){
-    g.strokeStyle=COL.dim; g.globalAlpha=0.5; g.lineWidth=1.2; g.setLineDash([4,7]);
+  if(o.muted){   // a cut line, with a ring at its middle that says "tap me to mend"
+    g.strokeStyle=COL.dim; g.globalAlpha=0.6; g.lineWidth=1.6; g.setLineDash([4,7]);
     g.beginPath(); g.moveTo(x0,y0); g.lineTo(x0+ux*L,y0+uy*L); g.stroke();
+    g.setLineDash([]);
+    const mx=x0+ux*L/2, my=y0+uy*L/2, pulse=0.6+0.4*Math.sin(performance.now()/400);
+    g.strokeStyle=COL.line; g.globalAlpha=0.35+0.35*pulse; g.lineWidth=2;
+    g.beginPath(); g.arc(mx,my,9*S,0,TAU); g.stroke();
+    g.beginPath(); g.moveTo(mx-4*S,my); g.lineTo(mx+4*S,my); g.moveTo(mx,my-4*S); g.lineTo(mx,my+4*S); g.stroke();
     g.restore(); return;
   }
   g.beginPath();
