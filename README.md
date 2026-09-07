@@ -112,6 +112,10 @@ most of Phase 2 of the plan:
   or on top of each other, play, pause and stop at the centre, loop one part, and save the
   whole song as an MP3 (WAV offline). Song playback never reaches the recorder, so layers
   can be overdubbed without doubling up. See [docs/09-song.md](docs/09-song.md).
+- **Widescreen layout**: on a wide window (16:10 or wider, 1000 px and up, a mouse or trackpad) the
+  tray becomes a column on the left, the header buttons a column on the right, the drawers open
+  beside the tray, and the disc takes the whole height. Squarer windows and phones keep their
+  layouts.
 - **Printed kit**: [`hardware/print/`](hardware/print/) has a 60 mm cube and round and
   hexagonal 70 mm pucks as STL and OBJ with marker pockets, plus printable marker sheets
   (256 eight-bit ids) and a card per object. See [hardware/README.md](hardware/README.md).

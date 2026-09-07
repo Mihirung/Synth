@@ -37,8 +37,8 @@ const CHROME = process.env.PLAYWRIGHT_CHROMIUM || (fs.existsSync('/opt/pw-browse
   check('advanced page: tap places a puck', b4.dock2.disp==='flex' && b4.dock.disp==='none' && /euclid/.test(b4.types), JSON.stringify({dock2:b4.dock2, types:b4.types}));
   await page.screenshot({ path:path.join(SHOTS,'phone-advanced.png') });
   await page.tap('#advBack'); await page.waitForTimeout(200);
-  // desktop: the drawers still stack above the dock
-  const d = await browser.newPage({ viewport:{ width:1280, height:800 } });
+  // desktop (a squarer window, not widescreen): the drawers still stack above the dock
+  const d = await browser.newPage({ viewport:{ width:1100, height:800 } });
   await d.route('http://localhost/**', route=>{ const u=new URL(route.request().url()); const p=path.join(ROOT,u.pathname); route.fulfill({status:200,contentType:'text/html',body:fs.readFileSync(p)}); });
   await d.goto('http://localhost/prototype/index.html'); await d.click('#begin'); await d.click('#advBtn'); await d.waitForTimeout(300);
   const dd = await d.evaluate(()=>({ dock:getComputedStyle($('dock')).display, back:getComputedStyle($('advBack')).display, d2top:Math.round($('dock2').getBoundingClientRect().bottom), dockTop:Math.round($('dock').getBoundingClientRect().top) }));
