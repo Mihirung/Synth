@@ -250,6 +250,7 @@
     <p>Tap the tiny keys above an <span class="cg">osc</span> for a piano. Or play the <span class="kbd">A</span> to <span class="kbd">L</span> keys.</p>
     <p>A <span class="cg">rec</span> block listens for a few bars, then plays it back, round and round. A <span class="cg">mic</span> block hears you.</p>
     <p>Put a <span class="cc">warp</span> (it is under <b>more</b>) next to the <span class="cg">mic</span>. Turn it up for a chipmunk, down for a monster, tap it for backwards talking. It works while you sing.</p>
+    <p>A <span class="cc">seq</span> block next to the <span class="cg">mic</span> chops your voice into a tune: pull its pads out for higher notes. An <span class="cc">envelope</span> makes each word go <i>pluck</i> or <i>swell</i>. An <span class="cc">express</span> block adds a wobble, a shine, a flutter or a scoop.</p>
     <h3>Make a real song</h3>
     <p>Tap the <span class="cc">song</span> block. The edge of the circle becomes your song: <b>intro, verse, chorus</b> and so on, all the way round. That is about three minutes.</p>
     <p>Tap a <span class="cg">rec</span> block while the table is playing. It listens for a few bars, then a <b>wobbly blob</b> pops out next to it. That blob is your recording.</p>
@@ -276,6 +277,7 @@
   <section class="page" data-page="grown" hidden>
     <h3>The advanced pucks</h3>
     <p>Press <b>more</b> under the tray for the hexagons. Put one next to a block to change how it behaves: <b>envelope</b>, <b>express</b>, <b>steps</b>, <b>euclid</b>, <b>chance</b>, <b>chain</b>, <b>motion</b>, <b>warp</b>, <b>send</b>, <b>air knob</b>.</p>
+    <p>Beside a <b>mic</b> block, <b>warp</b>, <b>envelope</b>, <b>express</b> and a <b>seq</b> work on the live voice: pitch, the shape of each word, vibrato and tremolo, and a rhythm that gates and retunes the singing, with <b>steps</b>, <b>euclid</b> and <b>chance</b> on the seq as usual. The green blocks always did.</p>
     <p>Some work anywhere on the disc: <b>key</b>, <b>tuning</b>, <b>scene</b>, <b>space</b>, <b>master</b>, <b>stems</b>.</p>
     <p>Each puck's card (from <b>markers</b> in the header) says what turning, sliding and flipping does.</p>
     <h3>The header</h3>
@@ -387,7 +389,7 @@ const HANDY = new Set(['theremin','drums','harp','conduct','air','water']);   //
 /* the advanced pucks: hexagonal, one drawer down, so the main tray stays a child's tray */
 const ADV = new Set(['key','tune','env','xpress','steps','euclid','chance','chain','scene','motion','warp','send','space','master','stems']);
 const GLOBAL_ADV = new Set(['key','tune','scene','space','master','stems']);          // work anywhere on the table
-const BIND = { env:['osc','filter'], xpress:['osc','filter'], steps:['seq'], euclid:['seq'], chance:['seq'], chain:['seq'],
+const BIND = { env:['osc','filter','mic'], xpress:['osc','filter','mic'], steps:['seq'], euclid:['seq'], chance:['seq'], chain:['seq'],
                motion:'any', warp:['sampler','rec','mic'], send:['delay','reverb','chorus','dist','crush','mod','filter'], air:'any' };
 const PLAY_LEGEND = {
   theremin:{ name:'THEREMIN', turn:'range 1–4 octaves', slide:'level', faces:['FREE','IN KEY','GLIDE'] },
@@ -788,7 +790,7 @@ function teardownNodes(o){
     for(const k of ['src','src2','src3','preF','fmGain','amp','gate','out','an','pan','biq','inG','dl','fb','fbSat','fbLP','dry','wet','depthG','carrier','ring','dryG','shaper','conv','micSrc','chDelay','chLfo','chDepth','vib','vibG','trem','tremG','bendC','thGain','humG','humG2','humG3','humAn'])
       if(o[k]){ try{ o[k].disconnect(); }catch(e){} o[k]=null; }
     if(o.ana){ try{ o.ana.node.disconnect(); }catch(e){} if(o.ana.node.onaudioprocess) o.ana.node.onaudioprocess=null; o.ana=null; }
-    if(o.shift){ try{ o.shift.node.disconnect(); }catch(e){} if(o.shift.node.onaudioprocess) o.shift.node.onaudioprocess=null; o.shift=null; }
+    if(o.voice){ try{ o.voice.node.disconnect(); }catch(e){} if(o.voice.node.onaudioprocess) o.voice.node.onaudioprocess=null; o.voice=null; }
     if(o.playing){ try{ o.playing.stop(); }catch(e){} o.playing = null; }
   }
 }
@@ -801,6 +803,7 @@ function destroyObject(o){
   const i = objects.indexOf(o);
   if(i>=0) objects.splice(i,1);
   if(BIND[o.type] && o.hop!=='C') onBind(o, o.hop, 'C');
+  if(o.type==='seq' && o.hop!=='C'){ const q = objects.find(x=>x.id===o.hop); if(q && q.type==='mic') micFxSync(q); }
   computePatch(); saveSoon();
 }
 
@@ -909,12 +912,12 @@ function readout(o){
                       : 'loop · '+Math.round(o.arc*100)+'%'];
     case 'mic': return ['MIC', o.micState==='wait' ? 'allow microphone…'
                       : o.micState==='denied' ? 'mic blocked'
-                      : 'live · '+Math.round(o.arc*100)+'%'+(o.shift ? ' · warped' : '')];
+                      : 'live · '+Math.round(o.arc*100)+'%'+(o.voice ? ' · '+micFxNames(o).join(' · ') : '')];
     case 'tempo': return ['TEMPO', tempoBpm(o)+' BPM'];
     case 'key': return ['KEY · '+NOTE_NAMES[state.key]+' '+SCALES[state.scaleIdx].name, ADV_LEGEND.key.faces[o.option%4]];
     case 'tune': return ['TUNING · '+tuneSys(o).n, 'A = '+tuneRef(o).toFixed(1)+' Hz · '+(o.option===1?'osc + loops':'oscillators')];
-    case 'env': return ['ENVELOPE · '+ENV_SHAPES[o.option%4].n, fmtMs(envAttack(o))+' ▲ · '+fmtMs(envRelease(o))+' ▼'+(o.hop==='C'?' · unbound':'')];
-    case 'xpress': return ['EXPRESS · '+ADV_LEGEND.xpress.faces[o.option%4], 'velocity '+Math.round(xpressDepth(o)*100)+'% · '+(o.arc<0.4?'soft':o.arc>0.6?'hard':'linear')];
+    case 'env': return ['ENVELOPE · '+ENV_SHAPES[o.option%4].n, fmtMs(envAttack(o))+' ▲ · '+fmtMs(envRelease(o))+' ▼'+(o.hop==='C'?' · unbound': (objects.find(x=>x.id===o.hop)||{}).type==='mic' ? ' · live on the mic' : '')];
+    case 'xpress': return ['EXPRESS · '+ADV_LEGEND.xpress.faces[o.option%4], 'velocity '+Math.round(xpressDepth(o)*100)+'% · '+(o.arc<0.4?'soft':o.arc>0.6?'hard':'linear')+((objects.find(x=>x.id===o.hop)||{}).type==='mic' ? ' · live on the mic' : '')];
     case 'steps': return ['STEPS · '+ADV_LEGEND.steps.faces[o.option%4], stepsLen(o)+' steps · '+stepsRate(o).n+(o.hop==='C'?' · unbound':'')];
     case 'euclid': return ['EUCLID · '+ADV_LEGEND.euclid.faces[o.option%4], euclidHits(o)+' hits · rot '+euclidRot(o)+(o.hop==='C'?' · unbound':'')];
     case 'chance': return ['CHANCE · '+ADV_LEGEND.chance.faces[o.option%4], Math.round(chanceProb(o)*100)+'% · human '+Math.round(o.arc*100)+'%'+(o.hop==='C'?' · unbound':'')];
@@ -1139,31 +1142,84 @@ class AnalogOut{
     }
   }
 }
-/* ---- LiveWarp: a real-time granular pitch shifter, for the mic block ----
-   Two read heads sweep a delay line behind the write head, each under a Hann window
-   and half a period apart, so their sum is seamless. A head that runs ahead of real
-   time raises the pitch, one that lags lowers it; reading each grain backwards is the
-   backwards-voice face. The voice arrives about half a grain late.                  */
-class LiveWarp{
-  constructor(sr){ this.sr=sr; this.N=1<<17; this.buf=new Float32Array(this.N); this.w=0; this.ph=0; this.cfg={ratio:1,grain:0.08,rev:false}; }
-  handle(m){ if(m.type==='cfg') Object.assign(this.cfg,m.cfg); }
-  process(inp,out,n){
-    const c=this.cfg, M=this.N-1, T=Math.max(64, Math.min(this.N/8, c.grain*this.sr));
-    const r=c.ratio, slope=c.rev ? (1+r) : (1-r), A=Math.abs(slope)*T, up=slope<0, d0=this.sr*0.001, inc=1/T;
-    const buf=this.buf;
+/* ---- VoiceFx: the live treatments for a mic block ----
+   One processor between the microphone and the block carries every puck that can sit
+   beside a mic. A granular pitch shifter (two Hann-windowed read heads sweeping a delay
+   line, half a period apart; ahead of real time is up, behind is down; backwards grains
+   for the reverse face) serves the warp puck, the seq's pads (the voice retuned step by
+   step) and the express puck's vibrato and scoop. A level follower finds the words for
+   the envelope puck (each word shaped by attack and release) and for express's
+   loudness-driven vibrato, brightness and tremolo. The seq's gates open and close on
+   time from time-stamped messages. With nothing pitch-shaped bound the shifter is
+   bypassed; otherwise the voice arrives about three quarters of a grain late.      */
+class VoiceFx{
+  constructor(sr){ this.sr=sr; this.N=1<<17; this.buf=new Float32Array(this.N); this.w=0; this.ph=0;
+    this.cfg={ratio:1,grain:0.08,rev:false,seqOn:false,env:false,atk:0.005,rel:0.2,shape:1,xface:0,depth:0};
+    this.ev=[]; this.gate=1; this.gOpen=false; this.gUntil=0; this.gSemis=0;
+    this.fol=0; this.pk=0; this.present=false; this.env=1; this.hold=0; this.bendT=1; this.bendD=0; this.lp=0; this.t=0;
+    this.mb=new Float32Array(8192); this.mw=0; }   // a second, short delay line for vibrato and the scoop: clean FM, a millisecond late
+  handle(m){
+    if(m.type==='cfg'){ Object.assign(this.cfg,m.cfg); if(!this.cfg.seqOn){ this.ev.length=0; this.gOpen=false; this.gSemis=0; } if(!this.cfg.env) this.env=1; }
+    else if(m.type==='gate'){ this.ev.push(m); if(this.ev.length>64) this.ev.shift(); }
+  }
+  process(inp,out,n,time){
+    const c=this.cfg, sr=this.sr, M=this.N-1, buf=this.buf, inv=1/sr, face=c.xface, depth=c.depth;
+    const cA=1-Math.exp(-inv/0.004), cR=1-Math.exp(-inv/0.06), cG=1-Math.exp(-inv/0.0025), pkDecay=Math.exp(-inv/1.5);
+    const atk=c.shape===2 ? Math.max(0.08,c.atk) : c.atk, rel=c.shape===2 ? Math.max(0.4,c.rel) : c.rel;
+    const eA=1-Math.exp(-inv/Math.max(0.001,atk)), eR=1-Math.exp(-inv/Math.max(0.01,rel)), cT=1-Math.exp(-TAU*1800*inv);
+    const T=Math.max(64, Math.min(this.N/8, c.grain*sr)), inc=1/T, D0=sr*0.001+(c.rev?1.8:0.8)*T;
+    const pitchOn = c.ratio!==1 || c.rev || c.seqOn, modOn = depth>0 && (face===0 || face===3), vibA=0.0011*sr, bendK=1-Math.exp(-inv/0.3);
+    const t0 = time===undefined ? this.t : time;
     for(let i=0;i<n;i++){
-      buf[this.w]=inp[i];
-      let y=0;
-      for(let h=0;h<2;h++){
-        let p=this.ph+h*0.5; if(p>=1) p-=1;
-        const win=0.5-0.5*Math.cos(TAU*p);
-        const rp=this.w-(d0+(up ? 1-p : p)*A), ri=Math.floor(rp), fr=rp-ri;
-        const a=buf[ri&M], b=buf[(ri+1)&M];
-        y+=win*(a+(b-a)*fr);
+      const ts=t0+i*inv, x=inp[i];
+      // the words: a fast follower against a slow peak
+      const ax=Math.abs(x); this.fol+=(ax>this.fol?cA:cR)*(ax-this.fol); this.pk=Math.max(this.pk*pkDecay,this.fol);
+      const present=this.fol>Math.max(0.004,this.pk*0.25), onset=present&&!this.present; this.present=present;
+      const lvl=Math.min(1,this.fol/(this.pk+1e-6));
+      if(onset){ this.bendT=0; if(c.env){ if(c.shape===0) this.hold=0.12; if(c.shape===3) this.env=0; } }
+      // the seq's gates
+      if(c.seqOn){
+        while(this.ev.length && this.ev[0].t<=ts){ const e=this.ev.shift(); this.gOpen=true; this.gUntil=e.t+e.dur; this.gSemis=e.semis||0; }
+        if(this.gOpen && ts>=this.gUntil) this.gOpen=false;
       }
-      out[i]=y;
-      this.w=(this.w+1)&M; this.ph+=inc; if(this.ph>=1) this.ph-=1;
+      this.gate+=((c.seqOn ? (this.gOpen?1:0) : 1)-this.gate)*cG;
+      // the envelope puck: each word shaped
+      if(c.env){
+        let target=present?1:0;
+        if(c.shape===0){ if(this.hold>0){ this.hold-=inv; target=1; } else target=0; }
+        this.env+=(target-this.env)*(target>this.env?eA:eR);
+      }
+      // pitch: the warp ratio and the seq's step through the granular shifter
+      let y=x;
+      if(pitchOn){
+        const r=Math.max(0.2,Math.min(2.6,c.ratio*Math.pow(2,this.gSemis/12))), slope=c.rev?(1+r):(1-r);
+        buf[this.w]=x; y=0;
+        for(let h=0;h<2;h++){
+          let p=this.ph+h*0.5; if(p>=1) p-=1;
+          const win=0.5-0.5*Math.cos(TAU*p);
+          const rp=this.w-(D0+(p-0.5)*slope*T), ri=Math.floor(rp), fr=rp-ri;
+          const a=buf[ri&M], b=buf[(ri+1)&M];
+          y+=win*(a+(b-a)*fr);
+        }
+        this.w=(this.w+1)&M; this.ph+=inc; if(this.ph>=1) this.ph-=1;
+      }
+      // vibrato and the scoop: a short delay line whose length moves (its slope is the pitch bend)
+      if(modOn){
+        this.mb[this.mw]=y;
+        let d=sr*0.0015;
+        if(face===0) d+=vibA*depth*lvl*Math.sin(TAU*5.5*ts);
+        else { if(this.bendT<1){ this.bendT=Math.min(1,this.bendT+inv/0.18); this.bendD+=1-Math.pow(2,-depth*4*(1-this.bendT)/12); } else if(!present) this.bendD-=this.bendD*bendK; d+=Math.min(4000,this.bendD); }
+        const rp=this.mw-d, ri=Math.floor(rp), fr=rp-ri, a=this.mb[ri&8191], b=this.mb[(ri+1)&8191];
+        y=a+(b-a)*fr; this.mw=(this.mw+1)&8191;
+      }
+      // tone and amplitude
+      this.lp+=(y-this.lp)*cT;
+      if(depth>0 && face===1) y+=depth*lvl*(y-this.lp)*2.5;
+      let g=this.gate*this.env;
+      if(depth>0 && face===2) g*=1-depth*0.5*(1-Math.sin(TAU*5.5*ts));
+      out[i]=y*g;
     }
+    this.t=t0+n*inv;
   }
 }
 /* ---- Waterphone: a modal model of Richard Waters's instrument ----
@@ -1276,7 +1332,7 @@ class Waterphone{
 const WORKLET_SRC = DSP_CORE + `
 class LumaAnalog extends AudioWorkletProcessor{
   constructor(o){ super(); this.kind=o.processorOptions.kind;
-    this.core=new (this.kind==='osc'?AnalogOsc:this.kind==='filter'?AnalogFilter:this.kind==='water'?Waterphone:this.kind==='shift'?LiveWarp:AnalogOut)(sampleRate);
+    this.core=new (this.kind==='osc'?AnalogOsc:this.kind==='filter'?AnalogFilter:this.kind==='water'?Waterphone:this.kind==='voice'?VoiceFx:AnalogOut)(sampleRate);
     this.port.onmessage=e=>this.core.handle(e.data); }
   static get parameterDescriptors(){ return [
     {name:'fm',defaultValue:0,automationRate:'a-rate'},
@@ -1287,6 +1343,7 @@ class LumaAnalog extends AudioWorkletProcessor{
     if(this.kind==='osc'){ this.core.process(out,out.length,currentTime,params.fm,params.bend); return true; }
     if(this.kind==='water'){ this.core.process(out,out.length,currentTime); return true; }
     const inp=(inputs[0]&&inputs[0][0])||this.zero(out.length);
+    if(this.kind==='voice'){ this.core.process(inp,out,out.length,currentTime); return true; }
     if(this.kind==='filter') this.core.process(inp,out,out.length,params.cutoff);
     else this.core.process(inp,out,out.length);
     return true;
@@ -1304,7 +1361,7 @@ function ensureAnalog(){
       await audio.ctx.audioWorklet.addModule(url);
       analogState.mode='worklet';
     }catch(e){
-      analogState.Core = new Function(DSP_CORE+'\nreturn {AnalogOsc,AnalogFilter,AnalogOut,Waterphone,LiveWarp};')();
+      analogState.Core = new Function(DSP_CORE+'\nreturn {AnalogOsc,AnalogFilter,AnalogOut,Waterphone,VoiceFx};')();
       analogState.mode='sp';
     }
     return analogState.mode;
@@ -1319,12 +1376,13 @@ function makeAnalog(kind){
     return { node, send:m=>node.port.postMessage(m), param:n=>node.parameters.get(n) };
   }
   const C=analogState.Core;
-  const core=new (kind==='osc'?C.AnalogOsc:kind==='filter'?C.AnalogFilter:kind==='water'?C.Waterphone:kind==='shift'?C.LiveWarp:C.AnalogOut)(ctx.sampleRate);
+  const core=new (kind==='osc'?C.AnalogOsc:kind==='filter'?C.AnalogFilter:kind==='water'?C.Waterphone:kind==='voice'?C.VoiceFx:C.AnalogOut)(ctx.sampleRate);
   const node=ctx.createScriptProcessor(512,1,1);
   node.onaudioprocess=e=>{ const out=e.outputBuffer.getChannelData(0), inp=e.inputBuffer.getChannelData(0);
     if(kind==='osc') core.process(out,out.length,e.playbackTime,null);
     else if(kind==='water') core.process(out,out.length,e.playbackTime);
     else if(kind==='filter') core.process(inp,out,out.length,null);
+    else if(kind==='voice') core.process(inp,out,out.length,e.playbackTime);
     else core.process(inp,out,out.length); };
   return { node, send:m=>core.handle(m), param:()=>null, core };
 }
@@ -1470,14 +1528,14 @@ function buildNodes(o){
   } else if(o.type==='mic'){
     o.amp = ctx.createGain(); o.amp.gain.value = o.arc;
     o.amp.connect(o.out);
-    if(warpFor(o)) micWarpSync(o);   // a warp already beside it (a rebuild): put the shifter back
+    if(micFxWanted(o)) micFxSync(o);   // pucks already beside it (a rebuild): put the voice processor back
     if(navigator.mediaDevices && navigator.mediaDevices.getUserMedia){
       navigator.mediaDevices.getUserMedia({ audio:{ echoCancellation:true } })
         .then(stream => {
           if(!objects.includes(o)){ stream.getTracks().forEach(t=>t.stop()); return; }
           o.micStream = stream;
           o.micSrc = ctx.createMediaStreamSource(stream);
-          o.micSrc.connect(o.shift ? o.shift.node : o.amp);
+          o.micSrc.connect(o.voice ? o.voice.node : o.amp);
           o.micState = 'live';
         })
         .catch(()=>{ o.micState = 'denied'; });
@@ -1691,6 +1749,7 @@ function applyParams(o){
   saveSoon();
   if(!audio) return;
   const t = audio.ctx.currentTime;
+  if((o.type==='warp' || o.type==='env' || o.type==='xpress') && o.hop!=='C'){ const q = objects.find(x=>x.id===o.hop); if(q && q.type==='mic') micFxCfg(q); }
   if(o.type==='osc'){
     o.midiNote = null;                 // a manual change reclaims the pitch from MIDI
     if(o.ana){ o.ana.send({type:'dronefreq', f:oscFreq(o)}); o.amp.gain.setTargetAtTime(o.arc*0.32, t, 0.02); }
@@ -1703,8 +1762,6 @@ function applyParams(o){
     }
   } else if(o.type==='sampler' || o.type==='rec' || o.type==='mic' || o.type==='drums' || o.type==='harp' || o.type==='marbles' || o.type==='hum' || o.type==='spheres'){
     o.amp.gain.setTargetAtTime(o.arc, t, 0.02);
-  } else if(o.type==='warp'){
-    const q = o.hop!=='C' && objects.find(x=>x.id===o.hop); if(q && q.type==='mic') micWarpCfg(q, o);
   } else if(o.type==='song'){
     songBus().gain.setTargetAtTime(o.arc, t, 0.02);
   } else if(o.type==='water'){
@@ -1811,7 +1868,7 @@ function cycleOption(o){
     o.option = (o.option+1)%4; motionClear(o);
   } else if(ADV.has(o.type)){
     o.option = (o.option+1)%ADV_LEGEND[o.type].faces.length;
-    if(o.type==='warp') applyParams(o);
+    if(o.type==='warp' || o.type==='env' || o.type==='xpress') applyParams(o);
   } else if(o.type==='song'){
     o.option = (o.option+1)%SONG_FORMS.length; songStop();   // a new shape for the song: the blobs keep their bars
   } else if(PLAY.has(o.type)){
@@ -2420,6 +2477,7 @@ function scheduleStep(stepAbs, t){
       for(let i=0;i<times;i++){
         const ti = Math.max(tt + i*len, audio.ctx.currentTime);
         if(target.type==='osc') noteOn(target, deg, ti, len*0.9, vel);
+        else if(target.type==='mic') micGate(target, ti, len*0.9, deg);
         else sliceOn(target, deg, ti, len*0.9, vel);
       }
       o.flashAt = tt; o.flashIdx = idx;
@@ -2450,31 +2508,45 @@ function seqPlayIdx(o){
 }
 function chanceFor(o){ return objects.find(q=>q.type==='chance' && q.hop===o.id) || null; }
 function warpFor(o){ return objects.find(q=>q.type==='warp' && q.hop===o.id) || null; }
-/* the warp puck beside a mic block: a live granular pitch shifter (LiveWarp, in the
-   worklet) goes between the microphone and the block, so the voice is shifted as it is
-   sung. PITCH is the ring's semitones, HALF and DOUBLE an octave down and up, REVERSE
-   reads every grain backwards. Nothing has to be recorded first. */
-function micWarpCfg(mic, wp){
-  if(!mic.shift) return;
-  const face = wp.option%4, semis = face===1 ? -12 : face===2 ? 12 : warpSemis(wp);
-  mic.shift.send({ type:'cfg', cfg:{ ratio: Math.pow(2, semis/12), grain: Math.max(0.03, warpGrain(wp)), rev: face===3 } });
+/* the pucks that sit beside a mic block work on the live voice, through one VoiceFx
+   processor between the microphone and the block: warp (pitch, an octave down or up,
+   backwards grains), the seq (its pads gate the voice in rhythm and retune it a step at
+   a time), the envelope (each word plucked, keyed, padded or swelled) and express
+   (vibrato, brightness, tremolo or a scoop, all driven by how loud the voice is).
+   Nothing has to be recorded first. */
+function micFxWanted(mic){ return !!(warpFor(mic) || objects.some(q=>(q.type==='env' || q.type==='xpress' || q.type==='seq') && q.hop===mic.id)); }
+function micFxNames(mic){
+  const n=[]; if(warpFor(mic)) n.push('warp');
+  if(objects.some(q=>q.type==='seq' && q.hop===mic.id)) n.push('seq');
+  if(objects.some(q=>q.type==='env' && q.hop===mic.id)) n.push('envelope');
+  if(objects.some(q=>q.type==='xpress' && q.hop===mic.id)) n.push('express');
+  return n.length ? n : ['live'];
 }
-function micWarpSync(mic){
+function micFxCfg(mic){
+  if(!mic.voice) return;
+  const wp = warpFor(mic), ev = objects.find(q=>q.type==='env' && q.hop===mic.id), xp = objects.find(q=>q.type==='xpress' && q.hop===mic.id);
+  const cfg = { ratio:1, grain:0.08, rev:false, seqOn: objects.some(q=>q.type==='seq' && q.hop===mic.id), env:!!ev, atk:0.005, rel:0.2, shape:1, xface:0, depth:0 };
+  if(wp){ const face = wp.option%4, semis = face===1 ? -12 : face===2 ? 12 : warpSemis(wp); cfg.ratio = Math.pow(2, semis/12); cfg.grain = Math.max(0.03, warpGrain(wp)); cfg.rev = face===3; }
+  if(ev){ cfg.atk = envAttack(ev); cfg.rel = envRelease(ev); cfg.shape = ev.option%4; }
+  if(xp){ cfg.xface = xp.option%4; cfg.depth = xpressDepth(xp); }
+  mic.voice.send({ type:'cfg', cfg });
+}
+function micFxSync(mic){
   if(!audio || !mic.amp) return;
-  const wp = warpFor(mic);
-  if(!wp){
-    if(mic.shift){ try{ mic.shift.node.disconnect(); }catch(e){} if(mic.shift.node.onaudioprocess) mic.shift.node.onaudioprocess=null; mic.shift = null;
+  if(!micFxWanted(mic)){
+    if(mic.voice){ try{ mic.voice.node.disconnect(); }catch(e){} if(mic.voice.node.onaudioprocess) mic.voice.node.onaudioprocess=null; mic.voice = null;
       if(mic.micSrc){ try{ mic.micSrc.disconnect(); }catch(e){} mic.micSrc.connect(mic.amp); } }
     return;
   }
-  if(mic.shift){ micWarpCfg(mic, wp); return; }
+  if(mic.voice){ micFxCfg(mic); return; }
   ensureAnalog().then(()=>{
-    if(!audio || !objects.includes(mic) || !mic.amp || mic.shift || !warpFor(mic)) return;
-    mic.shift = makeAnalog('shift'); mic.shift.node.connect(mic.amp);
-    if(mic.micSrc){ try{ mic.micSrc.disconnect(); }catch(e){} mic.micSrc.connect(mic.shift.node); }
-    micWarpCfg(mic, warpFor(mic));
+    if(!audio || !objects.includes(mic) || !mic.amp || mic.voice || !micFxWanted(mic)) return;
+    mic.voice = makeAnalog('voice'); mic.voice.node.connect(mic.amp);
+    if(mic.micSrc){ try{ mic.micSrc.disconnect(); }catch(e){} mic.micSrc.connect(mic.voice.node); }
+    micFxCfg(mic);
   });
 }
+function micGate(mic, t, dur, deg){ if(mic.voice) mic.voice.send({ type:'gate', t, dur, semis: degSemis(deg) - 12 }); }   // a seq step on a mic: open the gate, retune the voice
 /* the chain puck walks a sequencer through its bank every N bars */
 function chainTick(c, barAbs){
   const q = objects.find(x=>x.id===c.hop); if(!q || q.type!=='seq') return;
@@ -2529,7 +2601,7 @@ function onBind(o, prev, next){
   if(o.type==='chance' && pq) pq.jump = 0;
   if(o.type==='send') updateSends();
   if(o.type==='xpress'){ for(const q of [pq,nq]) if(q) setPressure(q, 0, 'rebind'); }
-  if(o.type==='warp'){ for(const q of [pq,nq]) if(q && q.type==='mic') micWarpSync(q); }
+  if(o.type==='warp' || o.type==='env' || o.type==='xpress'){ for(const q of [pq,nq]) if(q && q.type==='mic') micFxSync(q); }
 }
 function scheduleBar(o, t, barAbs){
   const entry = entryFor(o);
@@ -2797,7 +2869,7 @@ function computePatch(){
   }
   for(const q of objects) if(q.type==='seq'){
     let best=null, bd=CTL_LINK();
-    for(const t of objects) if(t.type==='osc' || t.type==='sampler' || t.type==='rec'){
+    for(const t of objects) if(t.type==='osc' || t.type==='sampler' || t.type==='rec' || t.type==='mic'){
       const d = dist(q,t);
       if(d<bd){ bd=d; best=t; }
     }
@@ -2860,6 +2932,7 @@ function setHop(o, hop){
   o.hop = hop;
   if(o.type==='lfo') rewireCtl(o);
   else if(BIND[o.type]) onBind(o, prev, hop);
+  else if(o.type==='seq'){ for(const id of [prev,hop]){ const q = id!=='C' && objects.find(x=>x.id===id); if(q && q.type==='mic') micFxSync(q); } }
   else if(o.type!=='seq' && !GLOBAL_ADV.has(o.type)) rewireAudio(o);
 }
 /* ---- the scene puck: four snapshots of the table, and a morph between them ---- */

@@ -1,4 +1,4 @@
-// Lumatable: a warp puck beside a mic block shifts the voice live. A fake microphone plays a 220 Hz tone; the mic block's output is measured.   node tests/micwarp.test.js
+// Lumatable: the pucks beside a mic block work on the live voice. A fake microphone plays a 220 Hz tone; the mic block's output is measured: warp shifts it, a seq gates it, an envelope shapes it.   node tests/micwarp.test.js
 let pw; try{ pw = require('playwright'); }catch(e){ pw = require('/opt/node22/lib/node_modules/playwright'); }
 const { chromium } = pw;
 const fs = require('fs'), path = require('path'), os = require('os');
@@ -40,21 +40,21 @@ const WAV = path.join(os.tmpdir(), 'lumatable-mic-220.wav');
     const t0 = performance.now(); while(mic.micState==='wait' && performance.now()-t0 < 6000) await new Promise(r=>setTimeout(r,100));
     await new Promise(r=>setTimeout(r,600));
     const t = await tone(mic, 1500);
-    return { state: mic.micState, ...t, shift: !!mic.shift };
+    return { state: mic.micState, ...t, voice: !!mic.voice };
   });
-  check('mic block live: the fake microphone\'s 220 Hz comes straight through, no shifter yet', s1.state==='live' && s1.f===220 && s1.lv>0.02 && !s1.shift, JSON.stringify(s1));
+  check('mic block live: the fake microphone\'s 220 Hz comes straight through, no shifter yet', s1.state==='live' && s1.f===220 && s1.lv>0.02 && !s1.voice, JSON.stringify(s1));
 
   // 2. a warp puck beside it: the shifter appears between microphone and block, and +12 st makes 440 Hz
   const s2 = await page.evaluate(async()=>{
     const mic = objects.find(o=>o.type==='mic');
     const wp = spawn('warp', mic.x, mic.y - 0.3*TABLE_R); wp.angle = TAU; applyParams(wp); computePatch();   // ring fully up: +12 st
     const bound = wp.hop===mic.id;
-    const t0 = performance.now(); while(!mic.shift && performance.now()-t0 < 6000) await new Promise(r=>setTimeout(r,100));
+    const t0 = performance.now(); while(!mic.voice && performance.now()-t0 < 6000) await new Promise(r=>setTimeout(r,100));
     await new Promise(r=>setTimeout(r,500));
     const t = await tone(mic, 1600);
-    return { bound, shift: !!mic.shift, ro: readout(wp)[1], mro: readout(mic)[1], ...t };
+    return { bound, voice: !!mic.voice, ro: readout(wp)[1], mro: readout(mic)[1], ...t };
   });
-  check('warp beside the mic binds, wires in the live shifter, and +12 st turns 220 into 440 Hz', s2.bound && s2.shift && /live on the mic/.test(s2.ro) && /warped/.test(s2.mro) && s2.f===440 && s2.acc[440] > s2.acc[220]*2, JSON.stringify(s2));
+  check('warp beside the mic binds, wires in the live shifter, and +12 st turns 220 into 440 Hz', s2.bound && s2.voice && /live on the mic/.test(s2.ro) && /warp/.test(s2.mro) && s2.f===440 && s2.acc[440] > s2.acc[220]*2, JSON.stringify(s2));
 
   // 3. the ring changes the shift live; the faces give an octave down and backwards
   const s3 = await page.evaluate(async()=>{
@@ -76,22 +76,45 @@ const WAV = path.join(os.tmpdir(), 'lumatable-mic-220.wav');
     wp.x = CX+0.7*TABLE_R; wp.y = CY+0.7*TABLE_R; computePatch();
     await new Promise(r=>setTimeout(r,300));
     const t = await tone(mic, 1400);
-    return { unbound: wp.hop==='C', shift: !!mic.shift, ...t };
+    return { unbound: wp.hop==='C', voice: !!mic.voice, ...t };
   });
-  check('warp moved away: unbound, the shifter is gone, 220 Hz again', s4.unbound && !s4.shift && s4.f===220, JSON.stringify(s4));
+  check('warp moved away: unbound, the shifter is gone, 220 Hz again', s4.unbound && !s4.voice && s4.f===220, JSON.stringify(s4));
 
-  // 5. a sound-mode switch rebuilds the mic with its shifter; removing the mic tears it down
+  // 5. a seq beside the mic gates the voice in rhythm and retunes it; an envelope and express bind too
+  const s45 = await page.evaluate(async()=>{
+    const mic = objects.find(o=>o.type==='mic');
+    const sq = spawn('seq', mic.x, mic.y + 0.3*TABLE_R); computePatch();
+    const bound = sq.hop===mic.id;
+    let t0 = performance.now(); while(!mic.voice && performance.now()-t0 < 6000) await new Promise(r=>setTimeout(r,100));
+    for(const st of sq.steps) st.on = false; sq.steps[0].on = true; sq.steps[0].deg = scaleSteps().length;   // one step a bar, an octave up on the pads
+    sq.arc = 0.3;
+    const an = audio.ctx.createAnalyser(); an.fftSize = 2048; mic.amp.connect(an); const w = new Float32Array(2048);
+    const lv = ()=>{ an.getFloatTimeDomainData(w); let s=0; for(const v of w) s+=v*v; return Math.sqrt(s/w.length); };
+    let hi=0, lo=1, n=0; t0 = performance.now();
+    while(performance.now()-t0 < 4800){ await new Promise(r=>setTimeout(r,40)); const v=lv(); hi=Math.max(hi,v); lo=Math.min(lo,v); n++; }
+    an.disconnect();
+    const names = readout(mic)[1];
+    const ev = spawn('env', mic.x - 0.3*TABLE_R, mic.y); const xp = spawn('xpress', mic.x + 0.3*TABLE_R, mic.y); computePatch();
+    const more = readout(mic)[1], evRo = readout(ev)[1], xpRo = readout(xp)[1];
+    destroyObject(ev); destroyObject(xp); destroyObject(sq); computePatch();
+    await new Promise(r=>setTimeout(r,300));
+    const stillNames = readout(mic)[1], stillVoice = !!mic.voice;
+    return { bound, hi, lo, names, more, evRo, xpRo, stillNames, stillVoice };
+  });
+  check('a seq beside the mic binds and gates the voice (loud steps, silence between); envelope and express bind and say so; removing them unwires the processor', s45.bound && s45.hi>0.01 && s45.lo<s45.hi*0.15 && /seq/.test(s45.names) && /seq · envelope · express/.test(s45.more) && /live on the mic/.test(s45.evRo) && /live on the mic/.test(s45.xpRo) && !/seq|envelope|express/.test(s45.stillNames) && !s45.stillVoice, JSON.stringify(s45));
+
+  // 6. a sound-mode switch rebuilds the mic with its shifter; removing the mic tears it down
   const s5 = await page.evaluate(async()=>{
     const mic = objects.find(o=>o.type==='mic'), wp = objects.find(o=>o.type==='warp');
     wp.x = mic.x; wp.y = mic.y - 0.3*TABLE_R; computePatch();
-    let t0 = performance.now(); while(!mic.shift && performance.now()-t0 < 6000) await new Promise(r=>setTimeout(r,100));
-    const before = !!mic.shift;
+    let t0 = performance.now(); while(!mic.voice && performance.now()-t0 < 6000) await new Promise(r=>setTimeout(r,100));
+    const before = !!mic.voice;
     setSoundMode('moog'); await new Promise(r=>setTimeout(r,400));
-    t0 = performance.now(); while(!mic.shift && performance.now()-t0 < 6000) await new Promise(r=>setTimeout(r,100));
-    const after = !!mic.shift;
+    t0 = performance.now(); while(!mic.voice && performance.now()-t0 < 6000) await new Promise(r=>setTimeout(r,100));
+    const after = !!mic.voice;
     setSoundMode('original'); await new Promise(r=>setTimeout(r,300));
     destroyObject(mic);
-    return { before, after, gone: !mic.shift && !objects.includes(mic) };
+    return { before, after, gone: !mic.voice && !objects.includes(mic) };
   });
   check('the shifter survives a sound-mode switch and is torn down with the block', s5.before && s5.after && s5.gone, JSON.stringify(s5));
 

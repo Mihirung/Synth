@@ -18,8 +18,8 @@ needs a menu.
 |---|---|---|---|---|
 | **key** | anywhere | key C…B | scale | octave 0 / +1 / −1 / +2 |
 | **tuning** | anywhere | tuning system | reference A, 415–466 Hz | oscillators · oscillators + loops |
-| **envelope** | an oscillator or a filter | attack 1 ms – 2 s | release 20 ms – 4 s | PLUCK · KEYS · PAD · SWELL |
-| **express** | an oscillator, a filter, or anywhere | velocity depth | velocity curve soft–hard | where aftertouch goes: VIBRATO · BRIGHT · TREMOLO · BEND |
+| **envelope** | an oscillator, a filter, or a mic (live) | attack 1 ms – 2 s | release 20 ms – 4 s | PLUCK · KEYS · PAD · SWELL |
+| **express** | an oscillator, a filter, a mic (live), or anywhere | velocity depth | velocity curve soft–hard | where aftertouch goes: VIBRATO · BRIGHT · TREMOLO · BEND |
 | **steps** | a sequencer | pattern length 1–16 | rate 1/32 · 1/16 · 1/8 · 1/4 | FORWARD · REVERSE · PING-PONG · RANDOM |
 | **euclid** | a sequencer | hits 1–16 | rotate the pattern | pitches: ROOT · ALTERNATE · RISING · RANDOM |
 | **chance** | a sequencer | probability 100 → 5 % | humanise | DICE · RATCHET · FILL · SKIP |
@@ -199,17 +199,38 @@ changed together, and the round-trip test renders each marker and reads it back.
 - **Stems in the artifact.** WAV is outside the artifact download allowlist; the hosted
   build (GitHub Pages) saves it.
 
-## Warp on a microphone, live
+## The pucks on a microphone, live
 
-A warp puck beside a **mic** block no longer needs a recording first. A real-time granular
-pitch shifter (`LiveWarp`, in the same worklet as the analogue engines) goes between the
-microphone and the block: two read heads sweep a delay line behind the write head, each
-under a Hann window and half a period apart, so their sum is seamless; a head that runs
-ahead of real time raises the pitch, one that lags lowers it. Turn the ring for the shift
-(a chipmunk at +12, a monster at −12), slide for the grain (20–200 ms; longer is smoother,
-shorter is more robotic). The faces change meaning for a live signal, which has no time
-axis to stretch: **HALF** and **DOUBLE** are an octave down and up, **REVERSE** reads every
-grain backwards, which turns speech into backwards talking as it is spoken. The voice
-arrives about half a grain late. Take the puck away and the shifter is unwired again.
-`tests/micwarp-dsp.test.js` checks the shifter numerically; `tests/micwarp.test.js` plays a
-220 Hz tone through a fake microphone and measures 440 Hz coming out of the block.
+The pucks that sit beside a **mic** block work on the live voice. Nothing has to be
+recorded first. One processor (`VoiceFx`, in the same worklet as the analogue engines)
+goes between the microphone and the block the moment a puck binds, and is unwired when
+the last one leaves.
+
+- **warp**: a real-time granular pitch shifter. Two read heads sweep a delay line behind
+  the write head, each under a Hann window and half a period apart, so their sum is
+  seamless; a head that runs ahead of real time raises the pitch, one that lags lowers it.
+  Turn the ring for the shift (a chipmunk at +12, a monster at −12), slide for the grain
+  (20–200 ms; longer is smoother, shorter is more robotic). The faces change meaning for a
+  live signal, which has no time axis to stretch: **HALF** and **DOUBLE** are an octave
+  down and up, **REVERSE** reads every grain backwards, which turns speech into backwards
+  talking as it is spoken.
+- **seq**: the sequencer gates the voice in rhythm and retunes it. A pad that is on opens
+  the voice for the gate length (the seq's slide); how far the pad is pulled out sets the
+  shift, from an octave down at the centre to the top of the scale two octaves up, so one
+  sung note becomes a tune in the table's key. **steps**, **euclid**, **chance** and
+  **chain** on the seq work as they always did.
+- **envelope**: a level follower finds each word, and the puck shapes it. **PLUCK** sounds
+  the onset and cuts it short, **KEYS** follows the word with the puck's attack and
+  release, **PAD** does the same with slower minimums, **SWELL** fades each word in from
+  silence over the attack time.
+- **express**: the voice's own loudness drives the effect. **VIBRATO** wobbles the pitch,
+  **BRIGHT** lifts the top as the voice gets louder, **TREMOLO** flutters the level,
+  **BEND** scoops up into each word from below. The ring sets the depth.
+
+The green blocks (filter, delay, drive, reverb, chorus, crush, mod) always worked on the
+mic by proximity, and still do; the same applies to send, space, master, motion and the
+air knob. With nothing pitch-shaped bound the shifter is bypassed; otherwise the voice
+arrives about three quarters of a grain late.
+`tests/micwarp-dsp.test.js` checks the processor numerically (shift, gates, envelope,
+express); `tests/micwarp.test.js` plays a 220 Hz tone through a fake microphone and
+measures 440 Hz out of the block, then the seq's gating and the readouts.
