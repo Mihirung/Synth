@@ -14,6 +14,8 @@ node tests/help.test.js              # the ? panel's tabs, desktop and phone
 node tests/lines.test.js             # cutting and mending lines by touch, purple reach
 node tests/spheres.test.js           # the orrery: moon counts, Kepler ratios, Holst touches, God-mode physics and collisions, ships
 node tests/song.test.js              # the song: a real take becomes a blob, blobs onto the rim by mouse, play/pause/stop, bus isolation, render and save, reload
+node tests/micwarp-dsp.test.js       # the live pitch shifter (warp on a mic), numerically: unity, octaves, fifths, reverse, live changes, speed (no browser)
+node tests/micwarp.test.js           # warp beside a mic block: a fake microphone's 220 Hz comes out at 440, the ring and faces change it live, unbinding and rebuilds
 node tests/phone.test.js             # iPhone emulation: trays as pages of the dock, tap-to-place, back; desktop drawers still stack
 ```
 

@@ -26,7 +26,7 @@ needs a menu.
 | **chain** | a sequencer | every 1 · 2 · 4 · 8 bars | how many patterns, 2–4 | LOOP · PING-PONG · RANDOM · SONG |
 | **scene** | anywhere | morph live → snapshot | crossfade 0–4 bars | snapshot A · B · C · D |
 | **motion** | any object | loop 1 · 2 · 4 · 8 bars | smoothing | what it loops: TURN · SLIDE · MOVE · ALL |
-| **warp** | a loop or recorder | pitch −12 … +12 semitones | grain 20–200 ms | PITCH · HALF · DOUBLE · REVERSE |
+| **warp** | a loop, a recorder, or a mic (live) | pitch −12 … +12 semitones | grain 20–200 ms | PITCH · HALF · DOUBLE · REVERSE |
 | **send** | an effect | send level | reach | POST · PRE |
 | **space** | anywhere | stereo width | orbit speed | POSITION · ORBIT · RADIAL |
 | **master** | anywhere | volume | glue | CLEAN · GLUE · PUMP · LIMIT |
@@ -198,3 +198,18 @@ changed together, and the round-trip test renders each marker and reads it back.
   eases to where the morph would have put it.
 - **Stems in the artifact.** WAV is outside the artifact download allowlist; the hosted
   build (GitHub Pages) saves it.
+
+## Warp on a microphone, live
+
+A warp puck beside a **mic** block no longer needs a recording first. A real-time granular
+pitch shifter (`LiveWarp`, in the same worklet as the analogue engines) goes between the
+microphone and the block: two read heads sweep a delay line behind the write head, each
+under a Hann window and half a period apart, so their sum is seamless; a head that runs
+ahead of real time raises the pitch, one that lags lowers it. Turn the ring for the shift
+(a chipmunk at +12, a monster at −12), slide for the grain (20–200 ms; longer is smoother,
+shorter is more robotic). The faces change meaning for a live signal, which has no time
+axis to stretch: **HALF** and **DOUBLE** are an octave down and up, **REVERSE** reads every
+grain backwards, which turns speech into backwards talking as it is spoken. The voice
+arrives about half a grain late. Take the puck away and the shifter is unwired again.
+`tests/micwarp-dsp.test.js` checks the shifter numerically; `tests/micwarp.test.js` plays a
+220 Hz tone through a fake microphone and measures 440 Hz coming out of the block.

@@ -249,6 +249,7 @@
     <p>Draw a wiggly line next to an <span class="cg">osc</span>. The wiggle becomes its sound.</p>
     <p>Tap the tiny keys above an <span class="cg">osc</span> for a piano. Or play the <span class="kbd">A</span> to <span class="kbd">L</span> keys.</p>
     <p>A <span class="cg">rec</span> block listens for a few bars, then plays it back, round and round. A <span class="cg">mic</span> block hears you.</p>
+    <p>Put a <span class="cc">warp</span> (it is under <b>more</b>) next to the <span class="cg">mic</span>. Turn it up for a chipmunk, down for a monster, tap it for backwards talking. It works while you sing.</p>
     <h3>Make a real song</h3>
     <p>Tap the <span class="cc">song</span> block. The edge of the circle becomes your song: <b>intro, verse, chorus</b> and so on, all the way round. That is about three minutes.</p>
     <p>Tap a <span class="cg">rec</span> block while the table is playing. It listens for a few bars, then a <b>wobbly blob</b> pops out next to it. That blob is your recording.</p>
@@ -387,7 +388,7 @@ const HANDY = new Set(['theremin','drums','harp','conduct','air','water']);   //
 const ADV = new Set(['key','tune','env','xpress','steps','euclid','chance','chain','scene','motion','warp','send','space','master','stems']);
 const GLOBAL_ADV = new Set(['key','tune','scene','space','master','stems']);          // work anywhere on the table
 const BIND = { env:['osc','filter'], xpress:['osc','filter'], steps:['seq'], euclid:['seq'], chance:['seq'], chain:['seq'],
-               motion:'any', warp:['sampler','rec'], send:['delay','reverb','chorus','dist','crush','mod','filter'], air:'any' };
+               motion:'any', warp:['sampler','rec','mic'], send:['delay','reverb','chorus','dist','crush','mod','filter'], air:'any' };
 const PLAY_LEGEND = {
   theremin:{ name:'THEREMIN', turn:'range 1–4 octaves', slide:'level', faces:['FREE','IN KEY','GLIDE'] },
   drums:   { name:'AIR DRUMS', turn:'kit pitch', slide:'level', faces:['FREE','ON THE GRID','BIG KIT','TOMS'] },
@@ -412,7 +413,7 @@ const ADV_LEGEND = {   // printed on the cards and used by the readouts
   chain:  { name:'CHAIN',    turn:'every 1 · 2 · 4 · 8 bars', slide:'patterns 2–4',     faces:['LOOP','PING-PONG','RANDOM','SONG'] },
   scene:  { name:'SCENE',    turn:'morph live → snapshot', slide:'crossfade 0–4 bars',  faces:['A','B','C','D'] },
   motion: { name:'MOTION',   turn:'loop 1 · 2 · 4 · 8 bars', slide:'smoothing',        faces:['TURN','SLIDE','MOVE','ALL'] },
-  warp:   { name:'WARP',     turn:'pitch −12 … +12 st',   slide:'grain 20–200 ms',      faces:['PITCH','HALF','DOUBLE','REVERSE'] },
+  warp:   { name:'WARP',     turn:'pitch −12 … +12 st',   slide:'grain 20–200 ms',      faces:['PITCH','HALF','DOUBLE','REVERSE'] },   // beside a mic: live; HALF/DOUBLE become an octave down/up
   send:   { name:'SEND',     turn:'send level',           slide:'reach',                faces:['POST','PRE'] },
   space:  { name:'SPACE',    turn:'stereo width',         slide:'orbit speed',          faces:['POSITION','ORBIT','RADIAL'] },
   master: { name:'MASTER',   turn:'volume',               slide:'glue',                 faces:['CLEAN','GLUE','PUMP','LIMIT'] },
@@ -787,6 +788,7 @@ function teardownNodes(o){
     for(const k of ['src','src2','src3','preF','fmGain','amp','gate','out','an','pan','biq','inG','dl','fb','fbSat','fbLP','dry','wet','depthG','carrier','ring','dryG','shaper','conv','micSrc','chDelay','chLfo','chDepth','vib','vibG','trem','tremG','bendC','thGain','humG','humG2','humG3','humAn'])
       if(o[k]){ try{ o[k].disconnect(); }catch(e){} o[k]=null; }
     if(o.ana){ try{ o.ana.node.disconnect(); }catch(e){} if(o.ana.node.onaudioprocess) o.ana.node.onaudioprocess=null; o.ana=null; }
+    if(o.shift){ try{ o.shift.node.disconnect(); }catch(e){} if(o.shift.node.onaudioprocess) o.shift.node.onaudioprocess=null; o.shift=null; }
     if(o.playing){ try{ o.playing.stop(); }catch(e){} o.playing = null; }
   }
 }
@@ -907,7 +909,7 @@ function readout(o){
                       : 'loop · '+Math.round(o.arc*100)+'%'];
     case 'mic': return ['MIC', o.micState==='wait' ? 'allow microphone…'
                       : o.micState==='denied' ? 'mic blocked'
-                      : 'live · '+Math.round(o.arc*100)+'%'];
+                      : 'live · '+Math.round(o.arc*100)+'%'+(o.shift ? ' · warped' : '')];
     case 'tempo': return ['TEMPO', tempoBpm(o)+' BPM'];
     case 'key': return ['KEY · '+NOTE_NAMES[state.key]+' '+SCALES[state.scaleIdx].name, ADV_LEGEND.key.faces[o.option%4]];
     case 'tune': return ['TUNING · '+tuneSys(o).n, 'A = '+tuneRef(o).toFixed(1)+' Hz · '+(o.option===1?'osc + loops':'oscillators')];
@@ -920,7 +922,7 @@ function readout(o){
     case 'scene': return ['SCENE · '+ADV_LEGEND.scene.faces[o.option%4]+(o.slots[o.option%4]?'':' (empty)'),
                           'morph '+Math.round((o.angle/TAU)*100)+'% · fade '+(sceneCross(o)<0.05?'instant':sceneCross(o).toFixed(1)+' bars')];
     case 'motion': return ['MOTION · '+ADV_LEGEND.motion.faces[o.option%4], motionBars(o)+' bar'+(motionBars(o)>1?'s':'')+' · '+(o.hop==='C'?'unbound':o.motionHas?'looping':'move the target')];
-    case 'warp': return ['WARP · '+ADV_LEGEND.warp.faces[o.option%4], (warpSemis(o)>0?'+':'')+warpSemis(o)+' st · grain '+Math.round(warpGrain(o)*1000)+' ms'+(o.hop==='C'?' · unbound':'')];
+    case 'warp': { const q = o.hop!=='C' && objects.find(x=>x.id===o.hop); return ['WARP · '+ADV_LEGEND.warp.faces[o.option%4], (warpSemis(o)>0?'+':'')+warpSemis(o)+' st · grain '+Math.round(warpGrain(o)*1000)+' ms'+(o.hop==='C'?' · unbound': q && q.type==='mic' ? ' · live on the mic' : '')]; }
     case 'send': return ['SEND · '+ADV_LEGEND.send.faces[o.option%2], 'level '+Math.round(sendLevel(o)*100)+'% · reach '+Math.round(sendReach(o)/TABLE_R*100)+'%'+(o.hop==='C'?' · unbound':'')];
     case 'space': return ['SPACE · '+ADV_LEGEND.space.faces[o.option%3], 'width '+Math.round(spaceWidth(o)*100)+'%'];
     case 'master': return ['MASTER · '+ADV_LEGEND.master.faces[o.option%4], 'volume '+Math.round(masterVol(o)*100)+'% · glue '+Math.round(o.arc*100)+'%'];
@@ -1137,6 +1139,33 @@ class AnalogOut{
     }
   }
 }
+/* ---- LiveWarp: a real-time granular pitch shifter, for the mic block ----
+   Two read heads sweep a delay line behind the write head, each under a Hann window
+   and half a period apart, so their sum is seamless. A head that runs ahead of real
+   time raises the pitch, one that lags lowers it; reading each grain backwards is the
+   backwards-voice face. The voice arrives about half a grain late.                  */
+class LiveWarp{
+  constructor(sr){ this.sr=sr; this.N=1<<17; this.buf=new Float32Array(this.N); this.w=0; this.ph=0; this.cfg={ratio:1,grain:0.08,rev:false}; }
+  handle(m){ if(m.type==='cfg') Object.assign(this.cfg,m.cfg); }
+  process(inp,out,n){
+    const c=this.cfg, M=this.N-1, T=Math.max(64, Math.min(this.N/8, c.grain*this.sr));
+    const r=c.ratio, slope=c.rev ? (1+r) : (1-r), A=Math.abs(slope)*T, up=slope<0, d0=this.sr*0.001, inc=1/T;
+    const buf=this.buf;
+    for(let i=0;i<n;i++){
+      buf[this.w]=inp[i];
+      let y=0;
+      for(let h=0;h<2;h++){
+        let p=this.ph+h*0.5; if(p>=1) p-=1;
+        const win=0.5-0.5*Math.cos(TAU*p);
+        const rp=this.w-(d0+(up ? 1-p : p)*A), ri=Math.floor(rp), fr=rp-ri;
+        const a=buf[ri&M], b=buf[(ri+1)&M];
+        y+=win*(a+(b-a)*fr);
+      }
+      out[i]=y;
+      this.w=(this.w+1)&M; this.ph+=inc; if(this.ph>=1) this.ph-=1;
+    }
+  }
+}
 /* ---- Waterphone: a modal model of Richard Waters's instrument ----
    A stainless bowl (14 inharmonic shell modes, long decays), ten brass rods around its
    rim (each a clamped-free bar: partials at 1 : 6.27 : 17.55), and water inside. The
@@ -1247,7 +1276,7 @@ class Waterphone{
 const WORKLET_SRC = DSP_CORE + `
 class LumaAnalog extends AudioWorkletProcessor{
   constructor(o){ super(); this.kind=o.processorOptions.kind;
-    this.core=new (this.kind==='osc'?AnalogOsc:this.kind==='filter'?AnalogFilter:this.kind==='water'?Waterphone:AnalogOut)(sampleRate);
+    this.core=new (this.kind==='osc'?AnalogOsc:this.kind==='filter'?AnalogFilter:this.kind==='water'?Waterphone:this.kind==='shift'?LiveWarp:AnalogOut)(sampleRate);
     this.port.onmessage=e=>this.core.handle(e.data); }
   static get parameterDescriptors(){ return [
     {name:'fm',defaultValue:0,automationRate:'a-rate'},
@@ -1275,7 +1304,7 @@ function ensureAnalog(){
       await audio.ctx.audioWorklet.addModule(url);
       analogState.mode='worklet';
     }catch(e){
-      analogState.Core = new Function(DSP_CORE+'\nreturn {AnalogOsc,AnalogFilter,AnalogOut,Waterphone};')();
+      analogState.Core = new Function(DSP_CORE+'\nreturn {AnalogOsc,AnalogFilter,AnalogOut,Waterphone,LiveWarp};')();
       analogState.mode='sp';
     }
     return analogState.mode;
@@ -1290,7 +1319,7 @@ function makeAnalog(kind){
     return { node, send:m=>node.port.postMessage(m), param:n=>node.parameters.get(n) };
   }
   const C=analogState.Core;
-  const core=new (kind==='osc'?C.AnalogOsc:kind==='filter'?C.AnalogFilter:kind==='water'?C.Waterphone:C.AnalogOut)(ctx.sampleRate);
+  const core=new (kind==='osc'?C.AnalogOsc:kind==='filter'?C.AnalogFilter:kind==='water'?C.Waterphone:kind==='shift'?C.LiveWarp:C.AnalogOut)(ctx.sampleRate);
   const node=ctx.createScriptProcessor(512,1,1);
   node.onaudioprocess=e=>{ const out=e.outputBuffer.getChannelData(0), inp=e.inputBuffer.getChannelData(0);
     if(kind==='osc') core.process(out,out.length,e.playbackTime,null);
@@ -1441,13 +1470,14 @@ function buildNodes(o){
   } else if(o.type==='mic'){
     o.amp = ctx.createGain(); o.amp.gain.value = o.arc;
     o.amp.connect(o.out);
+    if(warpFor(o)) micWarpSync(o);   // a warp already beside it (a rebuild): put the shifter back
     if(navigator.mediaDevices && navigator.mediaDevices.getUserMedia){
       navigator.mediaDevices.getUserMedia({ audio:{ echoCancellation:true } })
         .then(stream => {
           if(!objects.includes(o)){ stream.getTracks().forEach(t=>t.stop()); return; }
           o.micStream = stream;
           o.micSrc = ctx.createMediaStreamSource(stream);
-          o.micSrc.connect(o.amp);
+          o.micSrc.connect(o.shift ? o.shift.node : o.amp);
           o.micState = 'live';
         })
         .catch(()=>{ o.micState = 'denied'; });
@@ -1673,6 +1703,8 @@ function applyParams(o){
     }
   } else if(o.type==='sampler' || o.type==='rec' || o.type==='mic' || o.type==='drums' || o.type==='harp' || o.type==='marbles' || o.type==='hum' || o.type==='spheres'){
     o.amp.gain.setTargetAtTime(o.arc, t, 0.02);
+  } else if(o.type==='warp'){
+    const q = o.hop!=='C' && objects.find(x=>x.id===o.hop); if(q && q.type==='mic') micWarpCfg(q, o);
   } else if(o.type==='song'){
     songBus().gain.setTargetAtTime(o.arc, t, 0.02);
   } else if(o.type==='water'){
@@ -1779,6 +1811,7 @@ function cycleOption(o){
     o.option = (o.option+1)%4; motionClear(o);
   } else if(ADV.has(o.type)){
     o.option = (o.option+1)%ADV_LEGEND[o.type].faces.length;
+    if(o.type==='warp') applyParams(o);
   } else if(o.type==='song'){
     o.option = (o.option+1)%SONG_FORMS.length; songStop();   // a new shape for the song: the blobs keep their bars
   } else if(PLAY.has(o.type)){
@@ -2417,6 +2450,31 @@ function seqPlayIdx(o){
 }
 function chanceFor(o){ return objects.find(q=>q.type==='chance' && q.hop===o.id) || null; }
 function warpFor(o){ return objects.find(q=>q.type==='warp' && q.hop===o.id) || null; }
+/* the warp puck beside a mic block: a live granular pitch shifter (LiveWarp, in the
+   worklet) goes between the microphone and the block, so the voice is shifted as it is
+   sung. PITCH is the ring's semitones, HALF and DOUBLE an octave down and up, REVERSE
+   reads every grain backwards. Nothing has to be recorded first. */
+function micWarpCfg(mic, wp){
+  if(!mic.shift) return;
+  const face = wp.option%4, semis = face===1 ? -12 : face===2 ? 12 : warpSemis(wp);
+  mic.shift.send({ type:'cfg', cfg:{ ratio: Math.pow(2, semis/12), grain: Math.max(0.03, warpGrain(wp)), rev: face===3 } });
+}
+function micWarpSync(mic){
+  if(!audio || !mic.amp) return;
+  const wp = warpFor(mic);
+  if(!wp){
+    if(mic.shift){ try{ mic.shift.node.disconnect(); }catch(e){} if(mic.shift.node.onaudioprocess) mic.shift.node.onaudioprocess=null; mic.shift = null;
+      if(mic.micSrc){ try{ mic.micSrc.disconnect(); }catch(e){} mic.micSrc.connect(mic.amp); } }
+    return;
+  }
+  if(mic.shift){ micWarpCfg(mic, wp); return; }
+  ensureAnalog().then(()=>{
+    if(!audio || !objects.includes(mic) || !mic.amp || mic.shift || !warpFor(mic)) return;
+    mic.shift = makeAnalog('shift'); mic.shift.node.connect(mic.amp);
+    if(mic.micSrc){ try{ mic.micSrc.disconnect(); }catch(e){} mic.micSrc.connect(mic.shift.node); }
+    micWarpCfg(mic, warpFor(mic));
+  });
+}
 /* the chain puck walks a sequencer through its bank every N bars */
 function chainTick(c, barAbs){
   const q = objects.find(x=>x.id===c.hop); if(!q || q.type!=='seq') return;
@@ -2471,6 +2529,7 @@ function onBind(o, prev, next){
   if(o.type==='chance' && pq) pq.jump = 0;
   if(o.type==='send') updateSends();
   if(o.type==='xpress'){ for(const q of [pq,nq]) if(q) setPressure(q, 0, 'rebind'); }
+  if(o.type==='warp'){ for(const q of [pq,nq]) if(q && q.type==='mic') micWarpSync(q); }
 }
 function scheduleBar(o, t, barAbs){
   const entry = entryFor(o);
