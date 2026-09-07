@@ -15,3 +15,4 @@ node tests/phone.test.js             # iPhone emulation: trays as pages of the d
 Each prints a PASS/FAIL line per check and exits non-zero on any failure or page error.
 Screenshots land in `tests/shots/`. Set `PLAYWRIGHT_CHROMIUM` to your Chromium binary if
 Playwright's own download is not present.
+node tests/help.test.js               # the ? help panel: tabs, open and close, desktop and phone

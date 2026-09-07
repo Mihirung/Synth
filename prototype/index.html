@@ -54,15 +54,24 @@
   .chip.warn{color:var(--dim)}
   #hint{
     position:fixed;left:50%;top:50%;transform:translate(-50%,-50%);z-index:9;
-    width:min(440px,calc(100vw - 40px));max-height:80vh;overflow:auto;box-sizing:border-box;
+    width:min(480px,calc(100vw - 32px));max-height:82vh;overflow:auto;box-sizing:border-box;
     padding:22px 26px;border-radius:16px;color:var(--text);
     background:rgba(9,15,26,.86);border:1px solid rgba(255,255,255,.12);
     backdrop-filter:blur(20px) saturate(1.3);-webkit-backdrop-filter:blur(20px) saturate(1.3);
     box-shadow:0 30px 90px rgba(0,0,0,.6),inset 0 1px 0 rgba(255,255,255,.06);
   }
-  #hint h2{margin:0 0 12px;font-size:12px;font-weight:600;letter-spacing:.24em;text-transform:uppercase;color:var(--line)}
-  #hint ul{margin:0;padding-left:18px;display:flex;flex-direction:column;gap:9px}
-  #hint li{font-size:13px;line-height:1.5;letter-spacing:.02em;color:var(--text)}
+  #hint h2{margin:0 0 10px;font-size:12px;font-weight:600;letter-spacing:.24em;text-transform:uppercase;color:var(--line)}
+  #hint h3{margin:16px 0 6px;font-size:11px;font-weight:600;letter-spacing:.18em;text-transform:uppercase;color:var(--dim)}
+  #hint h3:first-child{margin-top:4px}
+  #hint p{margin:0 0 8px;font-size:14px;line-height:1.55;letter-spacing:.01em;color:var(--text)}
+  #hint p b{font-weight:600;color:#fff}
+  #hint .cg{color:var(--gen);font-weight:600} #hint .cf{color:var(--fx);font-weight:600} #hint .cc{color:var(--ctl);font-weight:600}
+  #hint .tabs{display:flex;gap:6px;margin:0 0 12px;padding-right:30px}
+  #hint .tab{font-family:var(--font);font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:var(--dim);
+    background:none;border:1px solid rgba(255,255,255,.12);border-radius:999px;padding:6px 12px;cursor:pointer}
+  #hint .tab.on{color:var(--ground);background:var(--line);border-color:var(--line);font-weight:600}
+  #hint .page[hidden]{display:none}
+  #hint .kbd{display:inline-block;border:1px solid rgba(255,255,255,.2);border-radius:5px;padding:0 6px;font-size:12px;color:var(--text)}
   #hintClose{position:absolute;top:10px;right:12px;background:none;border:0;color:var(--dim);
     font-size:22px;line-height:1;cursor:pointer;padding:4px 8px}
   #hintClose:hover{color:var(--text)}
@@ -212,19 +221,59 @@
 </header>
 <div id="hint" hidden>
   <button id="hintClose" aria-label="close">×</button>
-  <h2>How to play</h2>
-  <ul>
-    <li>Tap a block in the tray to put it on the disc, or drag it where you want it; drag one off the disc to remove it.</li>
-    <li>Turn a block's inner ring for its main control; slide the outer arc for the second.</li>
-    <li>Tap a block to change its mode (waveform, filter type, loop…). On a real cube, turn it to another face.</li>
-    <li>Place a <b>Rec</b> block to record the next bars and loop them; tap it to record again. Turn it to set the length.</li>
-    <li>A <b>Mic</b> block is live input as soon as it is on the table.</li>
-    <li>Tap a sequencer's pads to switch steps on; pull a pad outward for a higher note.</li>
-    <li>Tap the small keys button above an oscillator for its piano; draw a shape beside one to become its waveform.</li>
-    <li>Push two oscillators together for FM; swipe across a line to cut it. Play the A–L keys or a MIDI keyboard.</li>
-    <li><b>Play</b> opens instruments for hands and voice: a theremin, air drums, a harp, marbles, hum, a conductor. They work by touch too; with a camera, wave at it.</li>
-    <li><b>More</b> opens the advanced pucks (tuning, envelopes, chance, scenes, stems…). Put one near the block it should change; the global ones work anywhere.</li>
-  </ul>
+  <div class="tabs">
+    <button class="tab on" data-page="start">Start</button>
+    <button class="tab" data-page="play">Play</button>
+    <button class="tab" data-page="grown">Grown-ups</button>
+  </div>
+  <section class="page" data-page="start">
+    <h3>Make a sound</h3>
+    <p><b>Tap a block</b> in the tray. It hops onto the circle and starts to sing.</p>
+    <p><b>Pull it off</b> the circle to put it away.</p>
+    <h3>Colours</h3>
+    <p><span class="cg">Yellow</span> blocks <b>make</b> sound.</p>
+    <p><span class="cf">Green</span> blocks <b>change</b> sound. Put one near a yellow block.</p>
+    <p><span class="cc">Purple</span> blocks <b>boss</b> other blocks. Put one right next to a block.</p>
+    <h3>Every block has three tricks</h3>
+    <p><b>Turn the inside ring.</b> That is the big control, like how high the note is.</p>
+    <p><b>Slide the outside curve.</b> That is the small control, like how loud.</p>
+    <p><b>Tap the middle.</b> It flips to a new face: a new sound, a new pattern.</p>
+    <h3>Lines</h3>
+    <p>A line means <b>the sound goes this way</b>. It wiggles when sound is flowing.</p>
+    <p><b>Swipe across a line</b> to cut it. Swipe again to mend it.</p>
+    <h3>Little tricks</h3>
+    <p>Tap the pads around a <span class="cc">seq</span> block to make a tune. Pull a pad out for a higher note.</p>
+    <p>Push two <span class="cg">osc</span> blocks together. They tickle each other.</p>
+    <p>Draw a wiggly line next to an <span class="cg">osc</span>. The wiggle becomes its sound.</p>
+    <p>Tap the tiny keys above an <span class="cg">osc</span> for a piano. Or play the <span class="kbd">A</span> to <span class="kbd">L</span> keys.</p>
+    <p>A <span class="cg">rec</span> block listens for a few bars, then plays it back, round and round. A <span class="cg">mic</span> block hears you.</p>
+  </section>
+  <section class="page" data-page="play" hidden>
+    <h3>Play with your hands and voice</h3>
+    <p>Press <b>play</b> under the tray. Here are instruments for hands and voices.</p>
+    <p><b>Theremin.</b> Wave a finger in its glow. Near the block is high, far away is low.</p>
+    <p><b>Air drums.</b> Hit the four pads: kick, snare, hat, clap.</p>
+    <p><b>Harp.</b> Sweep across the strings.</p>
+    <p><b>Marbles.</b> Flick one from the ring. It bounces and plays everything it bumps into.</p>
+    <p><b>Hum.</b> Hum a tune. The table hums it back.</p>
+    <p><b>Conductor.</b> Tap its ring in time. Everybody follows you.</p>
+    <p><b>Waterphone.</b> Hold a rod to bow it. Tap a rod to hit it. Wobble the block to slosh the water. Spooky!</p>
+    <h3>With a camera</h3>
+    <p>Say <b>yes</b> when it asks to use the camera. Then wave your hands in the air instead of touching.</p>
+    <p>Strike downwards over a drum pad to hit it. Rest a fingertip on a harp string or a waterphone rod to bow it.</p>
+  </section>
+  <section class="page" data-page="grown" hidden>
+    <h3>The advanced pucks</h3>
+    <p>Press <b>more</b> under the tray for the hexagons. Put one next to a block to change how it behaves: <b>envelope</b>, <b>express</b>, <b>steps</b>, <b>euclid</b>, <b>chance</b>, <b>chain</b>, <b>motion</b>, <b>warp</b>, <b>send</b>, <b>air knob</b>.</p>
+    <p>Some work anywhere on the disc: <b>key</b>, <b>tuning</b>, <b>scene</b>, <b>space</b>, <b>master</b>, <b>stems</b>.</p>
+    <p>Each puck's card (from <b>markers</b> in the header) says what turning, sliding and flipping does.</p>
+    <h3>The header</h3>
+    <p><b>BPM</b>, <b>key</b> and <b>scale</b> keep everything in tune and in time. <b>Sound</b> switches between the original engine and four analogue models. <b>Swing</b> adds groove.</p>
+    <p><b>Record</b> saves a performance. <b>Share</b> puts the whole table in a link. <b>Undo</b> is also <span class="kbd">Ctrl</span> <span class="kbd">Z</span>.</p>
+    <h3>The real table</h3>
+    <p><b>Camera</b> turns a phone above a flat TV into a tracker for printed cubes. <b>Markers</b> prints them. <b>Sync</b> lines up picture and sound over Bluetooth or a cast.</p>
+    <p>Cubes have four tricks: put them down, move them, turn them, and flip them to another face. Lift a cube and put it straight back to make a recorder record again.</p>
+  </section>
 </div>
 <div id="dock" aria-label="object tray">
   <button class="spawn" data-type="osc"><span class="chipico sq"></span>osc</button>
@@ -4040,6 +4089,11 @@ $('shareChip').addEventListener('click', async ()=>{
 });
 $('demoChip').addEventListener('click', ()=>{ pushUndo(); demoScene(); });
 $('helpChip').addEventListener('click', ()=>{ const h=$('hint'); h.hidden=!h.hidden; });
+$('hint').addEventListener('click', e=>{
+  const tab = e.target.closest('.tab'); if(!tab) return;
+  for(const t of $('hint').querySelectorAll('.tab')) t.classList.toggle('on', t===tab);
+  for(const p of $('hint').querySelectorAll('.page')) p.hidden = p.dataset.page!==tab.dataset.page;
+});
 $('hintClose').addEventListener('click', ()=>{ $('hint').hidden=true; });
 $('clearChip').addEventListener('click', ()=>{ pushUndo(); for(const o of [...objects]) destroyObject(o); });
 $('undoChip').addEventListener('click', doUndo);
