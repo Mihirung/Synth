@@ -4381,7 +4381,7 @@ function spheresPhysics(dt){
       if(b.leaving){ if(dc > TABLE_R*1.5) b.alive = false; }
       else if(dc > lim){
         const nx=(b.x-CX)/dc, ny=(b.y-CY)/dc, dot=b.vx*nx+b.vy*ny;
-        if(dot>0 && sphRand() < (b.debris ? 0.5 : 0.2)){   // one world in five is lost to interstellar space; rubble goes more readily
+        if(dot>0 && sphRand() < (b.debris ? 0.3 : 0.2)){   // one world in five is lost to interstellar space; rubble goes a little more readily
           b.leaving = true;
           if(!b.debris){ spheres.note = { txt:(b.n.split("'")[0].split('+')[0]).toUpperCase()+' HAS LEFT THE SOLAR SYSTEM', t:3 }; if(audio) holstLeave(); }
         } else { if(dot>0){ b.vx -= 1.85*dot*nx; b.vy -= 1.85*dot*ny; } b.x=CX+nx*lim; b.y=CY+ny*lim; }
@@ -4410,6 +4410,7 @@ function spheresPhysics(dt){
 function sphConsume(sun, b){
   b.alive=false; sun.r = Math.min(sphSunR()*1.6, sun.r + b.r*0.08); sun.m += b.m;
   sphSpark(b.x, b.y, 24, '#fff2c4'); spheres.flash = 0.8;
+  if(!b.debris) spheres.note = { txt:(b.n.split("'")[0].split('+')[0]).toUpperCase()+' HAS FALLEN INTO THE SUN', t:3 };
   if(audio) holstBoom(0.9, b.r/sphPlanetR(11.2), true);
   b.moons.filter(mo=>mo.major).concat(b.moons.filter(mo=>!mo.major).slice(0,6)).forEach(mo=>sphFree(b, mo));
 }

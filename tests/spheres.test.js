@@ -81,9 +81,9 @@ const CHROME = process.env.PLAYWRIGHT_CHROMIUM || (fs.existsSync('/opt/pw-browse
     s.x = j.x + j.r*0.5; s.y = j.y; s.vx = j.vx + vE*2; s.vy = j.vy;
     spheres.clock += 1; spheresPhysics(1/60); const afterShatter = spheres.bodies.length; const debris = spheres.bodies.filter(b=>b.debris).length;
     spheres.clock += 1; const e = find('Earth'); e.x = CX + 2; e.y = CY; const sunR0 = spheres.bodies[0].r; spheresPhysics(1/60);
-    return { n0, afterMerge, merged: !!merged, afterShatter, debris, eaten: !find('Earth'), sunGrew: spheres.bodies[0].r > sunR0, sparks: spheres.sparks.length };
+    return { n0, afterMerge, merged: !!merged, afterShatter, debris, eaten: !find('Earth'), sunNote: !!(spheres.note && /EARTH HAS FALLEN INTO THE SUN/.test(spheres.note.txt)), sunGrew: spheres.bodies[0].r > sunR0, sparks: spheres.sparks.length };
   });
-  check('collisions: slow = merge, fast = shatter into debris, the Sun consumes', col.afterMerge===col.n0-1 && col.merged && col.afterShatter>col.afterMerge && col.debris>=3 && col.eaten && col.sunGrew && col.sparks>20, JSON.stringify(col));
+  check('collisions: slow = merge, fast = shatter into debris, the Sun consumes and says so', col.afterMerge===col.n0-1 && col.merged && col.afterShatter>col.afterMerge && col.debris>=3 && col.eaten && col.sunNote && col.sunGrew && col.sparks>20, JSON.stringify(col));
 
   // 4b. the rim: a world flung at the edge usually leaves the solar system, sometimes bounces back
   const rim = await page.evaluate(()=>{
