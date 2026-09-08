@@ -131,6 +131,41 @@ readily than a puck when nudged. Hollow it to 3 mm walls (about 125 cm³ of resi
 light enough; a felt dot in the middle of each face stops the sliding. The 60 mm cube is
 steadier and cheaper (65 cm³ hollowed) but holds six faces, not twelve.
 
+## Camera geometry: leaning faces, and why the camera need not be overhead
+
+A many-faced body shows the camera more than its top face. The neighbours of the top face
+lean by the body's dihedral angle: **63°** from the table for a dodecahedron, **70°** for an
+octahedron or the hexagonal faces of a truncated octahedron, **90°** for a cube. A camera
+sees a leaning face foreshortened by the cosine of the angle between its normal and the
+line of sight, so a face that leans *toward* the camera looks rounder than it is. Even a
+camera dead overhead sees the rim of a 900 mm table at about 24° off its axis, so a die's
+neighbour there is seen at 63 − 24 = 39° (cos 0.78: round enough to pass a plain outline
+test), and a cube's side at 66° (cos 0.41: rejected). A camera off to one side, looking
+down at 45°, would see a cube's side at 45° too. So yes: without a guard there is a real
+risk of a phantom object from a leaning face, worst for the die, and no eight-sided shape
+removes it (70° instead of 63° only moves the line a little).
+
+The guard is in the detector, not the geometry. The four-dot calibration already tells
+the instrument how the table plane maps into the camera picture, so it also knows what a
+round marker lying on that plane must look like at every spot: through the calibration it
+is round wherever the camera is. Each detected disc's ellipse is measured (second moments
+of the blob) and mapped through the calibration; a marker on the table comes out round, a
+face leaning more than about 37° does not and is dropped. The same measurement gives the
+tilt of a cube you tip by hand, now relative to the table rather than to the picture, so a
+marker at the rim no longer reads as tilted just because the camera is not above it.
+`tests/plane.test.js` puts the camera off to one side at an angle and checks a flat marker
+at the rim reads, a face leaning 50° that looks round in the picture is rejected, and a
+marker tipped 20° reads with its tilt. In short, the camera need not be overhead: the
+calibration absorbs where it is, and the plane check absorbs what leans.
+
+What remains is **parallax**: the calibration maps the table plane, and a marker that is
+100 mm above it (the top of a die) is 100 mm nearer the camera, so it appears shifted toward
+the point beneath the camera by about its height times its off-axis distance over the
+camera height: at the rim, with the camera a metre up, about 45 mm for the die, 27 mm for
+the cube, 12 mm for a puck. The ring on the screen draws that far inward of the object. Low
+bodies and a high camera keep it small; this is the case for pucks over dice, and the reason
+the sculpted set is the kit and the dice are the experiment.
+
 ## Print settings
 
 - 0.2 mm layers, 15–20 % infill, 3 walls, any PLA or PETG. No supports: the pockets

@@ -55,7 +55,10 @@ Total: typically **£30 to £100** on top of a TV and phone you already have.
   can creep on its boom or be re-hung roughly where it was, and the table stays aligned
   without bezel markers or permanently lit dots.
 - **Rotation is physical.** Turning a cube turns its ring: the heading dot's angle is
-  mapped through the same calibration, so it is correct however the phone is oriented.
+  mapped through the same calibration, so it is correct however the phone is oriented. The
+  calibration also says what a round marker on the table must look like at every spot, so a
+  face that leans (the side of a cube, the neighbour of a die's top face) is told apart from
+  a marker lying on the table and dropped; see the camera geometry note in `hardware/README.md`.
 - **Occlusion is forgiven.** A hand passing over a cube hides its marker for a moment; the
   object dims but stays put, and only disappears if unseen for 1.5 s. Lift a cube off the
   table and it is gone after that grace.

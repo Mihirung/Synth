@@ -3534,6 +3534,7 @@ function solveH(src, dst){
   return h;
 }
 function applyH(h,u,v){ const w=h[6]*u+h[7]*v+h[8]; return { x:(h[0]*u+h[1]*v+h[2])/w, y:(h[3]*u+h[4]*v+h[5])/w }; }
+function jacobianH(h,u,v){ const p=applyH(h,u,v), pu=applyH(h,u+2,v), pv=applyH(h,u,v+2); return [(pu.x-p.x)/2, (pv.x-p.x)/2, (pu.y-p.y)/2, (pv.y-p.y)/2]; }   // d(screen)/d(camera) at a point
 function invertH(h){
   const [a,b,c,d,e,f,g,k,i]=h;
   const A=e*i-f*k, B=-(d*i-f*g), C=d*k-e*g;
@@ -3567,14 +3568,15 @@ function labelBlobs(mask, w, h, minArea){
   for(let i=0;i<w*h;i++){
     if(!mask[i] || lab[i]>=0) continue;
     const id=blobs.length; let sp=0; stack[sp++]=i; lab[i]=id;
-    let area=0, sx=0, sy=0, x0=w, x1=0, y0=h, y1=0;
+    let area=0, sx=0, sy=0, sxx=0, syy=0, sxy=0, x0=w, x1=0, y0=h, y1=0;
     while(sp){ const k=stack[--sp]; const x=k%w, y=(k/w)|0;
-      area++; sx+=x; sy+=y; if(x<x0)x0=x; if(x>x1)x1=x; if(y<y0)y0=y; if(y>y1)y1=y;
+      area++; sx+=x; sy+=y; sxx+=x*x; syy+=y*y; sxy+=x*y; if(x<x0)x0=x; if(x>x1)x1=x; if(y<y0)y0=y; if(y>y1)y1=y;
       if(x>0 && mask[k-1] && lab[k-1]<0){ lab[k-1]=id; stack[sp++]=k-1; }
       if(x<w-1 && mask[k+1] && lab[k+1]<0){ lab[k+1]=id; stack[sp++]=k+1; }
       if(y>0 && mask[k-w] && lab[k-w]<0){ lab[k-w]=id; stack[sp++]=k-w; }
       if(y<h-1 && mask[k+w] && lab[k+w]<0){ lab[k+w]=id; stack[sp++]=k+w; } }
-    blobs.push({ area, cx:sx/area, cy:sy/area, x0,x1,y0,y1 });
+    const cx=sx/area, cy=sy/area;
+    blobs.push({ area, cx, cy, x0,x1,y0,y1, cxx:sxx/area-cx*cx, cyy:syy/area-cy*cy, cxy:sxy/area-cx*cy });   // second moments: the blob's ellipse
   }
   return blobs.filter(b=>b.area>=minArea);
 }
@@ -3620,7 +3622,16 @@ function detectMarkers(data, W, Hh){
     let id=0;
     for(const b of bits){ const a=Math.atan2(b.y-ctr.y,b.x-ctr.x); let rel=(a-ha)/(Math.PI/4); rel=((Math.round(rel)%8)+8)%8; id|=1<<rel; }
     const bw=d.x1-d.x0+1, bh=d.y1-d.y0+1;
-    out.push({ id, x:ctr.x, y:ctr.y, angle:ha, r:Rf, asp:Math.min(bw,bh)/Math.max(bw,bh) });
+    let asp=Math.min(bw,bh)/Math.max(bw,bh);
+    if(cam.H){   // the plane check: seen through the calibration, a marker lying on the table is round wherever it is and wherever the camera is.
+                 // A face that leans (the side of a cube, the neighbour of a die's top face) is not: its ellipse does not match the plane's.
+      const J=jacobianH(cam.H, cx, cy);
+      const a=J[0]*J[0]*d.cxx+2*J[0]*J[1]*d.cxy+J[1]*J[1]*d.cyy, b=J[0]*J[2]*d.cxx+(J[0]*J[3]+J[1]*J[2])*d.cxy+J[1]*J[3]*d.cyy, c=J[2]*J[2]*d.cxx+2*J[2]*J[3]*d.cxy+J[3]*J[3]*d.cyy;
+      const tr=a+c, det=a*c-b*b, disc=Math.sqrt(Math.max(0,tr*tr/4-det)), l1=Math.max(1e-9,tr/2+disc), l2=Math.max(1e-9,tr/2-disc);
+      asp=Math.sqrt(l2/l1);                                    // 1 = flat on the table; cos(tilt) for a leaning face
+      if(asp<0.8) continue;                                    // more than about 37 degrees off the table: another face of the same object, not a marker on it
+    }
+    out.push({ id, x:ctr.x, y:ctr.y, angle:ha, r:Rf, asp });
   }
   return out;
 }
