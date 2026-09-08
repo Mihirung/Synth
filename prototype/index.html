@@ -3624,7 +3624,7 @@ function detectMarkers(data, W, Hh){
       const a=J[0]*J[0]*d.cxx+2*J[0]*J[1]*d.cxy+J[1]*J[1]*d.cyy, b=J[0]*J[2]*d.cxx+(J[0]*J[3]+J[1]*J[2])*d.cxy+J[1]*J[3]*d.cyy, c=J[2]*J[2]*d.cxx+2*J[2]*J[3]*d.cxy+J[3]*J[3]*d.cyy;
       const tr=a+c, det=a*c-b*b, disc=Math.sqrt(Math.max(0,tr*tr/4-det)), l1=Math.max(1e-9,tr/2+disc), l2=Math.max(1e-9,tr/2-disc);
       asp=Math.sqrt(l2/l1);                                    // 1 = flat on the table; cos(tilt) for a face that leans
-      if(asp<0.8) continue;                                    // the plane check: more than about 37 degrees off the table is another face of the same object, not a marker on it
+      if(asp<0.9) continue;                                    // the plane check: more than about 25 degrees off the table means another face of the same object, not a marker on it
       Rr=Math.sqrt(d.area*16*Math.abs(J[0]*J[3]-J[1]*J[2])/Math.PI);   // the disc's radius on the table (screen px), the same way Rf is measured in the picture
     }
     const rect = J ? (dx,dy)=>({ x:J[0]*dx+J[1]*dy, y:J[2]*dx+J[3]*dy }) : (dx,dy)=>({ x:dx, y:dy });
@@ -3636,7 +3636,19 @@ function detectMarkers(data, W, Hh){
     const ha=Math.atan2(head.y-ctr.y, head.x-ctr.x);                                          // and in the picture (mapped through H downstream)
     let id=0;
     for(const b of bits){ const q=rect(b.x-ctr.x, b.y-ctr.y), a=Math.atan2(q.y,q.x); let rel=(a-har)/(Math.PI/4); rel=((Math.round(rel)%8)+8)%8; id|=1<<rel; }
-    out.push({ id, x:ctr.x, y:ctr.y, angle:ha, r:Rf, asp });
+    out.push({ id, x:ctr.x, y:ctr.y, angle:ha, r:Rf, asp, rr:Rr, dj: J ? Math.abs(J[0]*J[3]-J[1]*J[2]) : 1 });   // dj: table area per picture pixel, smaller nearer the camera
+  }
+  if(cam.H && out.length>1){   // one body, two faces: a die's neighbour that leans toward the camera can squeeze past the plane check when the camera is
+    const sp=out.map(m=>applyH(cam.H, m.x, m.y)), drop=new Set();   //  30-45 degrees off the vertical. Two markers within three radii of each other whose flatness
+    for(let i=0;i<out.length;i++) for(let j=i+1;j<out.length;j++){   //  differs are one object: keep the flatter face. Two flat neighbours (touching pucks) are left alone.
+      const dd=Math.hypot(sp[i].x-sp[j].x, sp[i].y-sp[j].y);
+      if(dd >= 3.0*Math.max(out[i].rr, out[j].rr)) continue;
+      const lo = out[i].asp<out[j].asp ? i : j, hi = lo===i ? j : i;
+      if(out[lo].asp >= 0.95) continue;                                        // two flat markers side by side: two pucks, leave them
+      if(out[hi].asp-out[lo].asp > 0.05) drop.add(lo);                         // the one that leans is the neighbour
+      else drop.add(out[i].dj < out[j].dj ? i : j);                            // a leaning neighbour that looks flat lies on the camera's side of its die: drop the nearer one
+    }
+    return out.filter((_,k)=>!drop.has(k));
   }
   return out;
 }
@@ -3754,7 +3766,7 @@ function camFrame(meta){
     const lift=Math.max(0,Math.min(1,(m.r/e.r0-1)/0.12));
     if(lift<0.05) e.r0=e.r0*0.98+m.r*0.02;                      // the resting size drifts with focus, never with a lift
     e.lift=e.lift*0.6+lift*0.4;
-    const tilt=Math.max(0,Math.min(1,(1-(m.asp==null?1:m.asp))/0.35));
+    const tilt=Math.max(0,Math.min(1,(1-(m.asp==null?1:m.asp))/0.1));   // through the calibration: full bend at about 25 degrees of tip
     if(o.type==='water'){ const dtl = tilt-(o.tilt||0); o.tilt=tilt; if(Math.abs(dtl)>0.02) waterSlosh(o, dtl*8); }
     if(o.type==='osc' || o.type==='filter'){
       if(Math.abs(e.lift-(o.lift||0))>0.02){ o.lift=e.lift; setPressure(o, e.lift, 'lift'); }

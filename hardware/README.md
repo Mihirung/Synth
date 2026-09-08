@@ -150,14 +150,33 @@ the instrument how the table plane maps into the camera picture, so it also know
 round marker lying on that plane must look like at every spot: through the calibration it
 is round wherever the camera is. Each detected disc's ellipse is measured (second moments
 of the blob) and mapped through the calibration; a marker on the table comes out round, a
-face leaning more than about 37° does not and is dropped. The same measurement gives the
+face leaning more than about 25° does not and is dropped. The same measurement gives the
 tilt of a cube you tip by hand, now relative to the table rather than to the picture, so a
 marker at the rim no longer reads as tilted just because the camera is not above it.
-`tests/plane.test.js` puts the camera off to one side at an angle and checks a flat marker
-at the rim reads, a face leaning 50° that looks round in the picture is rejected, a marker
-tipped 20° reads with its tilt, and a camera 55° off the vertical reads an id that the raw
-picture gets wrong. In short, the camera need not be overhead: the
-calibration absorbs where it is, and the plane check absorbs what leans.
+
+**Why a side face does not fool it, and when it can.** Picture the die's neighbour that
+leans 63° toward the camera. From overhead it is a thin ellipse while the top face is
+round: dropped. From a steep camera (the line of sight 45° or more off the vertical at the
+die) it is the *top* face that is squashed, and the neighbour looks rounder than a flat
+marker there should: also dropped, because the check compares with what a flat marker
+would look like from *that* camera, not with a circle. In between there is one line of
+sight, about 32° off the vertical at the die, where the neighbour and a flat marker make
+the same ellipse: a circle seen at 32° and a circle tilted 63° seen at 32° from the other
+side of the line of sight are the same picture. No single camera can tell those apart by
+shape. Two further rules narrow that band: two markers within three radii of each other
+whose flatness differs are one object showing two faces, and the flatter one is kept; and
+when they look equally flat, the one nearer the camera is dropped, because the leaning
+neighbour always sits on the camera's side of its die. What is left is a line of sight
+between 30° and 35° at the die *and* a neighbour leaning within a few degrees of straight
+at the camera, where the neighbour can still come through as a phantom object next to the
+real one. `tests/plane.test.js` runs a real die in 3D near, middle and far from twelve
+camera poses: eleven read only the top face; the twelfth is that band, and is reported.
+
+So the honest rule for dice: keep the line of sight within about 25° of the vertical at
+every die, which for a 900 mm table means the camera overhead, no more than 10° off
+vertical, and at least 1.2 m up (at 1.2 m the rim is 21° off axis). Pucks and the sculpted
+set have no leaning faces and do not care where the camera is; a camera 55° off the
+vertical reads their ids, as the same test shows.
 
 **Must the camera point straight down, then?** Not for reading or for the guard. The
 calibration works from wherever the four dots can be seen, the plane check is relative to
