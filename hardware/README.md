@@ -154,9 +154,21 @@ face leaning more than about 37° does not and is dropped. The same measurement 
 tilt of a cube you tip by hand, now relative to the table rather than to the picture, so a
 marker at the rim no longer reads as tilted just because the camera is not above it.
 `tests/plane.test.js` puts the camera off to one side at an angle and checks a flat marker
-at the rim reads, a face leaning 50° that looks round in the picture is rejected, and a
-marker tipped 20° reads with its tilt. In short, the camera need not be overhead: the
+at the rim reads, a face leaning 50° that looks round in the picture is rejected, a marker
+tipped 20° reads with its tilt, and a camera 55° off the vertical reads an id that the raw
+picture gets wrong. In short, the camera need not be overhead: the
 calibration absorbs where it is, and the plane check absorbs what leans.
+
+**Must the camera point straight down, then?** Not for reading or for the guard. The
+calibration works from wherever the four dots can be seen, the plane check is relative to
+the table rather than to the picture, and the dots are now decoded in the table's frame
+too, so a marker reads its id from a camera 55° off the vertical, where the raw picture
+would misread it (`tests/plane.test.js` shows both). Two things do still favour a high,
+near-vertical camera, and both grow with the height of the objects rather than with the
+number of faces: **occlusion**, since a tall body hides the table behind it from a low
+camera (a 100 mm die seen at 45° hides 100 mm of table behind it, a puck hides 26 mm), and
+**parallax**, below. So the practical rule is: pucks forgive almost any camera; dice want it
+high and fairly central, not for their faces but for their height.
 
 What remains is **parallax**: the calibration maps the table plane, and a marker that is
 100 mm above it (the top of a die) is 100 mm nearer the camera, so it appears shifted toward

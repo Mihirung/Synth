@@ -13,7 +13,7 @@ node tests/phone.test.js             # iPhone layout: tray pages, tap-to-place, 
 node tests/wide.test.js              # widescreen layout: tray column left, buttons column right, drawers beside the tray, disc at full height; a squarer window stays classic
 node tests/calib.test.js             # while the camera calibrates no overlay covers a dot: preview, trays and header step aside on phone, wide and classic layouts
 node tests/faces.test.js             # the detector reads a painted d12 face with the object's glyph in its corners, at 1.4, 1.0 and 0.8 px/mm
-node tests/plane.test.js             # the plane check: a side-on camera, a flat marker at the rim reads, a face leaning 50 degrees is rejected, a 20 degree tip reads with its tilt
+node tests/plane.test.js             # the plane check: a side-on camera, a flat marker at the rim reads, a face leaning 50 degrees is rejected, a 20 degree tip reads with its tilt, a 55 degree camera decodes through the calibration
 node tests/help.test.js              # the ? panel's tabs, desktop and phone
 node tests/lines.test.js             # cutting and mending lines by touch, purple reach
 node tests/spheres.test.js           # the orrery: moon counts, Kepler ratios, Holst touches, God-mode physics and collisions, ships

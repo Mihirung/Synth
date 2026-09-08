@@ -48,9 +48,27 @@ const CHROME = process.env.PLAYWRIGHT_CHROMIUM || (fs.existsSync('/opt/pw-browse
     const tip=Math.cos(20*Math.PI/180);
     const tipped=detectMarkers(frame(rim, 30, tip, 0.4), W, H);
     out.tip=tipped.map(m=>({id:m.id, asp:+m.asp.toFixed(2)}));
+    // 4. a much steeper camera (about 55 degrees off the vertical): raw, the top face is too squashed to decode; through the calibration it reads
+    const src2=[{x:470,y:150},{x:810,y:150},{x:1230,y:690},{x:50,y:690}];
+    const H2=solveH(src2,dst), Hi2=solveH(dst,src2);
+    function frame2(S, Rs, id2){
+      const cv=document.createElement('canvas'); cv.width=W; cv.height=H; const g=cv.getContext('2d');
+      g.fillStyle='#2a2e36'; g.fillRect(0,0,W,H);
+      const shape=(r,ox,oy,fill)=>{ g.fillStyle=fill; g.beginPath(); for(let k=0;k<=48;k++){ const a=2*Math.PI*k/48; const q=applyH(Hi2, S.x+ox+Math.cos(a)*r, S.y+oy+Math.sin(a)*r); g[k?'lineTo':'moveTo'](q.x,q.y); } g.closePath(); g.fill(); };
+      shape(Rs,0,0,'#e8ecf2'); const D=2*Rs;
+      shape(MARK.centre*D,0,0,'#101317'); shape(MARK.headDot*D, MARK.headR*D, 0, '#101317');
+      for(let s=0;s<8;s++) if((id2>>s)&1){ const a=s*Math.PI/4; shape(MARK.bitDot*D, Math.cos(a)*MARK.bitR*D, Math.sin(a)*MARK.bitR*D, '#101317'); }
+      return g.getImageData(0,0,W,H).data;
+    }
+    const id2 = TUIO_TYPES.indexOf('filter')*4 + 2;
+    const near={x:CX-TABLE_R*0.5, y:CY+TABLE_R*0.6};
+    cam.H=null; const steepRaw=detectMarkers(frame2(near, 34, id2), W, H);
+    cam.H=H2; const steep=detectMarkers(frame2(near, 34, id2), W, H);
+    out.steep={ raw: steepRaw.map(m=>({id:m.id, asp:+m.asp.toFixed(2)})), plane: steep.map(m=>({id:m.id, asp:+m.asp.toFixed(2)})), want:id2 };
     cam.H=null;
     return out;
   });
+  check('a camera about 55 degrees off the vertical: raw the marker misreads or is lost, decoded through the calibration it reads its id', (r.steep.raw.length===0 || r.steep.raw[0].id!==r.steep.want) && r.steep.plane.length===1 && r.steep.plane[0].id===r.steep.want && r.steep.plane[0].asp>0.9, JSON.stringify(r.steep));
   check('a flat marker at the rim seen from the side: raw it is a squashed ellipse, through the calibration it is round and reads', r.flat.raw.length>=0 && r.flat.plane.length===1 && r.flat.plane[0].id===0 && r.flat.plane[0].asp>0.9, JSON.stringify(r.flat));
   check('a face leaning 50 degrees toward the camera: its raw outline can look round enough to pass, the plane check rejects it', r.lean.raw.length===1 && r.lean.raw[0].asp>0.6 && r.lean.plane.length===0, JSON.stringify(r.lean));
   check('a marker tipped 20 degrees by hand still reads, with its tilt measured against the plane', r.tip.length===1 && r.tip[0].id===0 && r.tip[0].asp>0.85 && r.tip[0].asp<0.99, JSON.stringify(r.tip));

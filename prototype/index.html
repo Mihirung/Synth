@@ -3595,7 +3595,8 @@ function detectMarkers(data, W, Hh){
     const v=g[y*cw+x]; mask[y*cw+x]=(v>mean+40 && v>110)?1:0; }
   const discs=labelBlobs(mask,cw,ch,30).filter(b=>{
     const bw=b.x1-b.x0+1, bh=b.y1-b.y0+1, fill=b.area/(bw*bh), asp=bw/bh;
-    return fill>0.55 && asp>0.6 && asp<1.66 && b.area<cw*ch/12; });
+    const lo = cam.H ? 0.42 : 0.6;   // with a calibration the plane check sorts leaning faces from foreshortened ones, so a steeper camera is allowed
+    return fill>0.55 && asp>lo && asp<1/lo && b.area<cw*ch/12; });
   cam.coarse=discs;
   const out=[];
   for(const d of discs){
@@ -3614,23 +3615,27 @@ function detectMarkers(data, W, Hh){
     if(dots.length<2) continue;
     let ctr=null; for(const b of dots){ const dd=Math.hypot(b.x-cx,b.y-cy); if(dd<Rf*0.16 && (!ctr||b.area>ctr.area)) ctr=b; }
     if(!ctr) continue;
-    let head=null; const bits=[];
-    for(const b of dots){ if(b===ctr) continue; const dd=Math.hypot(b.x-ctr.x,b.y-ctr.y)/Rf;
-      if(dd>0.62 && dd<0.93){ if(!head||b.area>head.area) head=b; } else if(dd>0.32 && dd<0.62) bits.push(b); }   // radii in R units: heading 0.76R, bits 0.48R
-    if(!head) continue;
-    const ha=Math.atan2(head.y-ctr.y, head.x-ctr.x);
-    let id=0;
-    for(const b of bits){ const a=Math.atan2(b.y-ctr.y,b.x-ctr.x); let rel=(a-ha)/(Math.PI/4); rel=((Math.round(rel)%8)+8)%8; id|=1<<rel; }
+    // through the calibration: the disc's ellipse mapped to the table plane, where a marker lying flat is round wherever the camera is.
+    // The dots are decoded in that frame too, so a camera well off the vertical reads a marker as easily as one straight above it.
     const bw=d.x1-d.x0+1, bh=d.y1-d.y0+1;
-    let asp=Math.min(bw,bh)/Math.max(bw,bh);
-    if(cam.H){   // the plane check: seen through the calibration, a marker lying on the table is round wherever it is and wherever the camera is.
-                 // A face that leans (the side of a cube, the neighbour of a die's top face) is not: its ellipse does not match the plane's.
-      const J=jacobianH(cam.H, cx, cy);
+    let asp=Math.min(bw,bh)/Math.max(bw,bh), J=null, Rr=Rf;
+    if(cam.H){
+      J=jacobianH(cam.H, cx, cy);
       const a=J[0]*J[0]*d.cxx+2*J[0]*J[1]*d.cxy+J[1]*J[1]*d.cyy, b=J[0]*J[2]*d.cxx+(J[0]*J[3]+J[1]*J[2])*d.cxy+J[1]*J[3]*d.cyy, c=J[2]*J[2]*d.cxx+2*J[2]*J[3]*d.cxy+J[3]*J[3]*d.cyy;
       const tr=a+c, det=a*c-b*b, disc=Math.sqrt(Math.max(0,tr*tr/4-det)), l1=Math.max(1e-9,tr/2+disc), l2=Math.max(1e-9,tr/2-disc);
-      asp=Math.sqrt(l2/l1);                                    // 1 = flat on the table; cos(tilt) for a leaning face
-      if(asp<0.8) continue;                                    // more than about 37 degrees off the table: another face of the same object, not a marker on it
+      asp=Math.sqrt(l2/l1);                                    // 1 = flat on the table; cos(tilt) for a face that leans
+      if(asp<0.8) continue;                                    // the plane check: more than about 37 degrees off the table is another face of the same object, not a marker on it
+      Rr=Math.sqrt(d.area*16*Math.abs(J[0]*J[3]-J[1]*J[2])/Math.PI);   // the disc's radius on the table (screen px), the same way Rf is measured in the picture
     }
+    const rect = J ? (dx,dy)=>({ x:J[0]*dx+J[1]*dy, y:J[2]*dx+J[3]*dy }) : (dx,dy)=>({ x:dx, y:dy });
+    let head=null; const bits=[];
+    for(const b of dots){ if(b===ctr) continue; const q=rect(b.x-ctr.x, b.y-ctr.y), dd=Math.hypot(q.x,q.y)/Rr;
+      if(dd>0.62 && dd<0.93){ if(!head||b.area>head.area) head=b; } else if(dd>0.32 && dd<0.62) bits.push(b); }   // radii in R units: heading 0.76R, bits 0.48R
+    if(!head) continue;
+    const hq=rect(head.x-ctr.x, head.y-ctr.y), har=Math.atan2(hq.y, hq.x);                  // the heading, on the table
+    const ha=Math.atan2(head.y-ctr.y, head.x-ctr.x);                                          // and in the picture (mapped through H downstream)
+    let id=0;
+    for(const b of bits){ const q=rect(b.x-ctr.x, b.y-ctr.y), a=Math.atan2(q.y,q.x); let rel=(a-har)/(Math.PI/4); rel=((Math.round(rel)%8)+8)%8; id|=1<<rel; }
     out.push({ id, x:ctr.x, y:ctr.y, angle:ha, r:Rf, asp });
   }
   return out;
