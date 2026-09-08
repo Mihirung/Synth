@@ -36,6 +36,68 @@ what an object is. The shapes are for hands and eyes:
   marbles, hum); round pucks suit the theremin and the conductor. Their pads, strings and
   fields are drawn on the screen around the object, so leave space around them.
 
+## The resin kit: sculpted bodies, markers in relief (`print/kit/`)
+
+![the kit](kit.png)
+
+`make_kit.py` makes a second kit for a resin printer. Nothing is stuck on: the marker is
+**two levels of relief, 0.6 mm apart**, on the flat top of every body, so one wipe of paint
+colours the code. The rest of the body is sculpted so that a hand or an eye can tell what
+it is without reading anything.
+
+**Two relief schemes**, pick the one that suits how you paint:
+
+- **deboss** (default, `print/kit/*.stl`): the disc field stands proud; the id dots and the
+  ring around the disc are sunk. Print in a light resin. Flood the top with dark acrylic
+  (or a wash), let it settle, wipe the top flat with a cloth: paint stays in the pits, the
+  field wipes clean. Crisp, and forgiving of a shaky hand.
+- **emboss** (`python3 make_kit.py --relief emboss`, one example in `print/kit-emboss/`):
+  the dots and the outer ring stand proud, the field is sunk. Roll or dab dark paint over
+  the top with a foam pad: it touches only the raised parts. Or print in a dark resin and
+  roll the field white? No: the field is the sunk part, so with emboss the raised code is
+  what takes the paint. Use deboss if you print dark and want to fill the code light.
+
+Either way the camera sees what the sticker gave it: a light disc, dark dots, a dark ring
+around. The ring is what the detector measures the disc against, so do not leave the area
+outside the disc the same colour as the field.
+
+**The bodies.** 70 mm across the top (64 mm for the square family), 22 to 30 mm tall, a
+flat top for the marker, a flat bottom with a 60 mm felt pocket, and sculpted sides:
+
+| family (on screen) | plan | bodies |
+|---|---|---|
+| yellow, makes sound | rounded square | **osc** a wave runs round it · **sampler** a coil · **rec** a spool · **mic** a barrel with a grille of dimples · **hum** ripples spreading from one point · **theremin** two antennae and a loop · **harp** a triangle strung with ribs · **drums** a drum with its rim and rods · **marbles** a sphere with sockets · **water** a bowl with ten rods · **spheres** Saturn · **song** a thin record with a milled edge |
+| green, changes sound | round | **filter** a funnel · **delay** three steps · **dist** a jagged star · **reverb** a bell · **chorus** a twisted twin · **crush** blocks · **mod** a ring |
+| purple, bosses | hexagon | **seq** a crown of sixteen studs · **lfo** one slow wave · **tempo** a tapered metronome with its pendulum · **conduct** a baton · **air** a knurled knob |
+
+So the three colours of the screen become three plan shapes under the hand, and each
+object has its own silhouette on top of that. The advanced set stays hexagonal and plain
+(`--hex key`, `--hex tune`, …): it is the grown-ups' set and lives on its cards.
+
+**Faces.** A sculpted body carries one marker (face 1 of its object). Faces are flipped
+on screen with a tap, as always. If you want physical faces, the cube is still here with
+the code in relief: `python3 make_kit.py --cube osc` makes a 60 mm cube with faces 1 to 4
+of the oscillator on four sides and two blank sides (`print/kit/cube-60-osc.stl` is the
+example). `--round rec` makes a plain round puck for any object.
+
+**Resin notes.**
+
+- Hollow the bodies in the slicer (2.5 mm walls, two 3 mm drain holes in the bottom
+  pocket) or they cost 90 to 125 cm³ of resin each. The cube is 220 cm³ solid: hollow it.
+- Print the bodies top-down on the plate, or tilted 20° with supports on the bottom
+  only: the marker top must come out clean, with no support marks. Nothing overhangs
+  except the bell, the ring, Saturn and the spool waist, which self-support at these
+  angles.
+- 0.05 mm layers show the wave and the coil best; 0.1 mm is fine for the rest.
+- Wash, cure, then paint the code. Matte varnish over the top kills reflections, which
+  the camera likes.
+
+**Regenerate.** `python3 make_kit.py` writes the 24 bodies; `--only osc,mic` a few;
+`--obj` for OBJ files as well; `--out` elsewhere. `python3 render_kit.py` draws the
+picture above (an SVG; a browser turns it into `kit.png`). Every mesh is checked closed and
+watertight before it is written, and the ids are read out of the instrument so they stay in
+step with the marker sheets.
+
 ## Print settings
 
 - 0.2 mm layers, 15–20 % infill, 3 walls, any PLA or PETG. No supports: the pockets

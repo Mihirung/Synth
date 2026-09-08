@@ -118,7 +118,10 @@ most of Phase 2 of the plan:
   layouts.
 - **Printed kit**: [`hardware/print/`](hardware/print/) has a 60 mm cube and round and
   hexagonal 70 mm pucks as STL and OBJ with marker pockets, plus printable marker sheets
-  (256 eight-bit ids) and a card per object. See [hardware/README.md](hardware/README.md).
+  (256 eight-bit ids) and a card per object. For a resin printer, [`hardware/print/kit/`](hardware/print/kit/)
+  has 24 sculpted bodies, one per object, each shaped to say what it is (a wave, a coil, a
+  spool, a grille, a funnel, a bell, a crown of studs…) with its marker in two levels of
+  relief on top, so a wipe of paint colours the code. See [hardware/README.md](hardware/README.md).
 - **Physical-table ready** (PC route): open the page with `?tuio=ws://localhost:8765` and run
   [`prototype/tuio-bridge.js`](prototype/tuio-bridge.js) to drive it from reacTIVision's
   TUIO stream instead of the mouse (fiducial class IDs map to object types in blocks of
