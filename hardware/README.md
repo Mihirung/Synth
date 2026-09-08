@@ -166,6 +166,29 @@ the cube, 12 mm for a puck. The ring on the screen draws that far inward of the 
 bodies and a high camera keep it small; this is the case for pucks over dice, and the reason
 the sculpted set is the kit and the dice are the experiment.
 
+**Could the object do it instead?** Three ideas come up, and the numbers are worth having:
+
+- *Deep dots, painted only at the bottom.* A pit of width d and depth h hides its floor once
+  the view is more than atan(d/h) off the face's normal. The bit dots are 2.4 mm wide on a
+  54 mm marker, so blanking a die's neighbour at 39° needs pits about 3 mm deep, and at that
+  depth the same dots are already half hidden on the top face at the rim (24° off axis
+  with an overhead camera). A pit is an angular gate fixed to the object: it cannot tell a
+  camera off to one side from a face that leans, so it either lets the neighbour through or
+  loses the rim. The walls would also have to stay light while the floors are dark, which
+  means a perforated cap over a black recess rather than paint. Not worth it now the plane
+  check does the job knowing where the camera is.
+- *Louvred (one-direction) film over each face.* The same gate with a sharper edge (±30°
+  for privacy film), and the same objection: it blanks the top face as soon as the camera
+  is more than 30° from its normal.
+- *Retroreflective or fluorescent dots.* These do not discriminate angles either (a
+  retroreflector returns light over a wide cone), but they solve a different problem
+  well: contrast against the TV, which glows and moves under the objects. Glass-bead
+  retroreflective tape for the field, with the phone's torch on next to the lens, makes the
+  markers the brightest things in the picture at any angle. UV or IR paint does not help on
+  a phone: the fluorescence is visible light like the TV's, and phone cameras block IR.
+  Cheaper still, for an LCD TV: a linear polarising film on the phone's lens, turned to
+  cross the screen's polarisation, blacks the picture out and leaves the objects.
+
 ## Print settings
 
 - 0.2 mm layers, 15–20 % infill, 3 walls, any PLA or PETG. No supports: the pockets
