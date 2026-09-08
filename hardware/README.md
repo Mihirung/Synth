@@ -98,6 +98,39 @@ picture above (an SVG; a browser turns it into `kit.png`). Every mesh is checked
 watertight before it is written, and the ids are read out of the instrument so they stay in
 step with the marker sheets.
 
+## The experimental set: twelve objects on one die (`print/kit-faces/`)
+
+![the experimental set](kit-faces.png)
+
+One sculpted body per object is the clearest kit, and the largest: twenty-four bodies. The
+experimental set puts **twelve objects on one body**: a regular dodecahedron, 100 mm between
+opposite faces, with a 54 mm marker in relief on every face. Opposite faces are parallel, so
+whichever face is down, the face on top is flat to the camera. Because the sides are other
+faces, the object's identity moves into the corners: **the object's glyph, in relief, in all
+five corners** of its face (a wave, a coil, a spool, a mic, a funnel, three bars, a zigzag, a
+bell, two circles, a crown of dashes…), so a face reads from any side and needs no words.
+The glyphs rise to the field level, so the same wipe that colours the code leaves them light
+on the dark ring. `tests/faces.test.js` checks that the detector still reads every id with
+the glyphs there, down to 0.8 pixels per millimetre.
+
+- `d12-set-1.stl`: osc, sampler, rec, mic, song, water, theremin, drums, harp, marbles, hum, spheres
+- `d12-set-4.stl`: filter, delay, dist, reverb, chorus, crush, mod, seq, lfo, tempo, conduct, air
+
+Those two dice hold the whole kit once. `python3 make_kit.py --d12-set` makes all six: die k
+carries twelve consecutive objects starting four along from the die before, so every object
+sits on three dice and a table of six dice can show most combinations you would want at
+once. `--d12 osc,filter,seq,…` makes a die with your own twelve. Faces left unnamed are blank.
+
+How many bodies you need is set by how many objects sit on the table at once (six to eight),
+not by how many objects exist; the dice decide how often the one you want is already in your
+hand. The naive version, the Reactable's cube, is here too, now with the glyphs in its four
+corners: `--cube osc` gives faces 1 to 4 of one object and two blanks (`print/kit/cube-60-osc.stl`).
+
+Trade-offs, honestly: a 100 mm die is a handful for a child, and twelve flat faces roll more
+readily than a puck when nudged. Hollow it to 3 mm walls (about 125 cm³ of resin) and it is
+light enough; a felt dot in the middle of each face stops the sliding. The 60 mm cube is
+steadier and cheaper (65 cm³ hollowed) but holds six faces, not twelve.
+
 ## Print settings
 
 - 0.2 mm layers, 15–20 % infill, 3 walls, any PLA or PETG. No supports: the pockets

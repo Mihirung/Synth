@@ -123,7 +123,7 @@ def loop_by_angle(pts2, centre):
 
 
 # ---------------------------------------------------------------- the marker in relief
-def marker_face(m, frame, ring_out, D, mid, relief='deboss', depth=0.6):
+def marker_face(m, frame, ring_out, D, mid, relief='deboss', depth=0.6, glyph=None, corners=0, corner0=0.0):
     """the top of a body: ring_out is the body's top loop (anticlockwise seen from outside, angles 2*pi*i/len).
     Builds the ring outside the disc (level zO), the disc field (zF) with the id dots (zD), and the walls."""
     o, u, v, n = frame
@@ -202,6 +202,15 @@ def marker_face(m, frame, ring_out, D, mid, relief='deboss', depth=0.6):
     cc = P(0, 0, zD)
     for k in range(NC):
         tri(cc, c0z[k], c0z[(k + 1) % NC])
+    # the object's glyph, in relief in every corner of the face (deboss only: it rises to the field level and wipes clean)
+    if glyph and corners and relief == 'deboss':
+        rmax = max(math.hypot(pt[0] - o[0], pt[1] - o[1]) for pt in ring_out)
+        room = rmax - R - 3.5
+        if room >= 5.0:
+            size = min(9.0, room)
+            for k in range(corners):
+                a = corner0 + TAU * k / corners
+                glyph_shells(m, P, GLYPHS[glyph], R + 3.5 + size / 2, a, size, -0.3, zF)
 
 
 def wall(tri, inner_level, outer_level, solid_inside=None):
@@ -213,6 +222,79 @@ def wall(tri, inner_level, outer_level, solid_inside=None):
     for i in range(n):
         j = (i + 1) % n
         tri(outer_level[i], outer_level[j], inner_level[j]); tri(outer_level[i], inner_level[j], inner_level[i])
+
+
+# ---------------------------------------------------------------- glyphs: a pictogram per object, strokes in a unit box (y up)
+def _arc(cx, cy, r, a0, a1, n=10):
+    return [(cx + r * math.cos(a0 + (a1 - a0) * i / n), cy + r * math.sin(a0 + (a1 - a0) * i / n)) for i in range(n + 1)]
+
+GLYPHS = {
+    'osc':      [[(x / 8, 0.5 + 0.32 * math.sin(TAU * x / 8)) for x in range(9)]],
+    'sampler':  [[(0.5 + (0.1 + 0.36 * t / 12) * math.cos(TAU * t / 4.8), 0.5 + (0.1 + 0.36 * t / 12) * math.sin(TAU * t / 4.8)) for t in range(13)]],
+    'rec':      [_arc(0.5, 0.5, 0.42, 0, TAU, 12), _arc(0.5, 0.5, 0.12, 0, TAU, 6)],
+    'mic':      [_arc(0.5, 0.62, 0.22, 0, math.pi, 8) + [(0.28, 0.35), (0.72, 0.35), (0.72, 0.62)], [(0.5, 0.35), (0.5, 0.05)], [(0.3, 0.05), (0.7, 0.05)]],
+    'song':     [_arc(0.38, 0.28, 0.16, 0, TAU, 10), [(0.54, 0.28), (0.54, 0.9), (0.82, 0.8)]],
+    'water':    [_arc(0.5, 0.6, 0.42, math.pi, TAU, 10), [(0.3, 0.6), (0.3, 0.95)], [(0.5, 0.6), (0.5, 1.0)], [(0.7, 0.6), (0.7, 0.95)]],
+    'theremin': [[(0.2, 0.05), (0.2, 0.95)], _arc(0.68, 0.55, 0.2, 0, TAU, 12), [(0.68, 0.35), (0.68, 0.05)]],
+    'drums':    [_arc(0.5, 0.65, 0.4, 0, TAU, 12), [(0.15, 0.2), (0.6, 0.75)], [(0.85, 0.2), (0.4, 0.75)]],
+    'harp':     [[(0.1, 0.1), (0.9, 0.1), (0.9, 0.9), (0.1, 0.1)], [(0.5, 0.1), (0.5, 0.55)], [(0.7, 0.1), (0.7, 0.75)]],
+    'marbles':  [_arc(0.3, 0.3, 0.17, 0, TAU, 10), _arc(0.7, 0.32, 0.15, 0, TAU, 10), _arc(0.5, 0.68, 0.19, 0, TAU, 10)],
+    'hum':      [_arc(0.2, 0.5, 0.2, -0.9, 0.9, 6), _arc(0.2, 0.5, 0.42, -0.9, 0.9, 8), _arc(0.2, 0.5, 0.64, -0.9, 0.9, 10)],
+    'spheres':  [_arc(0.5, 0.5, 0.26, 0, TAU, 10), [(0.02, 0.35), (0.98, 0.65)]],
+    'filter':   [[(0.1, 0.9), (0.9, 0.9), (0.58, 0.5), (0.58, 0.1), (0.42, 0.1), (0.42, 0.5), (0.1, 0.9)]],
+    'delay':    [[(0.15, 0.1), (0.15, 0.9)], [(0.45, 0.1), (0.45, 0.65)], [(0.75, 0.1), (0.75, 0.42)]],
+    'dist':     [[(0.05, 0.3), (0.25, 0.8), (0.45, 0.2), (0.65, 0.8), (0.85, 0.2), (0.97, 0.5)]],
+    'reverb':   [_arc(0.15, 0.5, 0.22, -1.1, 1.1, 6), _arc(0.15, 0.5, 0.48, -1.1, 1.1, 8), _arc(0.15, 0.5, 0.74, -1.1, 1.1, 10)],
+    'chorus':   [_arc(0.38, 0.5, 0.3, 0, TAU, 10), _arc(0.62, 0.5, 0.3, 0, TAU, 10)],
+    'crush':    [[(0.1, 0.1), (0.5, 0.1), (0.5, 0.5), (0.1, 0.5), (0.1, 0.1)], [(0.5, 0.5), (0.9, 0.5), (0.9, 0.9), (0.5, 0.9), (0.5, 0.5)]],
+    'mod':      [_arc(0.5, 0.5, 0.42, 0, TAU, 12), [(0.3, 0.3), (0.7, 0.7)], [(0.3, 0.7), (0.7, 0.3)]],
+    'lfo':      [[(x / 8, 0.5 + 0.38 * math.sin(TAU * x / 8 * 0.5)) for x in range(9)]],
+    'tempo':    [[(0.2, 0.1), (0.8, 0.1), (0.62, 0.9), (0.38, 0.9), (0.2, 0.1)], [(0.5, 0.2), (0.7, 0.75)]],
+    'conduct':  [[(0.1, 0.1), (0.85, 0.85)], _arc(0.85, 0.85, 0.08, 0, TAU, 8)],
+    'air':      [_arc(0.5, 0.5, 0.42, 0, TAU, 12), [(0.5, 0.5), (0.5, 0.92)]],
+    'seq':      [_arc(0.5, 0.5, 0.42, k * TAU / 8 - 0.18, k * TAU / 8 + 0.18, 2) for k in range(8)],
+}
+
+
+def glyph_shells(m, P, strokes, radius, angle, size, z0, z1, width=1.0):
+    """extrude a glyph's strokes as rounded stadium prisms, one closed shell per segment, kept in m.shells: they
+    overlap the face and each other, and the slicer unions them. Sized to `size` mm, centred `radius` from the
+    face centre along `angle`, the glyph's 'up' pointing outward"""
+    if not hasattr(m, 'shells'):
+        m.shells = []
+    ca, sa = math.cos(angle), math.sin(angle)
+    # unit box -> face plane: x across (tangential), y up (radial outward)
+    def T(x, y):
+        X = (x - 0.5) * size; Y = (y - 0.5) * size + radius
+        return (Y * ca - X * sa, Y * sa + X * ca)          # radial axis along `angle`, tangential across
+    half = width / 2
+    for st in strokes:
+        pts = [T(x, y) for x, y in st]
+        for (x0, y0), (x1, y1) in zip(pts, pts[1:]):
+            dx, dy = x1 - x0, y1 - y0
+            L = math.hypot(dx, dy)
+            if L < 1e-6:
+                continue
+            ux, uy = dx / L, dy / L
+            base = math.atan2(uy, ux)
+            loop = []                                    # a stadium, anticlockwise: round the far end, back along the left, round the near end
+            for i in range(5):
+                a = base - math.pi / 2 + math.pi * i / 4
+                loop.append((x1 + half * math.cos(a), y1 + half * math.sin(a)))
+            for i in range(5):
+                a = base + math.pi / 2 + math.pi * i / 4
+                loop.append((x0 + half * math.cos(a), y0 + half * math.sin(a)))
+            top = [P(x, y, z1) for x, y in loop]
+            bot = [P(x, y, z0) for x, y in loop]
+            n = len(loop)
+            ct, cb = P((x0 + x1) / 2, (y0 + y1) / 2, z1), P((x0 + x1) / 2, (y0 + y1) / 2, z0)
+            sh = Mesh()
+            for i in range(n):
+                j = (i + 1) % n
+                sh.tri(ct, top[i], top[j])                   # top, facing +n
+                sh.tri(cb, bot[j], bot[i])                   # bottom, facing -n
+                sh.tri(bot[i], bot[j], top[j]); sh.tri(bot[i], top[j], top[i])   # side, outward
+            m.shells.append(sh)
 
 
 # ---------------------------------------------------------------- bodies
@@ -289,7 +371,7 @@ def cube(type_, size=60.0, D=52.0, relief='deboss', variants=(0, 1, 2, 3)):
             t = outline('square', a, h)
             ring.append(P(t * math.cos(a), t * math.sin(a), 0))
         if fi < len(variants):
-            marker_face_general(m, (o, u, v, n), ring, D, marker_id(type_, variants[fi]), relief)
+            marker_face_general(m, (o, u, v, n), ring, D, marker_id(type_, variants[fi]), relief, glyph=type_ if type_ in GLYPHS else None, corners=4, corner0=math.pi / 4)
         else:
             c = P(0, 0, 0)
             for i in range(N_SIDE):
@@ -298,18 +380,89 @@ def cube(type_, size=60.0, D=52.0, relief='deboss', variants=(0, 1, 2, 3)):
     return m
 
 
-def marker_face_general(m, frame, ring, D, mid, relief):
+def marker_face_general(m, frame, ring, D, mid, relief, glyph=None, corners=0, corner0=0.0):
     """marker_face for any face frame: build in a local axis-aligned frame, then map the points"""
     o, u, v, n = frame
     local = Mesh()
     lring = [(_dot(sub(p, o), u), _dot(sub(p, o), v), 0.0) for p in ring]
-    marker_face(local, ((0, 0, 0), (1, 0, 0), (0, 1, 0), (0, 0, 1)), lring, D, mid, relief)
+    marker_face(local, ((0, 0, 0), (1, 0, 0), (0, 1, 0), (0, 0, 1)), lring, D, mid, relief, glyph=glyph, corners=corners, corner0=corner0)
+    M = lambda p: tuple(o[k] + u[k]*p[0] + v[k]*p[1] + n[k]*p[2] for k in range(3))
     for a, b, c in local.tris:
-        m.tri(*(tuple(o[k] + u[k]*p[0] + v[k]*p[1] + n[k]*p[2] for k in range(3)) for p in (a, b, c)))
+        m.tri(M(a), M(b), M(c))
+    if getattr(local, 'shells', None):
+        if not hasattr(m, 'shells'):
+            m.shells = []
+        for sh in local.shells:
+            g = Mesh(); g.tris = [(M(a), M(b), M(c)) for a, b, c in sh.tris]; m.shells.append(g)
 
 
 def sub(a, b): return (a[0]-b[0], a[1]-b[1], a[2]-b[2])
 def _dot(a, b): return a[0]*b[0] + a[1]*b[1] + a[2]*b[2]
+
+
+def cross(a, b): return (a[1]*b[2]-a[2]*b[1], a[2]*b[0]-a[0]*b[2], a[0]*b[1]-a[1]*b[0])
+def unit(a): l = math.sqrt(_dot(a, a)) or 1.0; return (a[0]/l, a[1]/l, a[2]/l)
+
+
+def dodecahedron(types, across=100.0, D=54.0, relief='deboss', name=None):
+    """the experimental many-faced body: a regular dodecahedron, twelve pentagonal faces, an object on each
+    (a face with no object is left blank). `across` is the distance between opposite faces."""
+    phi = (1 + 5 ** 0.5) / 2
+    V = []
+    for sx in (-1, 1):
+        for sy in (-1, 1):
+            for sz in (-1, 1):
+                V.append((sx, sy, sz))
+    for s1 in (-1, 1):
+        for s2 in (-1, 1):
+            V.append((0, s1 / phi, s2 * phi)); V.append((s1 / phi, s2 * phi, 0)); V.append((s1 * phi, 0, s2 / phi))
+    normals = []                                   # the twelve face normals: the vertices of the dual icosahedron
+    for s1 in (-1, 1):
+        for s2 in (-1, 1):
+            normals.append(unit((s1, 0, s2 * phi))); normals.append(unit((0, s1 * phi, s2))); normals.append(unit((s1 * phi, s2, 0)))
+    # scale: inradius = across / 2
+    n0 = normals[0]
+    ri_unit = max(_dot(n0, p) for p in V)
+    sc = (across / 2) / ri_unit
+    V = [(p[0] * sc, p[1] * sc, p[2] * sc) for p in V]
+    m = Mesh()
+    NP = 60                                    # 6 degree steps: twelve per 72 degree edge, symmetric about every edge midpoint
+    for fi, n in enumerate(normals):
+        dots = sorted(V, key=lambda p: -_dot(n, p))[:5]
+        assert max(_dot(n, p) for p in dots) - min(_dot(n, p) for p in dots) < 1e-6, 'face not planar'
+        c = tuple(sum(p[k] for p in dots) / 5 for k in range(3))
+        u = unit(sub(dots[0], c)); v = cross(n, u)                     # u toward a vertex; u x v = n
+        # the five vertices, anticlockwise about n, starting from the one on +u
+        ang = lambda p: math.atan2(_dot(sub(p, c), v), _dot(sub(p, c), u)) % TAU
+        dots.sort(key=ang)
+        apothem = _dot(sub(dots[0], c), u) * math.cos(math.pi / 5)     # circumradius * cos(36)
+        ring = []
+        for i in range(NP):
+            a = TAU * i / NP
+            t = polygon_radius(a, 5, apothem)
+            ring.append(tuple(c[k] + u[k] * t * math.cos(a) + v[k] * t * math.sin(a) for k in range(3)))
+        t = types[fi] if fi < len(types) else None
+        if t:
+            marker_face_general(m, (c, u, v, n), ring, D, marker_id(t, 0), relief, glyph=t if t in GLYPHS else None, corners=5)
+        else:
+            for i in range(NP):
+                m.tri(c, ring[i], ring[(i + 1) % NP])
+    m.name = name or ('d12-' + '-'.join(types[:3]) + ('' if len(types) <= 3 else '-etc'))
+    return m
+
+
+KIT_ORDER = ['osc','sampler','rec','mic','song','water','theremin','drums','harp','marbles','hum','spheres',
+             'filter','delay','dist','reverb','chorus','crush','mod','seq','lfo','tempo','conduct','air']
+
+
+def d12_set(n=6, across=100.0, relief='deboss'):
+    """six dice that hold the whole kit three times over: die k carries twelve consecutive objects (in KIT_ORDER,
+    which alternates families) starting four along from the die before, so every object sits on three dice"""
+    out = []
+    for k in range(n):
+        types = [KIT_ORDER[(k * 4 + j) % len(KIT_ORDER)] for j in range(12)]
+        out.append(dodecahedron(types, across, 54.0, relief, name='d12-set-%d' % (k + 1)))
+    return out
 
 
 def puck(type_, kind='hex', half=35.0, height=18.0, D=60.0, relief='deboss', variant=0):
@@ -358,12 +511,15 @@ def build(name, relief='deboss'):
 
 
 def write(m, out, obj=False):
-    ok = m.watertight()
+    """check the body is closed and every glyph shell is closed, then write them together (the slicer unions them)"""
+    shells = getattr(m, 'shells', [])
+    ok = m.watertight() and all(sh.watertight() and sh.volume() > 0 for sh in shells)
     vol = m.volume()
-    m.stl(os.path.join(out, m.name + '.stl'), m.name)
+    whole = Mesh(); whole.tris = m.tris + [t for sh in shells for t in sh.tris]
+    whole.stl(os.path.join(out, m.name + '.stl'), m.name)
     if obj:
-        m.obj(os.path.join(out, m.name + '.obj'), m.name)
-    print('%-22s %6d triangles %7.1f cm3  watertight=%s' % (m.name, len(m.tris), vol / 1000, ok))
+        whole.obj(os.path.join(out, m.name + '.obj'), m.name)
+    print('%-22s %6d triangles %7.1f cm3  %s  watertight=%s' % (m.name, len(whole.tris), vol / 1000, ('%d glyph shells' % len(shells)) if shells else '', ok))
     assert ok and vol > 0, m.name
 
 
@@ -376,6 +532,8 @@ if __name__ == '__main__':
     ap.add_argument('--cube', default='')
     ap.add_argument('--hex', default='')
     ap.add_argument('--round', default='')
+    ap.add_argument('--d12', default='', help='up to twelve objects for one dodecahedron, e.g. osc,filter,seq')
+    ap.add_argument('--d12-set', action='store_true', help='six dodecahedra that hold the whole kit three times over')
     args = ap.parse_args()
     os.makedirs(args.out, exist_ok=True)
     made = False
@@ -385,6 +543,11 @@ if __name__ == '__main__':
         write(puck(t, 'hex', relief=args.relief), args.out, args.obj); made = True
     for t in [x for x in args.round.split(',') if x]:
         write(puck(t, 'circle', relief=args.relief), args.out, args.obj); made = True
+    if args.d12:
+        write(dodecahedron([x for x in args.d12.split(',') if x], relief=args.relief), args.out, args.obj); made = True
+    if args.d12_set:
+        for d in d12_set(relief=args.relief): write(d, args.out, args.obj)
+        made = True
     if not made or args.only:
         names = [x for x in args.only.split(',') if x] or list(DESIGNS)
         for n in names:

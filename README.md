@@ -121,7 +121,9 @@ most of Phase 2 of the plan:
   (256 eight-bit ids) and a card per object. For a resin printer, [`hardware/print/kit/`](hardware/print/kit/)
   has 24 sculpted bodies, one per object, each shaped to say what it is (a wave, a coil, a
   spool, a grille, a funnel, a bell, a crown of studs…) with its marker in two levels of
-  relief on top, so a wipe of paint colours the code. See [hardware/README.md](hardware/README.md).
+  relief on top, so a wipe of paint colours the code. An experimental set puts twelve objects on
+  one 100 mm dodecahedron, the object's glyph in every corner of its face, so two dice hold the
+  whole kit. See [hardware/README.md](hardware/README.md).
 - **Physical-table ready** (PC route): open the page with `?tuio=ws://localhost:8765` and run
   [`prototype/tuio-bridge.js`](prototype/tuio-bridge.js) to drive it from reacTIVision's
   TUIO stream instead of the mouse (fiducial class IDs map to object types in blocks of
