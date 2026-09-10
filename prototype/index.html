@@ -271,7 +271,7 @@
     <p>Draw a wiggly line next to an <span class="cg">osc</span>. The wiggle becomes its sound.</p>
     <p>Tap the tiny keys above an <span class="cg">osc</span> for a piano. Or play the <span class="kbd">A</span> to <span class="kbd">L</span> keys.</p>
     <p>A <span class="cg">rec</span> block listens for a few bars, then plays it back, round and round. A <span class="cg">mic</span> block hears you.</p>
-    <p>Put a <span class="cc">warp</span> (it is under <b>more</b>) next to the <span class="cg">mic</span>. Turn it up for a chipmunk, down for a monster, tap it for backwards talking. It works while you sing.</p>
+    <p>Put a <span class="cc">warp</span> (it is under <b>more</b>) next to the <span class="cg">mic</span>. Turn it up for a chipmunk, down for a monster, tap it round to REVERSE for backwards talking, STUTTER for a stammer, FREEZE to hold a note for ever. It works while you sing.</p>
     <p>A <span class="cc">seq</span> block next to the <span class="cg">mic</span> chops your voice into a tune: pull its pads out for higher notes. An <span class="cc">envelope</span> makes each word go <i>pluck</i> or <i>swell</i>. An <span class="cc">express</span> block adds a wobble, a shine, a flutter or a scoop.</p>
     <h3>Make a real song</h3>
     <p>Tap the <span class="cc">song</span> block. The edge of the circle becomes your song: <b>intro, verse, chorus</b> and so on, all the way round. That is about three minutes.</p>
@@ -308,7 +308,7 @@
     <p><b>Record</b> saves a performance. <b>Share</b> puts the whole table in a link. <b>Undo</b> is also <span class="kbd">Ctrl</span> <span class="kbd">Z</span>.</p>
     <h3>The real table</h3>
     <p><b>Camera</b> turns a phone above a flat TV into a tracker for printed cubes. <b>Markers</b> prints them. <b>Sync</b> lines up picture and sound over Bluetooth or a cast.</p>
-    <p>Cubes have four tricks: put them down, move them, turn them, and flip them to another face. Lift a cube and put it straight back to make a recorder record again.</p>
+    <p>Cubes have four tricks: put them down, move them, turn them, and flip them to another face. Every face of a cube is one mode of the same thing (the six waves of an oscillator, the six rooms of a reverb), turning is the knob, and the slider on the screen is how loud. Lift a cube and put it straight back to make a recorder record again.</p>
   </section>
 </div>
 <div id="dock" aria-label="object tray">
@@ -356,7 +356,7 @@
   <button class="spawn adv" data-type="euclid" title="euclidean rhythms into a sequencer"><span class="chipico hx" data-g="E"></span>euclid</button>
   <button class="spawn adv" data-type="chance" title="probability, ratchets and humanise"><span class="chipico hx" data-g="%"></span>chance</button>
   <button class="spawn adv" data-type="chain" title="chain a sequencer's patterns every N bars"><span class="chipico hx" data-g="AB"></span>chain</button>
-  <button class="spawn adv" data-type="scene" title="four snapshots, morph between them"><span class="chipico hx" data-g="S"></span>scene</button>
+  <button class="spawn adv" data-type="scene" title="six snapshots, morph between them"><span class="chipico hx" data-g="S"></span>scene</button>
   <button class="spawn adv" data-type="motion" title="records a gesture and loops it"><span class="chipico hx" data-g="∞"></span>motion</button>
   <button class="spawn adv" data-type="warp" title="granular time-stretch and pitch-shift for loops"><span class="chipico hx" data-g="W"></span>warp</button>
   <button class="spawn adv" data-type="send" title="turn an effect into a proximity send bus"><span class="chipico hx" data-g="→"></span>send</button>
@@ -417,33 +417,33 @@ const BIND = { env:['osc','filter','mic'], xpress:['osc','filter','mic'], steps:
                motion:'any', warp:['sampler','rec','mic'], send:['delay','reverb','chorus','dist','crush','mod','filter'], air:'any' };
 const PLAY_LEGEND = {
   theremin:{ name:'THEREMIN', turn:'range 1–4 octaves', slide:'level', faces:['FREE','IN KEY','GLIDE'] },
-  drums:   { name:'AIR DRUMS', turn:'kit pitch', slide:'level', faces:['FREE','ON THE GRID','BIG KIT','TOMS'] },
-  harp:    { name:'HARP', turn:'root note', slide:'level', faces:['HARP','NYLON','STEEL','BELL'] },
+  drums:   { name:'AIR DRUMS', turn:'kit pitch', slide:'level', faces:['FREE','ON THE GRID','BIG KIT','TOMS','ELECTRO','WOOD'] },
+  harp:    { name:'HARP', turn:'root note', slide:'level', faces:['HARP','NYLON','STEEL','BELL','GLASS','KOTO'] },
   marbles: { name:'MARBLES', turn:'energy (speed, bounces)', slide:'level', faces:['FLICK','ONE A BAR','TWO A BAR','EVERY BEAT'] },
   hum:     { name:'HUM', turn:'octave −2 … +2', slide:'level', faces:['FOLLOW','NOTES','HARMONY','OCTAVES'] },
   conduct: { name:'CONDUCTOR', turn:'—', slide:'how quickly it follows', faces:['TEMPO','TEMPO + DYNAMICS'] },
   air:     { name:'AIR KNOB', turn:'—', slide:'—', faces:['TURN','SLIDE','BOTH'] },
-  water:   { name:'WATERPHONE', turn:'how much water', slide:'level', faces:['WHALE','STORM','GONG','GHOST'] },
+  water:   { name:'WATERPHONE', turn:'how much water', slide:'level', faces:['WHALE','STORM','GONG','GHOST','RAIN','DEEP'] },
   spheres: { name:'PLANETS', turn:'how fast a year goes (4 s – 2 min)', slide:'level', faces:['ORRERY','GOD MODE'] },
-  song:    { name:'SONG', turn:'which part to loop (straight up: the whole song)', slide:'song level', faces:['POP SONG','LITTLE SONG','FREE'] },
+  song:    { name:'SONG', turn:'which part to loop (straight up: the whole song)', slide:'song level', faces:['POP SONG','LITTLE SONG','BLUES','AABA','BUILD','FREE'] },
 };
 const DRUM_PADS = ['KICK','SNARE','HAT','CLAP'];
-const ADV_LEGEND = {   // printed on the cards and used by the readouts
-  key:    { name:'KEY',      turn:'key (C…B)',            slide:'scale',                faces:['octave 0','octave +1','octave −1','octave +2'] },
-  tune:   { name:'TUNING',   turn:'tuning system',        slide:'reference A (415–466 Hz)', faces:['oscillators','oscillators + loops'] },
-  env:    { name:'ENVELOPE', turn:'attack 1 ms – 2 s',    slide:'release 20 ms – 4 s',  faces:['PLUCK','KEYS','PAD','SWELL'] },
-  xpress: { name:'EXPRESS',  turn:'velocity depth',       slide:'velocity curve soft–hard', faces:['VIBRATO','BRIGHT','TREMOLO','BEND'] },
-  steps:  { name:'STEPS',    turn:'pattern length 1–16',  slide:'rate 1/32 · 1/16 · 1/8 · 1/4', faces:['FORWARD','REVERSE','PING-PONG','RANDOM'] },
-  euclid: { name:'EUCLID',   turn:'hits 1–16',            slide:'rotate the pattern',   faces:['ROOT','ALTERNATE','RISING','RANDOM'] },
-  chance: { name:'CHANCE',   turn:'probability 100 → 5 %', slide:'humanise',            faces:['DICE','RATCHET','FILL','SKIP'] },
-  chain:  { name:'CHAIN',    turn:'every 1 · 2 · 4 · 8 bars', slide:'patterns 2–4',     faces:['LOOP','PING-PONG','RANDOM','SONG'] },
-  scene:  { name:'SCENE',    turn:'morph live → snapshot', slide:'crossfade 0–4 bars',  faces:['A','B','C','D'] },
+const ADV_LEGEND = {   // printed on the cards and used by the readouts. A face is a mode, the turn is the continuous control, the slider a level
+  key:    { name:'KEY',      turn:'key (C…B)',            slide:'octave −1 … +2',       faces:['PENTA','MAJOR','MINOR','DORIAN','MIXO','HARMONIC','BLUES','CHROMATIC'] },
+  tune:   { name:'TUNING',   turn:'reference A (415–466 Hz)', slide:'how far from equal temperament', faces:['12-TET','JUST','PYTHAGOREAN','MEANTONE','WERCKMEISTER','31-EDO','SLENDRO','PELOG'] },
+  env:    { name:'ENVELOPE', turn:'attack 1 ms – 2 s',    slide:'release 20 ms – 4 s',  faces:['PLUCK','KEYS','PAD','SWELL','PERC','GATE'] },
+  xpress: { name:'EXPRESS',  turn:'velocity depth',       slide:'velocity curve soft–hard', faces:['VIBRATO','BRIGHT','TREMOLO','BEND','PAN','GROWL'] },
+  steps:  { name:'WALK',     turn:'pattern length 1–16',  slide:'rate 1/32 · 1/16 · 1/8 · 1/4', faces:['FORWARD','REVERSE','PING-PONG','RANDOM','DRUNK','SKIP'] },
+  euclid: { name:'EUCLID',   turn:'hits 1–16',            slide:'rotate the pattern',   faces:['ROOT','ALTERNATE','RISING','RANDOM','FALLING','UP AND DOWN'] },
+  chance: { name:'CHANCE',   turn:'probability 100 → 5 %', slide:'humanise',            faces:['DICE','RATCHET','FILL','SKIP','GHOST','DROP'] },
+  chain:  { name:'CHAIN',    turn:'every 1 · 2 · 4 · 8 bars', slide:'patterns 2–6',     faces:['LOOP','PING-PONG','RANDOM','SONG','ONCE','SHUFFLE'] },
+  scene:  { name:'SCENE',    turn:'morph live → snapshot', slide:'crossfade 0–4 bars',  faces:['A','B','C','D','E','F'] },
   motion: { name:'MOTION',   turn:'loop 1 · 2 · 4 · 8 bars', slide:'smoothing',        faces:['TURN','SLIDE','MOVE','ALL'] },
-  warp:   { name:'WARP',     turn:'pitch −12 … +12 st',   slide:'grain 20–200 ms',      faces:['PITCH','HALF','DOUBLE','REVERSE'] },   // beside a mic: live; HALF/DOUBLE become an octave down/up
-  send:   { name:'SEND',     turn:'send level',           slide:'reach',                faces:['POST','PRE'] },
-  space:  { name:'SPACE',    turn:'stereo width',         slide:'orbit speed',          faces:['POSITION','ORBIT','RADIAL'] },
-  master: { name:'MASTER',   turn:'volume',               slide:'glue',                 faces:['CLEAN','GLUE','PUMP','LIMIT'] },
-  stems:  { name:'STEMS',    turn:'1 · 2 · 4 · 8 · 16 · 32 bars', slide:'—',           faces:['ARM'] },
+  warp:   { name:'WARP',     turn:'pitch −12 … +12 st · where to stutter or freeze', slide:'grain 20–200 ms', faces:['PITCH','HALF','DOUBLE','REVERSE','STUTTER','FREEZE'] },   // beside a mic: live; HALF/DOUBLE become an octave down/up
+  send:   { name:'SEND',     turn:'reach',                slide:'send level',           faces:['POST','PRE'] },
+  space:  { name:'SPACE',    turn:'stereo width',         slide:'orbit or sweep speed', faces:['POSITION','ORBIT','RADIAL','MIRROR','SWEEP','MONO'] },
+  master: { name:'MASTER',   turn:'glue',                 slide:'volume',               faces:['CLEAN','GLUE','PUMP','LIMIT','WARM','LOUD'] },
+  stems:  { name:'STEMS',    turn:'1 · 2 · 4 · 8 · 16 · 32 bars', slide:'—',           faces:['STEMS'] },
 };
 const TUNINGS = (()=>{   // cents above the key note for each of the 12 chromatic degrees
   const near = set => Array.from({length:12},(_,d)=>set.reduce((b,c)=>Math.abs(c-d*100)<Math.abs(b-d*100)?c:b, set[0]));
@@ -454,24 +454,29 @@ const TUNINGS = (()=>{   // cents above the key note for each of the 12 chromati
     { n:'PYTHAG',   c:[0,90.22,203.91,294.13,407.82,498.04,611.73,701.96,792.18,905.87,996.09,1109.78] },
     { n:'MEANTONE', c:[0,76.05,193.16,310.26,386.31,503.42,579.47,696.58,772.63,889.74,1006.84,1082.89] },
     { n:'WERCK III',c:[0,90.23,192.18,294.14,390.23,498.05,588.27,696.09,792.18,888.27,996.09,1092.18] },
-    { n:'KIRN III', c:[0,90.23,193.16,294.14,386.31,498.05,590.22,696.58,792.18,889.74,996.09,1088.27] },
-    { n:'19-EDO',   c:edo(19) },
     { n:'31-EDO',   c:edo(31) },
-    { n:'NEUTRAL',  c:[0,100,200,350,350,500,600,700,850,850,1050,1050] },   // 24-EDO neutral thirds, sixths, sevenths
     { n:'SLENDRO',  c:near([0,240,480,720,960,1200]) },
     { n:'PELOG',    c:near([0,120,270,540,670,800,950,1200]) },
+    // the eight above are the faces of the tuning body; these three are reached on screen
+    { n:'KIRN III', c:[0,90.23,193.16,294.14,386.31,498.05,590.22,696.58,792.18,889.74,996.09,1088.27] },
+    { n:'19-EDO',   c:edo(19) },
+    { n:'NEUTRAL',  c:[0,100,200,350,350,500,600,700,850,850,1050,1050] },   // 24-EDO neutral thirds, sixths, sevenths
   ];
 })();
-const ENV_SHAPES = [ {n:'PLUCK',dec:0.15,sus:0.0,am:1}, {n:'KEYS',dec:0.35,sus:0.45,am:1}, {n:'PAD',dec:0.8,sus:1,am:1}, {n:'SWELL',dec:0.5,sus:1,am:4} ];
+const ENV_SHAPES = [ {n:'PLUCK',dec:0.15,sus:0.0,am:1}, {n:'KEYS',dec:0.35,sus:0.45,am:1}, {n:'PAD',dec:0.8,sus:1,am:1}, {n:'SWELL',dec:0.5,sus:1,am:4},
+                     {n:'PERC',dec:0.05,sus:0.0,am:0.4}, {n:'GATE',dec:0,sus:1,am:0.25} ];   // PERC: a click of a note; GATE: an organ, on and off
 const STEP_RATES = [ {n:'1/32',r:2}, {n:'1/16',r:1}, {n:'1/8',r:0.5}, {n:'1/4',r:0.25} ];
 const BAR_CHOICES = [1,2,4,8];
 const STEM_BARS = [1,2,4,8,16,32];
 const hash01 = n => { let x=(n|0)*2654435761; x^=x>>>15; x=Math.imul(x,2246822519); x^=x>>>13; return (x>>>0)/4294967296; };
 const FCOLOR = { gen:COL.gen, fx:COL.fx, ctl:COL.ctl };
 const NOTE_NAMES = ['C','C#','D','D#','E','F','F#','G','G#','A','A#','B'];
-const OSC_WAVES = ['sine','sawtooth','square','triangle'];
-const FILTER_MODES = ['lowpass','highpass','bandpass'];
-const FILTER_TAGS = { lowpass:'LP', highpass:'HP', bandpass:'BP' };
+const OSC_WAVES = ['sine','sawtooth','square','triangle','pulse','noise'];   // the six faces of the oscillator; a drawn wave is OSC_DRAWN
+const OSC_DRAWN = 6;
+const FILTER_MODES = ['lowpass','highpass','bandpass','notch','peaking','formant'];
+const FILTER_TAGS = { lowpass:'LP', highpass:'HP', bandpass:'BP', notch:'NT', peaking:'PK', formant:'AH' };
+const VOWELS = [ ['A',730,1090,2440], ['E',530,1840,2480], ['I',270,2290,3010], ['O',570,840,2410], ['U',440,1020,2240] ];   // Peterson–Barney formants
+const SCENE_SLOTS = 6;
 const SCALES = [
   { name:'penta', steps:[0,2,4,7,9] },
   { name:'major', steps:[0,2,4,5,7,9,11] },
@@ -484,7 +489,7 @@ const SCALES = [
 ];
 const LOOPS = ['KICK','BEAT','HATS','BASS','CHORD','ARP'];   // 'MINE' appended on import
 const SWINGS = [ {n:'off',v:0}, {n:'lite',v:0.18}, {n:'full',v:0.30} ];
-const DIVS = [ {n:'1/16',b:0.25}, {n:'1/8',b:0.5}, {n:'1/8·',b:0.75}, {n:'1/4',b:1}, {n:'1/2',b:2}, {n:'3/4',b:3} ];
+const DIVS = [ {n:'1/16',b:0.25}, {n:'1/8',b:0.5}, {n:'1/8·',b:0.75}, {n:'1/4',b:1}, {n:'1/2',b:2}, {n:'1 BAR',b:4} ];   // the six faces of the delay
 const LFO_DIVS = [ {n:'4 bar',b:16}, {n:'2 bar',b:8}, {n:'1 bar',b:4}, {n:'1/2',b:2}, {n:'1/4',b:1}, {n:'1/8',b:0.5}, {n:'1/16',b:0.25} ];
 const REC_BARS = [1,2,4,8,16];
 const SEQ_PATTERNS = [
@@ -492,10 +497,12 @@ const SEQ_PATTERNS = [
   [[0,0],null,null,[0,0],null,[4,0],null,null,[2,0],null,null,[2,0],[5,0],null,[4,0],null],
   [[0,0],[2,0],[4,0],[7,0],[9,0],[7,0],[4,0],[2,0],[0,0],[2,0],[4,0],[7,0],[9,0],[7,0],[4,0],[2,0]],
   [[0,0],null,[0,0],null,[1,0],null,[0,0],null,[3,0],null,[0,0],null,[4,0],[3,0],[1,0],null],
+  [[0,0],null,null,[0,0],null,null,[4,0],null,[0,0],null,null,[3,0],null,[4,0],null,[2,0]],       // E: a bass line
+  [null,null,[4,0],null,null,null,[4,0],null,null,null,[5,0],null,null,null,[4,0],[2,0]],          // F: offbeat stabs
 ];
-const state = { bpm:112, key:0, scaleIdx:0, swingIdx:0, soundMode:'original' };
+const state = { bpm:112, key:0, scaleIdx:0, swingIdx:0, swingV:null, soundMode:'original' };
 const ANALOG = () => state.soundMode!=='original';
-const swingAmt = () => SWINGS[state.swingIdx].v;
+const swingAmt = () => state.swingV!=null ? state.swingV : SWINGS[state.swingIdx].v;   // the clock's SWING face sets a continuous amount
 const scaleSteps = () => SCALES[state.scaleIdx].steps;
 
 /* ================= GPU post pipeline (WebGL) =================
@@ -743,10 +750,10 @@ const dist  = (a,b) => Math.hypot(a.x-b.x, a.y-b.y);
 
 function defaults(type){
   return { osc:{arc:0.72}, sampler:{arc:0.8}, rec:{arc:0.85}, mic:{arc:0.5},
-           filter:{arc:0.18}, delay:{arc:0.4}, mod:{arc:0.5}, dist:{arc:0.5},
+           filter:{arc:0.18}, delay:{arc:0.55}, mod:{arc:0.5}, dist:{arc:0.5},
            reverb:{arc:0.35}, chorus:{arc:0.5}, crush:{arc:0.6},
            lfo:{arc:0.45}, seq:{arc:0.5}, tempo:{arc:0.5},
-           key:{arc:0.06}, tune:{arc:0.5}, env:{arc:0.51}, xpress:{arc:0.5}, steps:{arc:0.4}, euclid:{arc:0},
+           key:{arc:0.34}, tune:{arc:1}, env:{arc:0.51}, xpress:{arc:0.5}, steps:{arc:0.4}, euclid:{arc:0},
            chance:{arc:0.2}, chain:{arc:0.2}, scene:{arc:0.25}, motion:{arc:0.3}, warp:{arc:0.3}, send:{arc:0.5},
            space:{arc:0.3}, master:{arc:0.4}, stems:{arc:0.5},
            theremin:{arc:0.6}, drums:{arc:0.8}, harp:{arc:0.7}, marbles:{arc:0.6}, hum:{arc:0.7}, conduct:{arc:0.5}, air:{arc:0.5}, water:{arc:0.75}, spheres:{arc:0.8}, song:{arc:0.9} }[type];
@@ -756,31 +763,32 @@ function spawn(type, x, y){
               option:0, muted:false, hop:'C', gated:false, flashAt:-9 };
   if(type==='osc') o.angle = (26/48)*TAU;
   if(type==='filter') o.angle = TAU*0.62;
-  if(type==='delay') o.angle = (1.5/6)*TAU;
+  if(type==='delay'){ o.option = 1; o.angle = 0.4*TAU; }   // an eighth, feedback 34 %
   if(type==='mod') o.angle = TAU*0.3;
   if(type==='lfo') o.angle = TAU*0.5;
-  if(type==='sampler') o.angle = (1.5/6)*TAU;
+  if(type==='sampler'){ o.option = 1; o.angle = 0; }        // BEAT, from the top of the bar
   if(type==='dist') o.angle = TAU*0.3;
   if(type==='reverb') o.angle = TAU*0.45;
   if(type==='chorus') o.angle = TAU*0.4;
   if(type==='crush') o.angle = TAU*0.5;
-  if(type==='rec'){ o.angle = (1.5/4)*TAU; o.recState = 'idle'; o.ownLoop = null; }
+  if(type==='rec'){ o.option = 1; o.angle = 0; o.recState = 'idle'; o.ownLoop = null; }   // two bars
   if(type==='mic') o.micState = 'wait';
   if(type==='tempo') o.angle = ((state.bpm-60)/120)*TAU;
   if(type==='seq'){ o.bank = SEQ_PATTERNS.map(p => p.map(s => s ? {on:true,deg:s[0]} : {on:false,deg:0})); o.steps = o.bank[0]; }
-  if(type==='key'){ o.angle = ((state.key+0.5)/12)*TAU; o.arc = (state.scaleIdx+0.5)/SCALES.length; }
+  if(type==='key'){ o.angle = ((state.key+0.5)/12)*TAU; o.option = state.scaleIdx; o.arc = 1/3; }   // the slider: octave 0
   if(type==='env') o.angle = 0.21*TAU;             // ~5 ms attack
   if(type==='xpress') o.angle = 0.6*TAU;
   if(type==='steps') o.angle = 0.97*TAU;           // 16 steps
   if(type==='euclid') o.angle = (4/15)*TAU;        // 5 hits
   if(type==='chance') o.angle = 0.25*TAU;          // ~76 %
   if(type==='chain') o.angle = 0.55*TAU;           // every 4 bars
-  if(type==='scene'){ o.slots = [null,null,null,null]; o.morph = 0; }
+  if(type==='scene'){ o.slots = Array(SCENE_SLOTS).fill(null); o.morph = 0; }
   if(type==='motion') o.angle = 0.3*TAU;           // 2 bars
   if(type==='warp') o.angle = TAU/2;               // no shift
-  if(type==='send') o.angle = 0.6*TAU;
+  if(type==='send'){ o.angle = 0.5*TAU; o.arc = 0.6; }
   if(type==='space') o.angle = 0.7*TAU;
-  if(type==='master') o.angle = 0.55*TAU;
+  if(type==='master'){ o.angle = 0.3*TAU; o.arc = 0.55; }
+  if(type==='tune'){ o.angle = 0.5*TAU; o.arc = 1; }        // A = 440, all the way to the system
   if(type==='stems'){ o.angle = (2.5/6)*TAU; o.stemState='idle'; }
   if(type==='theremin') o.angle = 0.35*TAU;        // two octaves
   if(type==='drums'){ o.angle = 0.5*TAU; o.padFlash=[-9,-9,-9,-9]; }
@@ -816,13 +824,14 @@ function teardownNodes(o){
     if(o.micStream){ try{ o.micStream.getTracks().forEach(tr=>tr.stop()); }catch(e){} }
     for(const c of [...audio.captures]) if(c.obj===o) audio.captures.delete(c);
     try{ if(o.chLfo) o.chLfo.stop(); }catch(e){}
-    for(const k of ['vib','trem','bendC']) if(o[k]){ try{ o[k].stop(); }catch(e){} }
+    for(const k of ['vib','trem','bendC','dc','panLfo']) if(o[k]){ try{ o[k].stop(); }catch(e){} }
     if(o.sendG){ for(const k in o.sendG){ try{ o.sendG[k].disconnect(); }catch(e){} } o.sendG=null; }
     if(o.stemTap){ try{ o.stemTap.disconnect(); }catch(e){} o.stemTap.onaudioprocess=null; o.stemTap=null; }
     if(o.bus){ try{ o.bus.chL.stop(); }catch(e){} for(const n of o.bus.nodes){ try{ n.disconnect(); }catch(e){} } o.bus=null; }
     try{ if(o.src3) o.src3.stop(); }catch(e){}
-    for(const k of ['src','src2','src3','preF','fmGain','amp','gate','out','an','pan','biq','inG','dl','fb','fbSat','fbLP','dry','wet','depthG','carrier','ring','dryG','shaper','conv','micSrc','chDelay','chLfo','chDepth','vib','vibG','trem','tremG','bendC','thGain','humG','humG2','humG3','humAn'])
-      if(o[k]){ try{ o[k].disconnect(); }catch(e){} o[k]=null; }
+    for(const k of ['src','src2','src3','preF','fmGain','amp','gate','out','an','pan','biq','inG','dl','fb','fbSat','fbLP','dry','wet','depthG','carrier','ring','dryG','shaper','conv','micSrc','chDelay','chLfo','chDepth','vib','vibG','trem','tremG','bendC','thGain','humG','humG2','humG3','humAn',
+                    'lp','fmt','carG','dc','fbG','dlG','apDepth','ap','apG','panLfo','panG'])
+      if(o[k]){ for(const n of (Array.isArray(o[k]) ? o[k] : [o[k]])){ try{ n.disconnect(); }catch(e){} } o[k]=null; }
     if(o.ana){ try{ o.ana.node.disconnect(); }catch(e){} if(o.ana.node.onaudioprocess) o.ana.node.onaudioprocess=null; o.ana=null; }
     if(o.voice){ try{ o.voice.node.disconnect(); }catch(e){} if(o.voice.node.onaudioprocess) o.voice.node.onaudioprocess=null; o.voice=null; }
     if(o.playing){ try{ o.playing.stop(); }catch(e){} o.playing = null; }
@@ -847,17 +856,18 @@ const midiToF = m => 440*Math.pow(2,(m-69)/12);
    just-intonation or slendro table retunes oscillators (and, on its second
    face, the generated loops) without any object knowing */
 const activeTune = () => { for(let i=objects.length-1;i>=0;i--) if(objects[i].type==='tune') return objects[i]; return null; };
-function tuneSys(o){ return TUNINGS[Math.floor((o.angle/TAU)*TUNINGS.length) % TUNINGS.length]; }
-function tuneRef(o){ return 440*Math.pow(2,(o.arc-0.5)/6); }     // ±100 cents around A=440
-function pitchHz(m, forLoops){
+function tuneSys(o){ return TUNINGS[o.option % TUNINGS.length]; }                  // the face is the system
+function tuneRef(o){ return 440*Math.pow(2,(o.angle/TAU-0.5)/6); }                  // the ring: ±100 cents around A=440
+function tuneAmt(o){ return o.arc; }                                                 // the slider: how far from equal temperament
+function pitchHz(m){   // every note the table plays, oscillators and loops alike
   const tn = activeTune();
-  if(!tn || (forLoops && tn.option!==1)) return midiToF(m);
-  const rel = ((m-state.key)%12+12)%12, oct = Math.floor((m-state.key)/12);
+  if(!tn) return midiToF(m);
+  const rel = ((m-state.key)%12+12)%12, oct = Math.floor((m-state.key)/12), a = tuneAmt(tn);
   const fRoot = tuneRef(tn)*Math.pow(2,(state.key+12*oct-69)/12);
-  return fRoot*Math.pow(2, tuneSys(tn).c[rel]/1200);
+  return fRoot*Math.pow(2, (rel*100*(1-a) + tuneSys(tn).c[rel]*a)/1200);
 }
 const activeKeyPuck = () => { for(let i=objects.length-1;i>=0;i--) if(objects[i].type==='key') return objects[i]; return null; };
-function keyOct(){ const k=activeKeyPuck(); return k ? [0,12,-12,24][k.option%4] : 0; }
+function keyOct(){ const k=activeKeyPuck(); return k ? (Math.round(k.arc*3)-1)*12 : 0; }   // the key body's slider: an octave −1 … +2
 function quantMidi(m){
   const st = scaleSteps();
   let best=m, bd=99;
@@ -877,10 +887,10 @@ function oscFreq(o){ return pitchHz(oscMidi(o)); }
 function noteName(m){ return NOTE_NAMES[((m%12)+12)%12] + (Math.floor(m/12)-1); }
 function filtCut(o){ return 60*Math.pow(200, o.angle/TAU); }        // 60..12000
 function filtQ(o){ return 0.4 + o.arc*15.6; }
-function delayDiv(o){ return DIVS[Math.floor((o.angle/TAU)*DIVS.length) % DIVS.length]; }
+function delayDiv(o){ return DIVS[o.option % DIVS.length]; }                      // the face is the time
 function delayTime(o){ return Math.min(3.8, delayDiv(o).b * 60/state.bpm); }
-function delayFb(o){ return o.arc*0.8; }
-function modFreq(o){ return 20*Math.pow(100, o.angle/TAU); }        // 20..2000
+function delayFb(o){ return (o.angle/TAU)*0.85; }                                   // the ring is the feedback; the slider the mix
+function modFreq(o){ return o.option%2 ? 0.3*Math.pow(50, o.angle/TAU) : 20*Math.pow(100, o.angle/TAU); }   // RING 20..2000 Hz; TREMOLO 0.3..15 Hz
 function lfoSynced(o){ return o.option >= 4; }
 function lfoDiv(o){ return LFO_DIVS[Math.floor((o.angle/TAU)*LFO_DIVS.length) % LFO_DIVS.length]; }
 function lfoRate(o){
@@ -891,19 +901,22 @@ function distDrive(o){ return 1 + (o.angle/TAU)*24; }
 function reverbDecay(o){ return 0.4 + (o.angle/TAU)*3.6; }
 function chorusRate(o){ return 0.15 + (o.angle/TAU)*5.5; }       // 0.15..5.7 Hz
 function crushBits(o){ return Math.round(2 + (1-o.angle/TAU)*10); } // 12 bits (fine) .. 2 (harsh)
-function recBars(o){ return REC_BARS[Math.floor((o.angle/TAU)*REC_BARS.length) % REC_BARS.length]; }
+function recBars(o){ return REC_BARS[o.option % REC_BARS.length]; }              // the face is the length
 function tempoBpm(o){ return 60 + Math.round((o.angle/TAU)*120); }
-function samplerLoop(o){ return Math.floor((o.angle/TAU)*LOOPS.length) % LOOPS.length; }
+function tempoSwing(o){ return Math.round((o.angle/TAU)*35)/100; }                 // the clock's SWING face: 0..35 %
+function clickHz(o){ return 500*Math.pow(4, o.angle/TAU); }                         // the clock's CLICK face: the pitch of the click
+function samplerLoop(o){ return o.option % LOOPS.length; }                         // the face is the loop
+function loopShift(o){ return Math.round((o.angle/TAU)*16) % 16; }                 // the ring: where in the loop the bar starts, in sixteenths
 function seqOffset(o){ return Math.round((o.angle/TAU)*16) % 16; }
 function fmtHz(v){ return v>=1000 ? (v/1000).toFixed(1)+' kHz' : Math.round(v)+' Hz'; }
 /* ---- the advanced pucks' mappings ---- */
 const seg = (o,n) => Math.floor((o.angle/TAU)*n) % n;
-function envAttack(o){ return 0.001*Math.pow(2000, o.angle/TAU) * ENV_SHAPES[o.option%4].am; }   // 1 ms .. 2 s (SWELL x4)
+function envAttack(o){ return 0.001*Math.pow(2000, o.angle/TAU) * ENV_SHAPES[o.option%ENV_SHAPES.length].am; }   // 1 ms .. 2 s (SWELL x4)
 function envRelease(o){ return 0.02*Math.pow(200, o.arc); }                                      // 20 ms .. 4 s
 function envFor(o){   // the envelope puck bound to this oscillator, or the table's default
   const e = objects.find(q=>q.type==='env' && q.hop===o.id);
   if(!e) return { a:0.012, d:0, s:1, r:0.10, puck:null };
-  const sh = ENV_SHAPES[e.option%4];
+  const sh = ENV_SHAPES[e.option%ENV_SHAPES.length];
   return { a:envAttack(e), d:sh.dec, s:sh.sus, r:envRelease(e), puck:e };
 }
 function stepsLen(o){ return 1 + Math.round((o.angle/TAU)*15); }
@@ -912,60 +925,80 @@ function euclidHits(o){ return 1 + Math.round((o.angle/TAU)*15); }
 function euclidRot(o){ return Math.round(o.arc*15); }
 function chanceProb(o){ return 1 - (o.angle/TAU)*0.95; }
 function chainEvery(o){ return BAR_CHOICES[seg(o,4)]; }
-function chainCount(o){ return 2 + Math.min(2, Math.floor(o.arc*3)); }
+function chainCount(o){ return 2 + Math.min(SEQ_PATTERNS.length-2, Math.floor(o.arc*(SEQ_PATTERNS.length-1))); }   // 2 … 6 patterns
 function motionBars(o){ return BAR_CHOICES[seg(o,4)]; }
 function warpSemis(o){ return Math.round((o.angle/TAU)*24 - 12); }
 function warpGrain(o){ return 0.02 + o.arc*0.18; }
-function sendLevel(o){ return o.angle/TAU; }
-function sendReach(o){ return TABLE_R*(0.15 + o.arc*0.6); }
+function sendLevel(o){ return o.arc; }                                            // the slider is the level
+function sendReach(o){ return TABLE_R*(0.15 + (o.angle/TAU)*0.6); }               // the ring is the reach
 function spaceWidth(o){ return o.angle/TAU; }
-function masterVol(o){ return o.angle/TAU; }
+function masterVol(o){ return o.arc; }                                            // the slider is the volume; the ring is the glue
+function masterGlue(o){ return o.angle/TAU; }
+function warpSlice(o){ return o.angle/TAU; }                                      // STUTTER and FREEZE: where in the loop, from the ring
+/* how many faces an object has on screen (a tap cycles through them); the physical body may carry fewer */
+function nOptions(type){
+  if(type==='osc') return OSC_WAVES.length;
+  if(type==='sampler') return LOOPS.length;
+  if(type==='tune') return TUNINGS.length;
+  if(type==='filter') return FILTER_MODES.length;
+  if(type==='seq') return SEQ_PATTERNS.length;
+  if(type==='song') return SONG_FORMS.length;
+  const lg = legendOf(type); return lg ? lg.faces.length : 1;
+}
+function faceOf(o){ return o.type==='osc' && o.option===OSC_DRAWN ? 0 : o.option % nOptions(o.type); }
+function faceName(o){ const lg = legendOf(o.type); return lg ? (lg.faces[faceOf(o)] || '') : ''; }
+function vowelName(o){ const p = Math.max(0, Math.min(3.999, (o.angle/TAU)*4)); return VOWELS[Math.round(p)][0]; }
 function stemBars(o){ return STEM_BARS[seg(o,6)]; }
 function sceneCross(o){ return o.arc*4; }   // bars
 function xpressDepth(o){ return o.angle/TAU; }
 function readout(o){
+  const fn = faceName(o);
   switch(o.type){
-    case 'osc': return ['OSC · '+(o.option===4 ? 'DRAWN' : OSC_WAVES[o.option].slice(0,3).toUpperCase()),
+    case 'osc': return ['OSC · '+(o.option===OSC_DRAWN ? 'DRAWN' : BASIC_LEGEND.osc.faces[o.option%OSC_WAVES.length]),
                         (o.midiNote!=null ? noteName(o.midiNote)+' · MIDI' : noteName(oscMidi(o))+' · '+fmtHz(oscFreq(o)))];
-    case 'sampler': return ['LOOPS · '+LOOPS[samplerLoop(o)], 'bar-synced · '+Math.round(o.arc*100)+'%'];
-    case 'filter': return ['FILTER · '+FILTER_TAGS[FILTER_MODES[o.option]],
-                        fmtHz(filtCut(o))+' · Q '+filtQ(o).toFixed(1)];
-    case 'delay': return ['DELAY · '+delayDiv(o).n, Math.round(delayTime(o)*1000)+' ms · fb '+Math.round(delayFb(o)*100)+'%'];
-    case 'mod': return ['MOD · RING', fmtHz(modFreq(o))+' · '+Math.round(o.arc*100)+'%'];
-    case 'dist': return ['DRIVE', 'x'+Math.round(distDrive(o))+' · mix '+Math.round(o.arc*100)+'%'];
-    case 'reverb': return ['REVERB', reverbDecay(o).toFixed(1)+' s · mix '+Math.round(o.arc*100)+'%'];
-    case 'chorus': return ['CHORUS', chorusRate(o).toFixed(1)+' Hz · mix '+Math.round(o.arc*100)+'%'];
-    case 'crush': return ['CRUSH', crushBits(o)+'-bit · mix '+Math.round(o.arc*100)+'%'];
-    case 'lfo': return ['LFO · '+OSC_WAVES[o.option%4].slice(0,3).toUpperCase(),
+    case 'sampler': return ['LOOPS · '+LOOPS[samplerLoop(o)], (loopShift(o) ? 'from step '+(loopShift(o)+1) : 'bar-synced')+' · '+Math.round(o.arc*100)+'%'];
+    case 'filter': return ['FILTER · '+FILTER_TAGS[FILTER_MODES[o.option%FILTER_MODES.length]],
+                        (o.option%FILTER_MODES.length===5 ? 'vowel '+vowelName(o) : fmtHz(filtCut(o)))+' · Q '+filtQ(o).toFixed(1)];
+    case 'delay': return ['DELAY · '+delayDiv(o).n, Math.round(delayTime(o)*1000)+' ms · fb '+Math.round(delayFb(o)*100)+'% · mix '+Math.round(o.arc*100)+'%'];
+    case 'mod': return ['MOD · '+fn, fmtHz(modFreq(o))+' · '+Math.round(o.arc*100)+'%'];
+    case 'dist': return ['DIRT · '+fn, 'x'+Math.round(distDrive(o))+' · mix '+Math.round(o.arc*100)+'%'];
+    case 'reverb': return ['REVERB · '+fn, reverbDecay(o).toFixed(1)+' s · mix '+Math.round(o.arc*100)+'%'];
+    case 'chorus': return ['MOD · '+fn, chorusRate(o).toFixed(1)+' Hz · mix '+Math.round(o.arc*100)+'%'];
+    case 'crush': return ['CRUSH · '+fn, crushBits(o)+'-bit · mix '+Math.round(o.arc*100)+'%'];
+    case 'lfo': return ['LFO · '+OSC_WAVES[o.option%4].slice(0,3).toUpperCase()+(lfoSynced(o) ? ' · SYNC' : ''),
                         (lfoSynced(o) ? lfoDiv(o).n : lfoRate(o).toFixed(2)+' Hz')+' · '+Math.round(o.arc*100)+'%'];
-    case 'seq': return ['SEQUENCER · '+'ABCD'[o.option%4], 'shift '+seqOffset(o)+' · gate '+Math.round((0.1+o.arc*0.85)*100)+'%'];
+    case 'seq': return ['SEQUENCER · '+'ABCDEF'[o.option%SEQ_PATTERNS.length], 'shift '+seqOffset(o)+' · gate '+Math.round((0.1+o.arc*0.85)*100)+'%'];
     case 'rec': return ['RECORD · '+recBars(o)+' BAR'+(recBars(o)>1?'S':''),
-                        o.recState==='idle' ? (song.puck ? 'tap: record a blob for the song' : 'double-tap to record')
+                        o.recState==='idle' ? (song.puck ? 'double-tap: a blob for the song' : 'double-tap to record · tap to flip')
                       : o.recState==='armed' ? 'starts next bar…'
                       : o.recState==='recording' ? 'recording…'
-                      : 'loop · '+Math.round(o.arc*100)+'%'];
-    case 'mic': return ['MIC', o.micState==='wait' ? 'allow microphone…'
+                      : 'loop · '+(loopShift(o) ? 'from step '+(loopShift(o)+1)+' · ' : '')+Math.round(o.arc*100)+'%'];
+    case 'mic': return ['MIC · '+fn, o.micState==='wait' ? 'allow microphone…'
                       : o.micState==='denied' ? 'mic blocked'
-                      : 'live · '+Math.round(o.arc*100)+'%'+(o.voice ? ' · '+micFxNames(o).join(' · ') : '')];
-    case 'tempo': return ['TEMPO', tempoBpm(o)+' BPM'];
-    case 'key': return ['KEY · '+NOTE_NAMES[state.key]+' '+SCALES[state.scaleIdx].name, ADV_LEGEND.key.faces[o.option%4]];
-    case 'tune': return ['TUNING · '+tuneSys(o).n, 'A = '+tuneRef(o).toFixed(1)+' Hz · '+(o.option===1?'osc + loops':'oscillators')];
-    case 'env': return ['ENVELOPE · '+ENV_SHAPES[o.option%4].n, fmtMs(envAttack(o))+' ▲ · '+fmtMs(envRelease(o))+' ▼'+(o.hop==='C'?' · unbound': (objects.find(x=>x.id===o.hop)||{}).type==='mic' ? ' · live on the mic' : '')];
-    case 'xpress': return ['EXPRESS · '+ADV_LEGEND.xpress.faces[o.option%4], 'velocity '+Math.round(xpressDepth(o)*100)+'% · '+(o.arc<0.4?'soft':o.arc>0.6?'hard':'linear')+((objects.find(x=>x.id===o.hop)||{}).type==='mic' ? ' · live on the mic' : '')];
-    case 'steps': return ['STEPS · '+ADV_LEGEND.steps.faces[o.option%4], stepsLen(o)+' steps · '+stepsRate(o).n+(o.hop==='C'?' · unbound':'')];
-    case 'euclid': return ['EUCLID · '+ADV_LEGEND.euclid.faces[o.option%4], euclidHits(o)+' hits · rot '+euclidRot(o)+(o.hop==='C'?' · unbound':'')];
-    case 'chance': return ['CHANCE · '+ADV_LEGEND.chance.faces[o.option%4], Math.round(chanceProb(o)*100)+'% · human '+Math.round(o.arc*100)+'%'+(o.hop==='C'?' · unbound':'')];
-    case 'chain': return ['CHAIN · '+ADV_LEGEND.chain.faces[o.option%4], 'every '+chainEvery(o)+' bar'+(chainEvery(o)>1?'s':'')+' · '+chainCount(o)+' patterns'+(o.hop==='C'?' · unbound':'')];
-    case 'scene': return ['SCENE · '+ADV_LEGEND.scene.faces[o.option%4]+(o.slots[o.option%4]?'':' (empty)'),
+                      : (o.option%2===1 && o.micNote!=null ? noteName(o.micNote)+' · ' : 'live · ')+Math.round(o.arc*100)+'%'+(o.voice ? ' · '+micFxNames(o).join(' · ') : '')];
+    case 'tempo': return o.option%3===1 ? ['CLOCK · SWING', Math.round(swingAmt()*100)+'% · rebakes the loops']
+                       : o.option%3===2 ? ['CLOCK · CLICK', Math.round(clickHz(o))+' Hz · level '+Math.round(o.arc*100)+'%']
+                       : ['CLOCK · TEMPO', tempoBpm(o)+' BPM'];
+    case 'key': return ['KEY · '+NOTE_NAMES[state.key]+' '+SCALES[state.scaleIdx].name, 'octave '+(keyOct()>0?'+':'')+(keyOct()/12)];
+    case 'tune': return ['TUNING · '+tuneSys(o).n, 'A = '+tuneRef(o).toFixed(1)+' Hz · '+Math.round(tuneAmt(o)*100)+'% of the way'];
+    case 'env': return ['ENVELOPE · '+ENV_SHAPES[o.option%ENV_SHAPES.length].n, fmtMs(envAttack(o))+' ▲ · '+fmtMs(envRelease(o))+' ▼'+(o.hop==='C'?' · unbound': (objects.find(x=>x.id===o.hop)||{}).type==='mic' ? ' · live on the mic' : '')];
+    case 'xpress': return ['EXPRESS · '+fn, 'velocity '+Math.round(xpressDepth(o)*100)+'% · '+(o.arc<0.4?'soft':o.arc>0.6?'hard':'linear')+((objects.find(x=>x.id===o.hop)||{}).type==='mic' ? ' · live on the mic' : '')];
+    case 'steps': return ['WALK · '+fn, stepsLen(o)+' steps · '+stepsRate(o).n+(o.hop==='C'?' · unbound':'')];
+    case 'euclid': return ['EUCLID · '+fn, euclidHits(o)+' hits · rot '+euclidRot(o)+(o.hop==='C'?' · unbound':'')];
+    case 'chance': return ['CHANCE · '+fn, Math.round(chanceProb(o)*100)+'% · human '+Math.round(o.arc*100)+'%'+(o.hop==='C'?' · unbound':'')];
+    case 'chain': return ['CHAIN · '+fn, 'every '+chainEvery(o)+' bar'+(chainEvery(o)>1?'s':'')+' · '+chainCount(o)+' patterns'+(o.hop==='C'?' · unbound':'')];
+    case 'scene': return ['SCENE · '+fn+(o.slots[o.option%SCENE_SLOTS]?'':' (empty)'),
                           'morph '+Math.round((o.angle/TAU)*100)+'% · fade '+(sceneCross(o)<0.05?'instant':sceneCross(o).toFixed(1)+' bars')];
-    case 'motion': return ['MOTION · '+ADV_LEGEND.motion.faces[o.option%4], motionBars(o)+' bar'+(motionBars(o)>1?'s':'')+' · '+(o.hop==='C'?'unbound':o.motionHas?'looping':'move the target')];
-    case 'warp': { const q = o.hop!=='C' && objects.find(x=>x.id===o.hop); return ['WARP · '+ADV_LEGEND.warp.faces[o.option%4], (warpSemis(o)>0?'+':'')+warpSemis(o)+' st · grain '+Math.round(warpGrain(o)*1000)+' ms'+(o.hop==='C'?' · unbound': q && q.type==='mic' ? ' · live on the mic' : '')]; }
-    case 'send': return ['SEND · '+ADV_LEGEND.send.faces[o.option%2], 'level '+Math.round(sendLevel(o)*100)+'% · reach '+Math.round(sendReach(o)/TABLE_R*100)+'%'+(o.hop==='C'?' · unbound':'')];
-    case 'space': return ['SPACE · '+ADV_LEGEND.space.faces[o.option%3], 'width '+Math.round(spaceWidth(o)*100)+'%'];
-    case 'master': return ['MASTER · '+ADV_LEGEND.master.faces[o.option%4], 'volume '+Math.round(masterVol(o)*100)+'% · glue '+Math.round(o.arc*100)+'%'];
+    case 'motion': return ['MOTION · '+fn, motionBars(o)+' bar'+(motionBars(o)>1?'s':'')+' · '+(o.hop==='C'?'unbound':o.motionHas?'looping':'move the target')];
+    case 'warp': { const q = o.hop!=='C' && objects.find(x=>x.id===o.hop), f = o.option%6;
+      const what = f===4 ? 'slice '+(Math.floor(warpSlice(o)*16)+1)+' of 16' : f===5 ? 'at '+Math.round(warpSlice(o)*100)+'%' : (warpSemis(o)>0?'+':'')+warpSemis(o)+' st';
+      return ['WARP · '+fn, what+' · grain '+Math.round(warpGrain(o)*1000)+' ms'+(o.hop==='C'?' · unbound': q && q.type==='mic' ? ' · live on the mic' : '')]; }
+    case 'send': return ['SEND · '+fn, 'level '+Math.round(sendLevel(o)*100)+'% · reach '+Math.round(sendReach(o)/TABLE_R*100)+'%'+(o.hop==='C'?' · unbound':'')];
+    case 'space': return ['SPACE · '+fn, 'width '+Math.round(spaceWidth(o)*100)+'%'];
+    case 'master': return ['MASTER · '+fn, 'volume '+Math.round(masterVol(o)*100)+'% · glue '+Math.round(masterGlue(o)*100)+'%'];
     case 'theremin': case 'drums': case 'harp': case 'marbles': case 'hum': case 'conduct': case 'air': case 'water': case 'spheres': case 'song': return playReadout(o);
     case 'stems': return ['STEMS · '+stemBars(o)+' BAR'+(stemBars(o)>1?'S':''),
-                          o.stemState==='idle' ? 'tap or replace to arm' : o.stemState==='armed' ? 'starts next bar…'
+                          o.stemState==='idle' ? 'double-tap or replace to arm' : o.stemState==='armed' ? 'starts next bar…'
                         : o.stemState==='recording' ? 'recording '+(o.stemN||0)+' stems…' : o.stemState==='saving' ? 'saving…' : (o.stemMsg||'saved')];
   }
 }
@@ -974,13 +1007,13 @@ function playReadout(o){
   const hz = hands.mode==='off' ? (hands.failed ? 'no camera · touch' : 'touch, or a camera') : hands.mode==='mirror' ? 'webcam hands' : 'table hands';
   switch(o.type){
     case 'theremin': return ['THEREMIN · '+PLAY_LEGEND.theremin.faces[o.option%3], (o.thActive && o.thMidi!=null ? noteName(Math.round(o.thMidi))+' · ' : '')+thereminOct(o)+' oct · '+hz];
-    case 'drums': return ['AIR DRUMS · '+PLAY_LEGEND.drums.faces[o.option%4], 'level '+Math.round(o.arc*100)+'% · '+hz];
-    case 'harp': return ['HARP · '+PLAY_LEGEND.harp.faces[o.option%4], noteName(harpRoot(o))+' '+SCALES[state.scaleIdx].name+' · sweep the strings'];
+    case 'drums': return ['AIR DRUMS · '+PLAY_LEGEND.drums.faces[o.option%6], 'level '+Math.round(o.arc*100)+'% · '+hz];
+    case 'harp': return ['HARP · '+PLAY_LEGEND.harp.faces[o.option%6], noteName(harpRoot(o))+' '+SCALES[state.scaleIdx].name+' · sweep the strings'];
     case 'marbles': return ['MARBLES · '+PLAY_LEGEND.marbles.faces[o.option%4], balls.length+' rolling · flick from the ring'];
     case 'hum': return ['HUM · '+PLAY_LEGEND.hum.faces[o.option%4], o.humState==='wait' ? 'allow microphone…' : o.humState==='denied' ? 'mic blocked' : (o.humNote!=null ? noteName(o.humNote)+' · ' : 'sing… · ')+(humOct(o)>0?'+':'')+humOct(o)+' oct'];
     case 'conduct': return ['CONDUCTOR · '+PLAY_LEGEND.conduct.faces[o.option%2], (o.bpmT ? Math.round(o.bpmT)+' BPM felt · ' : 'beat time in the air · ')+hz];
     case 'air': return ['AIR KNOB · '+PLAY_LEGEND.air.faces[o.option%3], o.hop==='C' ? 'put it by a block' : 'raise a hand · '+hz];
-    case 'water': return ['WATERPHONE · '+PLAY_LEGEND.water.faces[o.option%4], 'water '+Math.round((o.angle/TAU)*100)+'% · '+(o.ana ? 'hold a rod to bow · tap to strike · move it to slosh' : 'filling…')];
+    case 'water': return ['WATERPHONE · '+PLAY_LEGEND.water.faces[o.option%6], 'water '+Math.round((o.angle/TAU)*100)+'% · '+(o.ana ? 'hold a rod to bow · tap to strike · move it to slosh' : 'filling…')];
     case 'song': { const [A,B]=songLoopRange(), whole=A===0&&B===songBars(), p=songPartAt(A); return ['SONG · '+songForm().n, (whole ? 'whole song' : 'loop '+(p&&p.n?p.n.toUpperCase():'part'))+' · '+songTimeStr(song.pos)+' / '+songTimeStr(songBars())+(song.playing?' ▶':'')+' · '+song.blobs.filter(b=>b.placed).length+' on the rim']; }
     case 'spheres': return ['PLANETS · '+PLAY_LEGEND.spheres.faces[o.option%2], 'a year every '+Math.round(spheresYearS(o))+' s · '+(o.option%2 ? 'flick a world, block an orbit' : 'touch a world to hear it')];
   }
@@ -1188,8 +1221,8 @@ class AnalogOut{
    bypassed; otherwise the voice arrives about three quarters of a grain late.      */
 class VoiceFx{
   constructor(sr){ this.sr=sr; this.N=1<<17; this.buf=new Float32Array(this.N); this.w=0; this.ph=0;
-    this.cfg={ratio:1,grain:0.08,rev:false,seqOn:false,env:false,atk:0.005,rel:0.2,shape:1,xface:0,depth:0};
-    this.ev=[]; this.gate=1; this.gOpen=false; this.gUntil=0; this.gSemis=0;
+    this.cfg={ratio:1,grain:0.08,rev:false,seqOn:false,env:false,atk:0.005,rel:0.2,shape:1,xface:0,depth:0,tune:0,freeze:false,stutter:false,step:0.125};
+    this.ev=[]; this.gate=1; this.gOpen=false; this.gUntil=0; this.gSemis=0; this.frz=0; this.frozen=false; this.stStep=-1;
     this.fol=0; this.pk=0; this.present=false; this.env=1; this.hold=0; this.bendT=1; this.bendD=0; this.lp=0; this.t=0;
     this.mb=new Float32Array(8192); this.mw=0; }   // a second, short delay line for vibrato and the scoop: clean FM, a millisecond late
   handle(m){
@@ -1202,7 +1235,7 @@ class VoiceFx{
     const atk=c.shape===2 ? Math.max(0.08,c.atk) : c.atk, rel=c.shape===2 ? Math.max(0.4,c.rel) : c.rel;
     const eA=1-Math.exp(-inv/Math.max(0.001,atk)), eR=1-Math.exp(-inv/Math.max(0.01,rel)), cT=1-Math.exp(-TAU*1800*inv);
     const T=Math.max(64, Math.min(this.N/8, c.grain*sr)), inc=1/T, D0=sr*0.001+(c.rev?1.8:0.8)*T;
-    const pitchOn = c.ratio!==1 || c.rev || c.seqOn, modOn = depth>0 && (face===0 || face===3), vibA=0.0011*sr, bendK=1-Math.exp(-inv/0.3);
+    const pitchOn = c.ratio!==1 || c.rev || c.seqOn || c.tune!==0 || c.freeze || c.stutter, modOn = depth>0 && (face===0 || face===3 || face===5), vibA=0.0011*sr, bendK=1-Math.exp(-inv/0.3);
     const t0 = time===undefined ? this.t : time;
     for(let i=0;i<n;i++){
       const ts=t0+i*inv, x=inp[i];
@@ -1210,7 +1243,7 @@ class VoiceFx{
       const ax=Math.abs(x); this.fol+=(ax>this.fol?cA:cR)*(ax-this.fol); this.pk=Math.max(this.pk*pkDecay,this.fol);
       const present=this.fol>Math.max(0.004,this.pk*0.25), onset=present&&!this.present; this.present=present;
       const lvl=Math.min(1,this.fol/(this.pk+1e-6));
-      if(onset){ this.bendT=0; if(c.env){ if(c.shape===0) this.hold=0.12; if(c.shape===3) this.env=0; } }
+      if(onset){ this.bendT=0; if(c.env){ if(c.shape===0||c.shape===4) this.hold=c.shape===4?0.05:0.12; if(c.shape===3) this.env=0; } }
       // the seq's gates
       if(c.seqOn){
         while(this.ev.length && this.ev[0].t<=ts){ const e=this.ev.shift(); this.gOpen=true; this.gUntil=e.t+e.dur; this.gSemis=e.semis||0; }
@@ -1220,28 +1253,34 @@ class VoiceFx{
       // the envelope puck: each word shaped
       if(c.env){
         let target=present?1:0;
-        if(c.shape===0){ if(this.hold>0){ this.hold-=inv; target=1; } else target=0; }
+        if(c.shape===0||c.shape===4){ if(this.hold>0){ this.hold-=inv; target=1; } else target=0; }
         this.env+=(target-this.env)*(target>this.env?eA:eR);
       }
       // pitch: the warp ratio and the seq's step through the granular shifter
       let y=x;
+      if(c.freeze){ if(!this.frozen){ this.frz=this.w; this.frozen=true; } }                                  // FREEZE: stop writing, loop the last grain
+      else { this.frozen=false; buf[this.w]=x; }                                                             // the past is always kept, so a freeze has something to hold
       if(pitchOn){
-        const r=Math.max(0.2,Math.min(2.6,c.ratio*Math.pow(2,this.gSemis/12))), slope=c.rev?(1+r):(1-r);
-        buf[this.w]=x; y=0;
+        const r=Math.max(0.2,Math.min(2.6,c.ratio*Math.pow(2,(this.gSemis+c.tune)/12))), slope=c.rev?(1+r):(1-r);
+        let base=this.w, still=false;
+        if(c.freeze){ base=this.frz; still=true; }
+        else if(c.stutter){ const st=Math.floor(ts/Math.max(0.02,c.step)); if(st!==this.stStep){ this.stStep=st; this.frz=this.w; } base=this.frz; still=true; }   // STUTTER: a fresh grain on every step
+        y=0;
         for(let h=0;h<2;h++){
           let p=this.ph+h*0.5; if(p>=1) p-=1;
           const win=0.5-0.5*Math.cos(TAU*p);
-          const rp=this.w-(D0+(p-0.5)*slope*T), ri=Math.floor(rp), fr=rp-ri;
+          const rp= still ? base-D0-(1-p)*r*T : base-(D0+(p-0.5)*slope*T), ri=Math.floor(rp), fr=rp-ri;
           const a=buf[ri&M], b=buf[(ri+1)&M];
           y+=win*(a+(b-a)*fr);
         }
-        this.w=(this.w+1)&M; this.ph+=inc; if(this.ph>=1) this.ph-=1;
+        this.ph+=inc; if(this.ph>=1) this.ph-=1;
       }
+      if(!c.freeze) this.w=(this.w+1)&M;
       // vibrato and the scoop: a short delay line whose length moves (its slope is the pitch bend)
       if(modOn){
         this.mb[this.mw]=y;
         let d=sr*0.0015;
-        if(face===0) d+=vibA*depth*lvl*Math.sin(TAU*5.5*ts);
+        if(face===0||face===5) d+=vibA*depth*lvl*(face===5?0.45:1)*Math.sin(TAU*(face===5?31:5.5)*ts);   // vibrato, or the GROWL face's audio-rate wobble
         else { if(this.bendT<1){ this.bendT=Math.min(1,this.bendT+inv/0.18); this.bendD+=1-Math.pow(2,-depth*4*(1-this.bendT)/12); } else if(!present) this.bendD-=this.bendD*bendK; d+=Math.min(4000,this.bendD); }
         const rp=this.mw-d, ri=Math.floor(rp), fr=rp-ri, a=this.mb[ri&8191], b=this.mb[(ri+1)&8191];
         y=a+(b-a)*fr; this.mw=(this.mw+1)&8191;
@@ -1314,6 +1353,7 @@ class Waterphone{
     if(this.ws>1.2||this.ws<-1.2){ this.ws=Math.max(-1.2,Math.min(1.2,this.ws)); this.wv*=-0.3; }
     if(this.face===1){ this.gust-=dt; if(this.gust<=0){ this.gust=1.2+this.rng.next()*3; this.wv+=(this.rng.next()-0.5)*5;
       if(this.rng.next()<0.6) this.handle({type:'strike', rod:Math.floor(this.rng.next()*10), vel:0.15+this.rng.next()*0.35}); } }
+    if(this.face===4){ this.gust-=dt; if(this.gust<=0){ this.gust=0.12+this.rng.next()*0.5; this.handle({type:'strike', rod:Math.floor(this.rng.next()*10), vel:0.06+this.rng.next()*0.2}); } }   // RAIN: drops on the rods
   }
   process(out, n, t0){
     const sr=this.sr, inv=1/sr, rng=this.rng, rods=this.rods, bowl=this.bowl;
@@ -1434,6 +1474,7 @@ function oscSetDrone(o,on){
 function freqParams(o){
   if(!audio) return [];
   if(o.ana){ const p=o.ana.param('fm'); return p?[p]:[]; }
+  if(o.type==='osc' && o.option===5) return o.preF ? [o.preF.frequency] : [];   // noise: the band-pass is its pitch
   return o.src ? [o.src.frequency, o.src2.frequency] : [];
 }
 function wireMaster(){
@@ -1443,9 +1484,9 @@ function wireMaster(){
   if(ANALOG() && analogState.mode){
     if(!a.outStage) a.outStage=makeAnalog('out');
     a.outStage.send({type:'cfg',cfg:MODE_CFG[state.soundMode].out});
-    a.master.connect(a.outStage.node); a.outStage.node.connect(a.comp);
+    a.master.connect(a.outStage.node); a.outStage.node.connect(a.warmIn);
     a.wowG.gain.value=0.0028;
-  } else { a.master.connect(a.comp); a.wowG.gain.value=0; }
+  } else { a.master.connect(a.warmIn); a.wowG.gain.value=0; }
 }
 async function setSoundMode(m){
   if(!SOUND_MODES.includes(m)) return;
@@ -1465,7 +1506,10 @@ function startAudio(){
   const comp = ctx.createDynamicsCompressor();
   comp.threshold.value=-16; comp.ratio.value=8;
   const master = ctx.createGain(); master.gain.value=0.55;
-  master.connect(comp);
+  const warmIn = ctx.createGain(), warmDry = ctx.createGain(), warmWet = ctx.createGain(), warmSh = ctx.createWaveShaper();   // the master body's WARM face
+  warmSh.curve = makeDistCurve(1.8); warmSh.oversample = '2x'; warmWet.gain.value = 0;
+  warmIn.connect(warmDry); warmDry.connect(comp); warmIn.connect(warmSh); warmSh.connect(warmWet); warmWet.connect(comp);
+  master.connect(warmIn);
   const syncDelay = ctx.createDelay(1.0); comp.connect(syncDelay); syncDelay.connect(ctx.destination);
   const masterAn = ctx.createAnalyser(); masterAn.fftSize = 1024;
   comp.connect(masterAn);
@@ -1477,7 +1521,7 @@ function startAudio(){
   comp.connect(mediaDest);
   const wow=ctx.createOscillator(); wow.frequency.value=0.45; const wowG=ctx.createGain(); wowG.gain.value=0;
   wow.connect(wowG); wow.start();
-  audio = { ctx, master, comp, syncDelay, tap, mediaDest, masterAn, masterWave:new Float32Array(1024), wowG,
+  audio = { ctx, master, comp, syncDelay, tap, mediaDest, masterAn, masterWave:new Float32Array(1024), wowG, warmIn, warmDry, warmWet,
             buffers:{}, captures:new Set(), outStage:null };
   tap.onaudioprocess = e => {
     if(!audio.captures.size) return;
@@ -1493,17 +1537,66 @@ function startAudio(){
   makeDrumKit();
   restoreImports();
 }
-function makeDistCurve(k){
-  const n = 1024, c = new Float32Array(n), norm = Math.tanh(k);
-  for(let i=0;i<n;i++){ const x = i/(n-1)*2-1; c[i] = Math.tanh(k*x)/norm; }
+/* the dirt body: four curves. kind 0 DRIVE (tanh), 1 WARM (asymmetric, gentle), 2 FUZZ (hard clip), 3 FOLD (a wavefolder) */
+function makeDistCurve(k, kind){
+  kind = kind|0;
+  const n = 1024, c = new Float32Array(n);
+  for(let i=0;i<n;i++){
+    const x = i/(n-1)*2-1;
+    if(kind===1) c[i] = Math.tanh(k*0.55*x + 0.12*x*x*(x>0?1:-1)) / Math.tanh(k*0.55+0.12);
+    else if(kind===2) c[i] = Math.max(-1, Math.min(1, k*0.6*x));
+    else if(kind===3) c[i] = Math.sin(x*(0.9+k*0.28));
+    else c[i] = Math.tanh(k*x)/Math.tanh(k);
+  }
   return c;
 }
-function makeImpulse(sec){
-  const sr = audio.ctx.sampleRate, N = Math.max(1, Math.floor(sr*sec));
+/* the oscillator body's PULSE face: a narrow pulse (12.5 % duty) as harmonics, for both engines */
+function pulseHarm(){
+  const H=24, re=[], im=[], d=0.125;
+  for(let h=1;h<=H;h++){ re.push(2*Math.sin(h*Math.PI*d)/(h*Math.PI)); im.push(0); }
+  return { re, im };
+}
+function pulseWave(){
+  if(!audio.pulseWave){ const h = pulseHarm(), real = new Float32Array(h.re.length+1), imag = new Float32Array(h.re.length+1);
+    for(let i=0;i<h.re.length;i++){ real[i+1] = h.re[i]; imag[i+1] = h.im[i]; }
+    audio.pulseWave = audio.ctx.createPeriodicWave(real, imag); }
+  return audio.pulseWave;
+}
+/* the NOISE face: two seconds of white noise, looped */
+function noiseBuffer(){
+  if(!audio.noiseBuf){ const sr = audio.ctx.sampleRate, b = audio.ctx.createBuffer(1, sr*2, sr), d = b.getChannelData(0);
+    for(let i=0;i<d.length;i++) d[i] = Math.random()*2-1; audio.noiseBuf = b; }
+  return audio.noiseBuf;
+}
+function anaWave(o){ return o.option===OSC_DRAWN || o.option===4 ? 4 : o.option; }
+function anaCustom(o){ return o.option===OSC_DRAWN && o.customWave ? drawnHarm(o) : o.option===4 ? pulseHarm() : null; }
+/* the filter body's VOWEL face: the ring morphs a, e, i, o, u; the slider is how narrow the formants are */
+function setFormants(o){
+  if(!audio || !o.fmt) return;
+  const t = audio.ctx.currentTime, p = Math.max(0, Math.min(3.999, (o.angle/TAU)*4)), i = Math.floor(p), f = p-i, A = VOWELS[i], B = VOWELS[i+1];
+  for(let k=0;k<3;k++){ o.fmt[k].frequency.setTargetAtTime(A[k+1]*(1-f) + B[k+1]*f, t, 0.03); o.fmt[k].Q.setTargetAtTime(4 + o.arc*14, t, 0.03); }
+}
+/* the reverb body: six rooms from one noise generator. kind: 0 ROOM (short, early reflections), 1 HALL (as before, a little
+   predelay), 2 PLATE (dense and bright), 3 SPRING (a flutter of repeats every 42 ms), 4 CATHEDRAL (twice as long, dark, late),
+   5 GATED (flat, then shut) */
+function makeImpulse(sec, kind){
+  kind = kind|0;
+  const sr = audio.ctx.sampleRate;
+  const pre = [0.004, 0.02, 0, 0.008, 0.06, 0.01][kind], len = Math.max(0.05, sec*[0.55, 1, 0.8, 0.7, 2.0, 0.45][kind]);
+  const p0 = Math.floor(pre*sr), M = Math.floor(len*sr), N = p0 + M + 8;
   const b = audio.ctx.createBuffer(2, N, sr);
+  const lpF = [6000, 5000, 20000, 2600, 2000, 7000][kind], aL = 1-Math.exp(-TAU*lpF/sr), aH = 1-Math.exp(-TAU*400/sr), P = Math.max(8, Math.floor(0.042*sr));
   for(let ch=0; ch<2; ch++){
-    const d = b.getChannelData(ch);
-    for(let i=0;i<N;i++) d[i] = (Math.random()*2-1) * Math.exp(-3*i/N);
+    const d = b.getChannelData(ch); let lp = 0, hp = 0;
+    if(kind===0) for(let k=0;k<7;k++){ const at = p0 + Math.floor((0.003+Math.random()*0.03)*sr); if(at<N) d[at] += (Math.random()<0.5?-1:1)*0.6; }   // early reflections
+    for(let i=0;i<M;i++){
+      const t = i/M; let x = Math.random()*2-1;
+      let env = kind===5 ? (t<0.78 ? 1 : Math.max(0, 1-(t-0.78)/0.06)) : Math.exp(-(kind===0 ? 4.2 : 3)*t);
+      if(kind===3) env *= (i%P) < P*0.14 ? 1 : 0.12;                      // the spring's flutter
+      lp += (x-lp)*aL; x = lp;
+      if(kind===2){ hp += (x-hp)*aH; x = x-hp; }                           // the plate: no low mud
+      d[p0+i] += x*env;
+    }
   }
   return b;
 }
@@ -1529,10 +1622,21 @@ function buildNodes(o){
     o.trem = ctx.createOscillator(); o.trem.frequency.value = 6.2; o.tremG = ctx.createGain(); o.tremG.gain.value = 0;
     o.trem.connect(o.tremG); o.trem.start();
   }
-  if(o.type==='osc' && ANALOG() && analogState.mode){
+  if((o.type==='osc' || o.type==='mic') && o.pan){   // express PAN: a slow wobble left and right, silent until pressed
+    o.panLfo = ctx.createOscillator(); o.panLfo.frequency.value = 0.55; o.panG = ctx.createGain(); o.panG.gain.value = 0;
+    o.panLfo.connect(o.panG); o.panG.connect(o.pan.pan); o.panLfo.start();
+  }
+  if(o.type==='osc' && o.option===5){   // NOISE: white noise through a resonant band-pass that follows the ring, so it can be tuned
+    o.src = ctx.createBufferSource(); o.src.buffer = noiseBuffer(); o.src.loop = true;
+    o.preF = ctx.createBiquadFilter(); o.preF.type = 'bandpass'; o.preF.frequency.value = oscFreq(o); o.preF.Q.value = 6;
+    o.amp = ctx.createGain(); o.amp.gain.value = o.arc*1.2;                 // a narrow band of noise is quiet: make it up
+    o.gate = ctx.createGain(); o.gate.gain.value = o.gated?0:1;
+    o.src.connect(o.preF); o.preF.connect(o.amp); o.amp.connect(o.gate); o.gate.connect(o.out); o.src.start();
+    if(o.bendC) o.bendC.connect(o.preF.detune); o.vibG.connect(o.preF.detune); o.tremG.connect(o.amp.gain);
+  } else if(o.type==='osc' && ANALOG() && analogState.mode){
     o.ana = makeAnalog('osc');
     o.ana.send({type:'cfg', cfg:MODE_CFG[state.soundMode].osc});
-    o.ana.send({type:'wave', wave:o.option, custom:(o.option===4&&o.customWave)?drawnHarm(o):null});
+    o.ana.send({type:'wave', wave:anaWave(o), custom:anaCustom(o)});
     o.ana.send({type:'dronefreq', f:oscFreq(o)});
     o.ana.send({type:'drone', on:!o.gated});
     o.amp = ctx.createGain(); o.amp.gain.value = o.arc*0.32;
@@ -1542,10 +1646,9 @@ function buildNodes(o){
   } else if(o.type==='osc'){
     // two lightly detuned voices through a gentle lowpass = warmer VA tone
     const f = oscFreq(o);
-    const wtype = OSC_WAVES[o.option] || 'sine';
-    o.src = ctx.createOscillator(); o.src.type = wtype;
+    o.src = ctx.createOscillator(); setOscWave(o.src, o);
     o.src.frequency.value = f; o.src.detune.value = -4;
-    o.src2 = ctx.createOscillator(); o.src2.type = wtype;
+    o.src2 = ctx.createOscillator(); setOscWave(o.src2, o);
     o.src2.frequency.value = f; o.src2.detune.value = 9;
     o.preF = ctx.createBiquadFilter(); o.preF.frequency.value = 7500; o.preF.Q.value = 0.4;
     o.amp = ctx.createGain(); o.amp.gain.value = o.arc*0.22;
@@ -1555,7 +1658,7 @@ function buildNodes(o){
     o.src.start(); o.src2.start();
     for(const s of [o.src,o.src2]){ if(o.bendC) o.bendC.connect(s.detune); o.vibG.connect(s.detune); }
     o.tremG.connect(o.amp.gain);
-    if(o.option===4 && o.customWave) applyDrawnWave(o);
+    if(o.option===OSC_DRAWN && o.customWave) applyDrawnWave(o);
   } else if(o.type==='sampler' || o.type==='rec'){
     o.amp = ctx.createGain(); o.amp.gain.value = o.arc;
     o.amp.connect(o.out);
@@ -1570,6 +1673,7 @@ function buildNodes(o){
           o.micStream = stream;
           o.micSrc = ctx.createMediaStreamSource(stream);
           o.micSrc.connect(o.voice ? o.voice.node : o.amp);
+          o.humAn = ctx.createAnalyser(); o.humAn.fftSize = 2048; o.humBuf = new Float32Array(2048); o.micSrc.connect(o.humAn);   // the TUNED face listens for the pitch
           o.micState = 'live';
         })
         .catch(()=>{ o.micState = 'denied'; });
@@ -1577,7 +1681,7 @@ function buildNodes(o){
   } else if(o.type==='dist'){
     o.inG = ctx.createGain();
     o.shaper = ctx.createWaveShaper();
-    o.shaper.curve = makeDistCurve(distDrive(o));
+    o.shaper.curve = makeDistCurve(distDrive(o), o.option%4);
     o.shaper.oversample = '2x';
     o.dry = ctx.createGain(); o.dry.gain.value = 1-o.arc*0.7;
     o.wet = ctx.createGain(); o.wet.gain.value = o.arc*0.8;
@@ -1586,29 +1690,33 @@ function buildNodes(o){
   } else if(o.type==='reverb'){
     o.inG = ctx.createGain();
     o.conv = ctx.createConvolver();
-    o.conv.buffer = makeImpulse(reverbDecay(o));
+    o.conv.buffer = makeImpulse(reverbDecay(o), o.option%6);
     o.dry = ctx.createGain(); o.dry.gain.value = 1-o.arc*0.5;
     o.wet = ctx.createGain(); o.wet.gain.value = o.arc*0.9;
     o.inG.connect(o.dry); o.dry.connect(o.out);
     o.inG.connect(o.conv); o.conv.connect(o.wet); o.wet.connect(o.out);
-  } else if(o.type==='chorus'){
-    o.inG = ctx.createGain();
-    o.dry = ctx.createGain(); o.dry.gain.value = 1-o.arc*0.5;
-    o.wet = ctx.createGain(); o.wet.gain.value = o.arc*0.7;
-    o.chDelay = ctx.createDelay(0.05); o.chDelay.delayTime.value = 0.022;
-    o.chLfo = ctx.createOscillator(); o.chLfo.frequency.value = chorusRate(o);
-    o.chDepth = ctx.createGain(); o.chDepth.gain.value = 0.006;
+  } else if(o.type==='chorus'){   // the MOD body's CHORUS, FLANGER, PHASER and VIBRATO faces share one set of nodes
+    o.inG = ctx.createGain(); o.dry = ctx.createGain(); o.wet = ctx.createGain();
+    o.chDelay = ctx.createDelay(0.05); o.chLfo = ctx.createOscillator(); o.chDepth = ctx.createGain();
     o.chLfo.connect(o.chDepth); o.chDepth.connect(o.chDelay.delayTime); o.chLfo.start();
+    o.fbG = ctx.createGain(); o.fbG.gain.value = 0; o.chDelay.connect(o.fbG); o.fbG.connect(o.chDelay);      // the flanger's feedback
+    o.dlG = ctx.createGain(); o.chDelay.connect(o.dlG); o.dlG.connect(o.wet);
+    o.apDepth = ctx.createGain(); o.chLfo.connect(o.apDepth);                                                 // the phaser: four all-passes swept by the same LFO
+    o.ap = [0,1,2,3].map(()=>{ const a = ctx.createBiquadFilter(); a.type='allpass'; a.Q.value = 0.6; a.frequency.value = 900; o.apDepth.connect(a.frequency); return a; });
+    o.inG.connect(o.ap[0]); for(let i=1;i<4;i++) o.ap[i-1].connect(o.ap[i]);
+    o.apG = ctx.createGain(); o.ap[3].connect(o.apG); o.apG.connect(o.wet);
     o.inG.connect(o.dry); o.dry.connect(o.out);
-    o.inG.connect(o.chDelay); o.chDelay.connect(o.wet); o.wet.connect(o.out);
-  } else if(o.type==='crush'){
+    o.inG.connect(o.chDelay); o.wet.connect(o.out);
+    chorusFace(o);
+  } else if(o.type==='crush'){   // CRUSH, and LO-FI (the same bits, then dark and a little driven)
     o.inG = ctx.createGain();
     o.shaper = ctx.createWaveShaper();
     o.shaper.curve = makeCrushCurve(crushBits(o));
+    o.lp = ctx.createBiquadFilter(); o.lp.type = 'lowpass'; o.lp.Q.value = 0.9; o.lp.frequency.value = o.option%2 ? 2600 : 20000;
     o.dry = ctx.createGain(); o.dry.gain.value = 1-o.arc;
     o.wet = ctx.createGain(); o.wet.gain.value = o.arc;
     o.inG.connect(o.dry); o.dry.connect(o.out);
-    o.inG.connect(o.shaper); o.shaper.connect(o.wet); o.wet.connect(o.out);
+    o.inG.connect(o.shaper); o.shaper.connect(o.lp); o.lp.connect(o.wet); o.wet.connect(o.out);
   } else if(o.type==='tempo' || ADV.has(o.type) || o.type==='conduct' || o.type==='air' || o.type==='song'){
     /* control pucks: no audio path of their own */
     if(o.type==='master') applyMaster(o);
@@ -1645,22 +1753,27 @@ function buildNodes(o){
         }).catch(()=>{ o.humState = 'denied'; });
     } else o.humState = 'denied';
   } else if(o.type==='filter'){
-    if(ANALOG() && analogState.mode){
+    o.inG = ctx.createGain();
+    const mode = o.option%FILTER_MODES.length;
+    if(mode===5){   // VOWEL: three band-passes on the formants of a, e, i, o, u; the ring morphs through the vowels
+      o.fmt = [0,1,2].map(()=>{ const b = ctx.createBiquadFilter(); b.type = 'bandpass'; o.inG.connect(b); b.connect(o.out); return b; });
+      setFormants(o);
+    } else if(ANALOG() && analogState.mode && mode<3){
       o.ana = makeAnalog('filter');
-      o.ana.send({type:'cfg', cfg:Object.assign({}, MODE_CFG[state.soundMode].filt, {type:o.option, cut:filtCut(o), res:o.arc})});
-      o.ana.node.connect(o.out);
+      o.ana.send({type:'cfg', cfg:Object.assign({}, MODE_CFG[state.soundMode].filt, {type:mode, cut:filtCut(o), res:o.arc})});
+      o.inG.connect(o.ana.node); o.ana.node.connect(o.out);
     } else {
       o.biq = ctx.createBiquadFilter();
-      o.biq.type = FILTER_MODES[o.option];
+      o.biq.type = FILTER_MODES[mode]; if(mode===4) o.biq.gain.value = 12;
       o.biq.frequency.value = filtCut(o); o.biq.Q.value = filtQ(o);
-      o.biq.connect(o.out);
+      o.inG.connect(o.biq); o.biq.connect(o.out);
     }
   } else if(o.type==='delay'){
     o.inG = ctx.createGain();
     o.dl = ctx.createDelay(4); o.dl.delayTime.value = delayTime(o);
     o.fb = ctx.createGain(); o.fb.gain.value = delayFb(o);
-    o.dry = ctx.createGain(); o.dry.gain.value = 0.9;
-    o.wet = ctx.createGain(); o.wet.gain.value = 0.85;
+    o.dry = ctx.createGain(); o.dry.gain.value = 1-o.arc*0.5;
+    o.wet = ctx.createGain(); o.wet.gain.value = o.arc*0.9;
     o.inG.connect(o.dry); o.dry.connect(o.out);
     o.inG.connect(o.dl); o.dl.connect(o.fb);
     if(ANALOG()){   // bucket-brigade / tape feel: the repeats saturate and darken
@@ -1669,16 +1782,18 @@ function buildNodes(o){
       o.fb.connect(o.fbSat); o.fbSat.connect(o.fbLP); o.fbLP.connect(o.dl);
     } else o.fb.connect(o.dl);
     o.dl.connect(o.wet); o.wet.connect(o.out);
-  } else if(o.type==='mod'){
+  } else if(o.type==='mod'){   // RING, and TREMOLO (the same carrier, slow, lifted so it never inverts)
     o.inG = ctx.createGain();
     o.dryG = ctx.createGain();
     o.ring = ctx.createGain(); o.ring.gain.value = 0;
     o.carrier = ctx.createOscillator(); o.carrier.frequency.value = modFreq(o);
-    o.carrier.connect(o.ring.gain); o.carrier.start();
+    o.carG = ctx.createGain(); o.carrier.connect(o.carG); o.carG.connect(o.ring.gain); o.carrier.start();
+    o.dc = ctx.createConstantSource ? ctx.createConstantSource() : null; if(o.dc){ o.dc.offset.value = 0; o.dc.connect(o.ring.gain); o.dc.start(); }
     o.inG.connect(o.dryG); o.dryG.connect(o.out);
     o.inG.connect(o.ring); o.ring.connect(o.out);
     o.dryG.gain.value = 1-o.arc;
     o.src = o.carrier;   // so destroy stops it
+    modFace(o);
   } else if(o.type==='lfo'){
     o.src = ctx.createOscillator();
     o.src.type = OSC_WAVES[o.option%4];
@@ -1690,7 +1805,7 @@ function buildNodes(o){
 }
 function inputOf(t){
   if(t==='C') return audio.master;
-  if(t.type==='filter') return t.biq || (t.ana && t.ana.node);
+  if(t.type==='filter') return t.inG;
   if(['delay','mod','dist','reverb','chorus','crush'].includes(t.type)) return t.inG;
   return null;
 }
@@ -1698,6 +1813,7 @@ function ctlParamOf(t){
   if(!t) return null;
   if(t.type==='osc'){ const ps=freqParams(t); return ps.length ? { params:ps, scale:oscFreq(t)*0.5 } : null; }
   if(t.type==='filter'){
+    if(t.fmt) return { params:t.fmt.map(b=>b.frequency), scale:400 };
     if(t.biq) return { params:[t.biq.frequency], scale:filtCut(t)*0.9 };
     const p=t.ana && t.ana.param('cutoff'); return p ? { params:[p], scale:filtCut(t)*0.9 } : null;
   }
@@ -1748,9 +1864,13 @@ function updateSpace(){
     let p = 0;
     if(sp){
       const w = spaceWidth(sp), nx = (o.x-CX)/TABLE_R, ny = (o.y-CY)/TABLE_R;
-      if(sp.option%3===0) p = w*Math.max(-1,Math.min(1,nx*1.3));
-      else if(sp.option%3===1){ const ph = Math.atan2(ny,nx) + t*(0.05+sp.arc*0.6)*TAU; p = w*Math.sin(ph)*Math.min(1,Math.hypot(nx,ny)*1.4); }
-      else p = w*Math.max(-1,Math.min(1,nx*1.3))*Math.min(1,Math.hypot(nx,ny)*1.6);
+      const f = sp.option%6;
+      if(f===0) p = w*Math.max(-1,Math.min(1,nx*1.3));
+      else if(f===1){ const ph = Math.atan2(ny,nx) + t*(0.05+sp.arc*0.6)*TAU; p = w*Math.sin(ph)*Math.min(1,Math.hypot(nx,ny)*1.4); }
+      else if(f===2) p = w*Math.max(-1,Math.min(1,nx*1.3))*Math.min(1,Math.hypot(nx,ny)*1.6);
+      else if(f===3) p = -w*Math.max(-1,Math.min(1,nx*1.3));                                          // MIRROR: left is right
+      else if(f===4) p = w*Math.sin(t*(0.05+sp.arc*0.6)*TAU + o.id*1.7);                                // SWEEP: everything swings, each at its own phase
+      else p = 0;                                                                                      // MONO
     }
     o.pan.pan.setTargetAtTime(p, t, 0.05);
   }
@@ -1758,15 +1878,17 @@ function updateSpace(){
 /* the master puck: output level and glue */
 function applyMaster(o){
   if(!audio) return;
-  const t = audio.ctx.currentTime, c = audio.comp;
-  if(!o){ audio.master.gain.setTargetAtTime(0.55, t, 0.05); c.threshold.setTargetAtTime(-16, t, 0.05); c.ratio.setTargetAtTime(8, t, 0.05);
-          c.attack.setTargetAtTime(0.003, t, 0.05); c.release.setTargetAtTime(0.25, t, 0.05); return; }
-  const mode = o.option%4, glue = o.arc;
-  audio.master.gain.setTargetAtTime(0.05 + masterVol(o)*0.9, t, 0.05);
-  c.threshold.setTargetAtTime(-6 - glue*30, t, 0.05);
-  c.ratio.setTargetAtTime(mode===3 ? 20 : 2 + glue*10, t, 0.05);
-  c.attack.setTargetAtTime([0.01, 0.02, 0.001, 0.0005][mode], t, 0.05);
-  c.release.setTargetAtTime([0.3, 0.6, 0.12, 0.08][mode], t, 0.05);
+  const t = audio.ctx.currentTime, c = audio.comp, k = 0.05;
+  const warm = v => { if(audio.warmWet){ audio.warmWet.gain.setTargetAtTime(v, t, k); audio.warmDry.gain.setTargetAtTime(1-v, t, k); } };
+  if(!o){ audio.master.gain.setTargetAtTime(0.55, t, k); c.threshold.setTargetAtTime(-16, t, k); c.ratio.setTargetAtTime(8, t, k);
+          c.attack.setTargetAtTime(0.003, t, k); c.release.setTargetAtTime(0.25, t, k); warm(0); return; }
+  const mode = o.option%6, glue = masterGlue(o);   // CLEAN, GLUE, PUMP, LIMIT, WARM, LOUD: the slider is the volume, the ring the glue
+  audio.master.gain.setTargetAtTime((0.05 + masterVol(o)*0.9)*(mode===5 ? 1.5 : 1), t, k);
+  c.threshold.setTargetAtTime(mode===5 ? -24 - glue*12 : -6 - glue*30, t, k);
+  c.ratio.setTargetAtTime(mode===3 || mode===5 ? 20 : 2 + glue*10, t, k);
+  c.attack.setTargetAtTime([0.01, 0.02, 0.001, 0.0005, 0.012, 0.002][mode], t, k);
+  c.release.setTargetAtTime([0.3, 0.6, 0.12, 0.08, 0.35, 0.15][mode], t, k);
+  warm(mode===4 ? 0.85 : mode===5 ? 0.4 : 0);
 }
 function rewireCtl(o){
   if(!audio || o.type!=='lfo') return;
@@ -1787,6 +1909,7 @@ function applyParams(o){
   if(o.type==='osc'){
     o.midiNote = null;                 // a manual change reclaims the pitch from MIDI
     if(o.ana){ o.ana.send({type:'dronefreq', f:oscFreq(o)}); o.amp.gain.setTargetAtTime(o.arc*0.32, t, 0.02); }
+    else if(o.option===5){ o.preF.frequency.setTargetAtTime(oscFreq(o), t, 0.02); o.amp.gain.setTargetAtTime(o.arc*1.2, t, 0.02); }
     else {
       if(!o.gated){
         o.src.frequency.setTargetAtTime(oscFreq(o), t, 0.02);
@@ -1801,26 +1924,28 @@ function applyParams(o){
   } else if(o.type==='water'){
     o.amp.gain.setTargetAtTime(o.arc, t, 0.02); waterCfg(o);
   } else if(o.type==='dist'){
-    o.shaper.curve = makeDistCurve(distDrive(o));
+    o.shaper.curve = makeDistCurve(distDrive(o), o.option%4);
     o.dry.gain.setTargetAtTime(1-o.arc*0.7, t, 0.02);
     o.wet.gain.setTargetAtTime(o.arc*0.8, t, 0.02);
   } else if(o.type==='reverb'){
     o.dry.gain.setTargetAtTime(1-o.arc*0.5, t, 0.02);
     o.wet.gain.setTargetAtTime(o.arc*0.9, t, 0.02);
     clearTimeout(o.rvT);
-    o.rvT = setTimeout(()=>{ if(o.conv && audio) o.conv.buffer = makeImpulse(reverbDecay(o)); }, 300);
+    o.rvT = setTimeout(()=>{ if(o.conv && audio) o.conv.buffer = makeImpulse(reverbDecay(o), o.option%6); }, 300);
   } else if(o.type==='chorus'){
-    o.chLfo.frequency.setTargetAtTime(chorusRate(o), t, 0.05);
-    o.dry.gain.setTargetAtTime(1-o.arc*0.5, t, 0.02);
-    o.wet.gain.setTargetAtTime(o.arc*0.7, t, 0.02);
+    chorusFace(o);
   } else if(o.type==='crush'){
     o.shaper.curve = makeCrushCurve(crushBits(o));
+    o.lp.frequency.setTargetAtTime(o.option%2 ? 2600 : 20000, t, 0.05);
     o.dry.gain.setTargetAtTime(1-o.arc, t, 0.02);
     o.wet.gain.setTargetAtTime(o.arc, t, 0.02);
-  } else if(o.type==='tempo'){
-    setBpm(tempoBpm(o)); syncChips();
+  } else if(o.type==='tempo'){   // the clock body: TEMPO, SWING (a continuous amount, baked into the loops) or CLICK (read by the scheduler)
+    const f = o.option%3;
+    if(f===0){ setBpm(tempoBpm(o)); syncChips(); }
+    else if(f===1){ const v = tempoSwing(o); if(v!==state.swingV){ state.swingV = v; syncChips(); loopsSoon(); } }
   } else if(o.type==='filter'){
-    if(o.ana) o.ana.send({type:'cfg', cfg:{cut:filtCut(o), res:o.arc, type:o.option}});
+    if(o.fmt) setFormants(o);
+    else if(o.ana) o.ana.send({type:'cfg', cfg:{cut:filtCut(o), res:o.arc, type:o.option%FILTER_MODES.length}});
     else {
       o.biq.frequency.setTargetAtTime(filtCut(o), t, 0.02);
       o.biq.Q.setTargetAtTime(filtQ(o), t, 0.02);
@@ -1828,20 +1953,23 @@ function applyParams(o){
   } else if(o.type==='delay'){
     o.dl.delayTime.setTargetAtTime(delayTime(o), t, 0.06);
     o.fb.gain.setTargetAtTime(delayFb(o), t, 0.02);
+    o.dry.gain.setTargetAtTime(1-o.arc*0.5, t, 0.02);
+    o.wet.gain.setTargetAtTime(o.arc*0.9, t, 0.02);
   } else if(o.type==='mod'){
     o.carrier.frequency.setTargetAtTime(modFreq(o), t, 0.02);
     o.dryG.gain.setTargetAtTime(1-o.arc, t, 0.02);
+    modFace(o);
   } else if(o.type==='lfo'){
     o.src.frequency.setTargetAtTime(lfoRate(o), t, 0.02);
-  } else if(o.type==='key'){
-    const k = seg(o,12), s = Math.min(SCALES.length-1, Math.floor(o.arc*SCALES.length));
-    if(k!==state.key || s!==state.scaleIdx){
-      state.key = k; state.scaleIdx = s; syncChips(); tonalSoon();
+  } else if(o.type==='key'){   // the key body: the ring is the key, the face the scale, the slider the octave
+    const k = seg(o,12), sc = o.option % SCALES.length, oct = keyOct();
+    if(k!==state.key || sc!==state.scaleIdx || oct!==o.lastOct){
+      state.key = k; state.scaleIdx = sc; o.lastOct = oct; syncChips(); tonalSoon();
       for(const q of objects) if(q.type==='osc' && q!==o) applyParams(q);
     }
-  } else if(o.type==='tune'){
+  } else if(o.type==='tune'){   // the tuning body retunes oscillators now and the loops in a moment
     for(const q of objects) if(q.type==='osc') applyParams(q);
-    if(o.option===1) tonalSoon();
+    tonalSoon();
   } else if(o.type==='euclid'){
     applyEuclid(o);
   } else if(o.type==='send'){
@@ -1855,65 +1983,106 @@ function applyParams(o){
   }
   refreshCtlScales();
 }
-let tonalTimer = null;
+let tonalTimer = null, loopsTimer = null;
 function tonalSoon(){ clearTimeout(tonalTimer); tonalTimer = setTimeout(buildTonalBuffers, 250); }
+function loopsSoon(){ clearTimeout(loopsTimer); loopsTimer = setTimeout(()=>{ if(audio) buildLoopBuffers(); }, 300); }   // the swing is baked into the loops
+/* the MOD body: which of its faces the chorus nodes are being */
+function chorusFace(o){
+  if(!audio || !o.chDelay) return;
+  const t = audio.ctx.currentTime, f = o.option%4, k = 0.05, set = (p, v) => p.setTargetAtTime(v, t, k);
+  set(o.chDelay.delayTime, [0.022, 0.003, 0.02, 0.006][f]);
+  set(o.chDepth.gain, [0.006, 0.0022, 0, 0.0025][f]);
+  set(o.fbG.gain, f===1 ? 0.55 : 0);
+  set(o.dlG.gain, f===2 ? 0 : 1); set(o.apG.gain, f===2 ? 1 : 0); set(o.apDepth.gain, f===2 ? 650 : 0);
+  set(o.chLfo.frequency, chorusRate(o)*(f===2 ? 0.4 : 1));
+  set(o.dry.gain, f===3 ? 1-o.arc : 1-o.arc*0.5); set(o.wet.gain, f===3 ? o.arc : o.arc*0.7);
+}
+function modFace(o){
+  if(!audio || !o.carG) return;
+  const t = audio.ctx.currentTime, trem = o.option%2===1;
+  o.carG.gain.setTargetAtTime(trem ? 0.5 : 1, t, 0.05);
+  if(o.dc) o.dc.offset.setTargetAtTime(trem ? 0.5 : 0, t, 0.05);
+}
+/* a face that needs different nodes (noise, a vowel filter, the analogue engine or not): build the object again in place */
+function rebuildNodes(o){
+  if(!audio) return;
+  teardownNodes(o); buildNodes(o);
+  if(FAMILY[o.type]!=='ctl') rewireAudio(o);
+  for(const q of objects){
+    if(q.hop===o.id){ if(q.type==='lfo') rewireCtl(q); else if(FAMILY[q.type]!=='ctl') rewireAudio(q); }
+    if(q.type==='osc' && q.fmTo===o.id) applyFm(q);
+  }
+  if(o.type==='osc') applyFm(o);
+  updateSends(); updateSpace(); applyParams(o);
+}
+function oscKind(opt){ return opt===5 ? 'noise' : 'tone'; }
+function filterKind(opt){ opt = opt%FILTER_MODES.length; return opt===5 ? 'formant' : (ANALOG() && analogState.mode && opt<3) ? 'ana' : 'biq'; }
+function nextOption(o){
+  if(o.type==='osc') return o.option>=OSC_WAVES.length-1 ? 0 : o.option+1;   // leaves a drawn wave too
+  return (o.option+1) % nOptions(o.type);
+}
+/* a tap on the screen: the next face. The record bodies arm on a double tap (a placed physical block arms itself) */
 function cycleOption(o){
+  if(o.type==='rec' || o.type==='stems'){
+    const now = performance.now();
+    if(o.tapAt && now-o.tapAt < 350){ clearTimeout(o.tapTimer); o.tapAt = 0; if(o.type==='rec') armRec(o); else armStems(o); return; }
+    o.tapAt = now; clearTimeout(o.tapTimer);
+    o.tapTimer = setTimeout(()=>{ o.tapAt = 0; if(objects.includes(o)) setOption(o, nextOption(o)); }, 350);
+    return;
+  }
+  setOption(o, nextOption(o));
+}
+/* a face: the physical body turned over, or a tap on the screen */
+function setOption(o, i){
+  const was = o.option; o.option = i;
   if(o.type==='osc'){
-    o.option = o.option>=3 ? 0 : o.option+1;   // leaves a drawn wave (option 4) too
-    if(o.ana) o.ana.send({type:'wave', wave:o.option, custom:null});
-    if(o.src) o.src.type = OSC_WAVES[o.option];
-    if(o.src2) o.src2.type = OSC_WAVES[o.option];
+    if(audio && oscKind(was)!==oscKind(i)) rebuildNodes(o);
+    else {
+      if(o.ana) o.ana.send({type:'wave', wave:anaWave(o), custom:anaCustom(o)});
+      if(o.src && o.option!==5) setOscWave(o.src, o);
+      if(o.src2) setOscWave(o.src2, o);
+    }
   } else if(o.type==='lfo'){
-    o.option = (o.option+1)%8;                 // 4 shapes free-running, 4 tempo-synced
     if(o.src) o.src.type = OSC_WAVES[o.option%4];
     applyParams(o);
-  } else if(o.type==='rec'){
-    armRec(o); return;
   } else if(o.type==='filter'){
-    o.option = (o.option+1)%FILTER_MODES.length;
-    if(o.biq) o.biq.type = FILTER_MODES[o.option];
-    if(o.ana) o.ana.send({type:'cfg', cfg:{type:o.option}});
-  } else if(o.type==='sampler'){
-    o.angle = (o.angle + TAU/LOOPS.length) % TAU; applyParams(o);
-  } else if(o.type==='delay'){
-    o.angle = (o.angle + TAU/DIVS.length) % TAU; applyParams(o);
+    if(audio && filterKind(was)!==filterKind(i)) rebuildNodes(o);
+    else {
+      if(o.biq){ o.biq.type = FILTER_MODES[o.option%FILTER_MODES.length]; o.biq.gain.value = o.option%FILTER_MODES.length===4 ? 12 : 0; }
+      if(o.ana) o.ana.send({type:'cfg', cfg:{type:o.option%FILTER_MODES.length}});
+      applyParams(o);
+    }
   } else if(o.type==='seq'){
-    seqSelect(o, (o.option+1)%SEQ_PATTERNS.length);
-  } else if(o.type==='stems'){
-    armStems(o); return;
+    seqSelect(o, i);
   } else if(o.type==='scene'){
-    o.option = (o.option+1)%4;
-    if(!o.slots[o.option]) sceneCapture(o);            // an empty face fills itself with what is playing now
+    if(!o.slots[o.option%SCENE_SLOTS]) sceneCapture(o);            // an empty face fills itself with what is playing now
     sceneMorph(o);
-  } else if(o.type==='key'){
-    o.option = (o.option+1)%4;
-    for(const q of objects) if(q.type==='osc') applyParams(q);
-  } else if(o.type==='tune'){
-    o.option = (o.option+1)%2; tonalSoon();
   } else if(o.type==='send'){
-    o.option = (o.option+1)%2; updateSends();
+    updateSends();
   } else if(o.type==='space'){
-    o.option = (o.option+1)%3; updateSpace();
+    updateSpace();
   } else if(o.type==='master'){
-    o.option = (o.option+1)%4; applyMaster(o);
+    applyMaster(o);
   } else if(o.type==='euclid'){
-    o.option = (o.option+1)%4; applyEuclid(o);
+    applyEuclid(o);
   } else if(o.type==='motion'){
-    o.option = (o.option+1)%4; motionClear(o);
-  } else if(ADV.has(o.type)){
-    o.option = (o.option+1)%ADV_LEGEND[o.type].faces.length;
-    if(o.type==='warp' || o.type==='env' || o.type==='xpress') applyParams(o);
+    motionClear(o);
+  } else if(o.type==='mic'){
+    micFxSync(o);
   } else if(o.type==='song'){
-    o.option = (o.option+1)%SONG_FORMS.length; songStop();   // a new shape for the song: the blobs keep their bars
+    songStop();   // a new shape for the song: the blobs keep their bars
+  } else if(o.type==='reverb'){
+    applyParams(o); clearTimeout(o.rvT); if(o.conv && audio) o.conv.buffer = makeImpulse(reverbDecay(o), o.option%6);   // a new room at once
   } else if(PLAY.has(o.type)){
-    o.option = (o.option+1)%PLAY_LEGEND[o.type].faces.length;
     if(o.type==='hum') humFaces(o);
     if(o.type==='water') waterCfg(o);
     if(o.type==='spheres') spheresSetGod(o.option%2===1);
+  } else {
+    applyParams(o);   // the rest read their face in applyParams: loops, delay, rec, reverb, dirt, crush, mod, the clock, key, tuning, warp, envelope, express…
   }
   saveSoon();
 }
-/* a sequencer keeps four patterns (A–D) in a bank; the face picks one */
+/* a sequencer keeps six patterns (A–F) in a bank; the face picks one */
 function seqSelect(o, i){
   if(!o.bank) o.bank = SEQ_PATTERNS.map(p => p.map(s => s ? {on:true,deg:s[0]} : {on:false,deg:0}));
   o.option = i % o.bank.length; o.steps = o.bank[o.option];
@@ -1941,10 +2110,11 @@ function applyDrawnWave(o){
   }
   const wave = audio.ctx.createPeriodicWave(real, imag);
   o._periodic = wave;                       // cached so polyphonic voices share the tone
-  o.src.setPeriodicWave(wave); o.src2.setPeriodicWave(wave);
+  if(o.src.setPeriodicWave) o.src.setPeriodicWave(wave); if(o.src2) o.src2.setPeriodicWave(wave);
 }
 function setOscWave(node, o){
-  if(o.option===4 && o._periodic) node.setPeriodicWave(o._periodic);
+  if(o.option===OSC_DRAWN && o._periodic) node.setPeriodicWave(o._periodic);
+  else if(o.option===4) node.setPeriodicWave(pulseWave());
   else node.type = OSC_WAVES[o.option] || 'sine';
 }
 /* ---- polyphonic voice engine: one oscillator can now sound several notes ---- */
@@ -1970,7 +2140,13 @@ function startVoice(o, midiN, t, vel, len){
   }
   const g = audio.ctx.createGain(); g.connect(o.out);
   const oscs = []; ++voiceSeq;
-  for(const det of [-4, 9]){
+  if(o.option===5){   // NOISE: each note is a burst of noise through its own band-pass at the note
+    const os = audio.ctx.createBufferSource(); os.buffer = noiseBuffer(); os.loop = true;
+    const bp = audio.ctx.createBiquadFilter(); bp.type = 'bandpass'; bp.frequency.value = f; bp.Q.value = 8;
+    const mk = audio.ctx.createGain(); mk.gain.value = 3;                      // a narrow band of noise is quiet: make it up
+    if(o.vibG) o.vibG.connect(bp.detune);
+    os.connect(bp); bp.connect(mk); mk.connect(g); os.start(t); oscs.push(os);
+  } else for(const det of [-4, 9]){
     const os = audio.ctx.createOscillator();
     setOscWave(os, o);
     os.frequency.value = f; os.detune.value = det;
@@ -2009,7 +2185,7 @@ function kickFilterEnvs(t, vel, len){
   for(const e of objects){
     if(e.type!=='env' || e.hop==='C') continue;
     const f = objects.find(x=>x.id===e.hop); if(!f || f.type!=='filter') continue;
-    const sh = ENV_SHAPES[e.option%4], a = envAttack(e), r = envRelease(e);
+    const sh = ENV_SHAPES[e.option%ENV_SHAPES.length], a = envAttack(e), r = envRelease(e);
     const cut = filtCut(f), mul = 1 + (1.5 + 4*Math.max(0,Math.min(1,vel==null?0.8:vel)));
     const hold = (len==null ? 0.4 : len);
     const top = Math.min(18000, cut*mul), sus = cut + (top-cut)*sh.sus;
@@ -2037,9 +2213,11 @@ function setPressure(o, p, src){
   const t = audio.ctx.currentTime;
   if(o.type==='filter'){ filterPress(o, tot); return; }
   if(o.type!=='osc') return;
-  const x = xpressFor(o), face = x ? x.option%4 : 0;
-  const dest = ['vib','bright','trem','bend'][face];
-  if(o.vibG) o.vibG.gain.setTargetAtTime(dest==='vib' ? tot*45 : 0, t, 0.03);            // cents
+  const x = xpressFor(o), face = x ? x.option%6 : 0;
+  const dest = ['vib','bright','trem','bend','pan','growl'][face];
+  if(o.vib) o.vib.frequency.setTargetAtTime(dest==='growl' ? 31 : 5.6, t, 0.02);
+  if(o.vibG) o.vibG.gain.setTargetAtTime(dest==='vib' ? tot*45 : dest==='growl' ? tot*70 : 0, t, 0.03);            // cents
+  if(o.panG) o.panG.gain.setTargetAtTime(dest==='pan' ? tot*0.9 : 0, t, 0.05);
   if(o.tremG) o.tremG.gain.setTargetAtTime(dest==='trem' ? tot*o.arc*0.22 : 0, t, 0.03);
   if(o.bendC) o.bendC.offset.setTargetAtTime((dest==='bend' ? tot*200 : 0) + (o.wheelBend||0), t, 0.03);
   const f = o.hop!=='C' && objects.find(q=>q.id===o.hop);
@@ -2055,7 +2233,7 @@ function filterPress(f, p, from){
 }
 function setBend(o, cents){   // MIDI pitch wheel, ±200 cents
   o.wheelBend = cents;
-  if(audio && o.bendC) o.bendC.offset.setTargetAtTime(cents + ((o.press && Object.values(o.press).some(v=>v>0) && xpressFor(o) && xpressFor(o).option%4===3) ? Math.max(...Object.values(o.press))*200 : 0), audio.ctx.currentTime, 0.01);
+  if(audio && o.bendC) o.bendC.offset.setTargetAtTime(cents + ((o.press && Object.values(o.press).some(v=>v>0) && xpressFor(o) && xpressFor(o).option%6===3) ? Math.max(...Object.values(o.press))*200 : 0), audio.ctx.currentTime, 0.01);
 }
 /* proximity FM: an outer oscillator silently modulates a nearer one */
 function applyFm(o){
@@ -2169,7 +2347,7 @@ function ksBuffer(freq, face){
   const sr = audio.ctx.sampleRate, key = Math.round(freq*10)+'|'+face+'|'+sr;
   if(ksCache.has(key)) return ksCache.get(key);
   const N = Math.max(2, Math.round(sr/freq));
-  const dur = [1.8, 0.8, 2.4, 3.2][face%4], damp = [0.9965, 0.985, 0.998, 0.9992][face%4], bright = [0.45, 0.85, 0.3, 0.95][face%4];
+  const dur = [1.8, 0.8, 2.4, 3.2, 4.5, 1.1][face%6], damp = [0.9965, 0.985, 0.998, 0.9992, 0.9996, 0.991][face%6], bright = [0.45, 0.85, 0.3, 0.95, 0.1, 0.7][face%6];   // HARP NYLON STEEL BELL GLASS KOTO
   const L = Math.floor(sr*dur), b = audio.ctx.createBuffer(1, L, sr), d = b.getChannelData(0);
   let lp = 0;
   for(let i=0;i<N;i++){ const n = Math.random()*2-1; lp += (n-lp)*bright; d[i] = lp; }
@@ -2202,10 +2380,21 @@ function makeDrumKit(){
     BKICK: mk(0.6, (d,sr)=>{ drumKick(d,0,sr,1.0,42); drumKick(d,0,sr,0.5,60); }), BSNARE: mk(0.5, (d,sr)=>{ drumSnare(d,0,sr,1.1); drumHat(d,0,sr,0.25,0.3); }),
     OHAT: mk(0.5, (d,sr)=>drumHat(d,0,sr,0.45,0.45)),   CRASH: mk(1.6, (d,sr)=>drumHat(d,0,sr,0.5,1.5)),
     TOM1: mk(0.5, (d,sr)=>drumTom(d,0,sr,180)), TOM2: mk(0.5, (d,sr)=>drumTom(d,0,sr,140)), TOM3: mk(0.5, (d,sr)=>drumTom(d,0,sr,110)), TOM4: mk(0.6, (d,sr)=>drumTom(d,0,sr,85)),
+    // ELECTRO: a long boomy kick, a bright noise snare, a tick of a hat
+    EKICK: mk(0.7, (d,sr)=>{ for(let i=0;i<sr*0.7;i++){ const t=i/sr; d[i] += Math.sin(TAU*(46+90*Math.exp(-t*40))*t)*Math.exp(-t*4)*1.0; } }),
+    ESNARE: mk(0.25, (d,sr)=>{ for(let i=0;i<sr*0.25;i++){ const t=i/sr; d[i] += ((Math.random()*2-1)*0.8 + Math.sin(TAU*240*t)*0.2)*Math.exp(-t*22); } }),
+    EHAT: mk(0.05, (d,sr)=>{ for(let i=0;i<sr*0.05;i++){ const t=i/sr; d[i] += (Math.random()*2-1)*Math.exp(-t*90)*0.6; } }),
+    // WOOD: a woodblock, a bongo, a shaker and a cowbell
+    BLOCK: mk(0.15, (d,sr)=>{ for(let i=0;i<sr*0.15;i++){ const t=i/sr; d[i] += Math.sin(TAU*880*t)*Math.exp(-t*45)*0.9 + (Math.random()*2-1)*Math.exp(-t*400)*0.3; } }),
+    BONGO: mk(0.3, (d,sr)=>{ for(let i=0;i<sr*0.3;i++){ const t=i/sr; d[i] += Math.sin(TAU*(230+40*Math.exp(-t*30))*t)*Math.exp(-t*14)*0.9; } }),
+    SHAKER: mk(0.12, (d,sr)=>{ let lp=0; for(let i=0;i<sr*0.12;i++){ const t=i/sr; const n=Math.random()*2-1; lp+=(n-lp)*0.6; d[i] += (n-lp)*Math.exp(-t*(t<0.02?10:40))*0.7; } }),
+    COWBELL: mk(0.35, (d,sr)=>{ for(let i=0;i<sr*0.35;i++){ const t=i/sr; d[i] += (Math.sign(Math.sin(TAU*587*t)) + Math.sign(Math.sin(TAU*845*t)))*0.3*Math.exp(-t*12); } }),
   };
 }
 function drumSample(o, pad){
-  const face = o.option%4;
+  const face = o.option%6;
+  if(face===5) return ['BLOCK','BONGO','SHAKER','COWBELL'][pad];
+  if(face===4) return ['EKICK','ESNARE','EHAT','CLAP'][pad];
   if(face===3) return ['TOM1','TOM2','TOM3','TOM4'][pad];
   if(face===2) return ['BKICK','BSNARE','OHAT','CRASH'][pad];
   return DRUM_PADS[pad];
@@ -2213,7 +2402,7 @@ function drumSample(o, pad){
 function drumHit(o, pad, vel, t){
   if(!audio || !o.amp || !audio.drums) return;
   t = t || audio.ctx.currentTime;
-  if(o.option%4===1){ const sd = stepDur(); t = transport.anchor + Math.round((t - transport.anchor)/sd)*sd; if(t < audio.ctx.currentTime) t += sd; }   // on the grid
+  if(o.option%6===1){ const sd = stepDur(); t = transport.anchor + Math.round((t - transport.anchor)/sd)*sd; if(t < audio.ctx.currentTime) t += sd; }   // on the grid
   const src = audio.ctx.createBufferSource(); src.buffer = audio.drums[drumSample(o, pad)];
   src.playbackRate.value = drumRate(o);
   const g = audio.ctx.createGain(); g.gain.value = velGain(o, vel==null?0.8:vel);
@@ -2249,7 +2438,7 @@ function harpSweep(o, p0, p1, vel){
       const t = audio ? audio.ctx.currentTime : 0;
       if(o.strFlash[s.k] && t - o.strFlash[s.k] < 0.06) continue;
       o.strFlash[s.k] = t;
-      ksPluck(o, pitchHz(s.midi), o.option%4, vel==null ? 0.8 : vel, t);
+      ksPluck(o, pitchHz(s.midi), o.option%6, vel==null ? 0.8 : vel, t);
       if(audio) kickFilterEnvs(t, 0.7, 0.3);
       any = true;
     }
@@ -2373,7 +2562,7 @@ function ballPlays(q, owner, vel, t){
   if(q.type==='osc' && (q.src||q.ana)){ const deg = Math.floor(Math.random()*scaleSteps().length); pluckVoice(q, quantMidi(oscMidi(q)+degSemis(deg)), t, 0.25, vel); }
   else if(q.type==='sampler' || q.type==='rec'){ sliceOn(q, Math.floor(Math.random()*scaleSteps().length*2), t, 0.22, vel); }
   else if(q.type==='drums'){ drumHit(q, Math.floor(Math.random()*4), vel, t); }
-  else if(q.type==='harp'){ const s = harpStrings(q); const k = Math.floor(Math.random()*s.length); q.strFlash[k]=t; ksPluck(q, pitchHz(s[k].midi), q.option%4, vel, t); }
+  else if(q.type==='harp'){ const s = harpStrings(q); const k = Math.floor(Math.random()*s.length); q.strFlash[k]=t; ksPluck(q, pitchHz(s[k].midi), q.option%6, vel, t); }
   else if(q.type==='water'){ waterStrike(q, Math.random()<0.5 ? -1 : Math.floor(Math.random()*10), vel); }
   else if(q.type==='filter'){ kickFilterEnvs(t, vel, 0.3); }
   else if(q.type==='mic' || q.type==='hum' || q.type==='theremin' || q.type==='marbles'){ if(owner) ksPluck(owner, pitchHz(72 + state.key + degSemis(Math.floor(Math.random()*scaleSteps().length))), 1, vel, t); }
@@ -2381,7 +2570,7 @@ function ballPlays(q, owner, vel, t){
 }
 /* the waterphone: its rods are around the puck; hold one to bow it, tap one to
    strike it, move or turn the puck (or tilt the cube) and the water sloshes */
-function waterCfg(o){ if(o.ana) o.ana.send({ type:'cfg', water:o.angle/TAU, size:1, face:o.option%4 }); }
+function waterCfg(o){ if(o.ana) o.ana.send({ type:'cfg', water:o.angle/TAU, size:o.option%6===5 ? 1.7 : 1, face:o.option%6 }); }   // DEEP: a bigger bowl
 function waterSlosh(o, v){
   if(!Number.isFinite(v) || Math.abs(v)<1e-4) return;
   v = Math.max(-6, Math.min(6, v));
@@ -2472,6 +2661,7 @@ function scheduleStep(stepAbs, t){
     const base = perfTime(t), gap = stepDur()/6*1000;
     for(let k=0;k<6;k++) try{ midi.send([0xF8], base+k*gap); }catch(e){}
   }
+  if(s16%4===0) for(const c of objects) if(c.type==='tempo' && c.option%3===2) clickTick(c, t, s16===0);   // the clock body's CLICK face
   for(const m of objects) if(m.type==='marbles' && m.option%4){   // auto marbles: one or two a bar, or one every beat
     const face = m.option%4;
     const go = face===3 ? (s16%4===0) : (s16===0 || (face===2 && s16===8));
@@ -2497,33 +2687,46 @@ function scheduleStep(stepAbs, t){
       const idx = seqPosAt(o, n);
       const st = o.steps[idx];
       if(!st) continue;
-      let fire = st.on, times = 1, deg = st.deg, tt = tk, vel = st.acc ? 1 : 0.75;
-      if(ch){   // the chance puck: dice, ratchets, fills, skips, and a human hand
-        const p = chanceProb(ch), face = ch.option%4, hum = ch.arc;
+      let fire = st.on, times = 1, deg = st.deg, tt = tk, vel = st.acc ? 1 : 0.75, ghost = false;
+      if(ch){   // the chance body: dice, ratchets, fills, skips, ghosts, drops, and a human hand
+        const p = chanceProb(ch), face = ch.option%6, hum = ch.arc;
         if(face===0){ if(st.on && Math.random()>p) fire = false; }
         else if(face===1){ if(st.on && Math.random()>p) times = Math.random()<0.5 ? 2 : 3; }
         else if(face===2){ if(!st.on && Math.random()<(1-p)*0.4){ fire = true; deg = Math.floor(Math.random()*(maxDeg+1)); vel *= 0.7; } }
         else if(face===3){ if(st.on && Math.random()>p){ o.jump = (o.jump||0) + 1 + Math.floor(Math.random()*3); } }
+        else if(face===4){ if(st.on && Math.random()>p) ghost = true; }                                       // GHOST: a quiet echo half a step later
+        else if(face===5){ if(hash01(Math.floor(stepAbs/16)*7919 + ch.id*13) > p) fire = false; }           // DROP: whole bars fall silent
         if(hum>0){ tt += (Math.random()-0.5)*hum*0.03; vel *= 1 - hum*0.35*Math.random(); }
       }
       if(!fire) continue;
       const len = (0.1+o.arc*0.85)*stepDur()/sub/times;
-      for(let i=0;i<times;i++){
-        const ti = Math.max(tt + i*len, audio.ctx.currentTime);
-        if(target.type==='osc') noteOn(target, deg, ti, len*0.9, vel);
+      const hits = []; for(let i=0;i<times;i++) hits.push([tt + i*len, vel]);
+      if(ghost) hits.push([tt + stepDur()/sub*0.5, vel*0.4]);
+      for(const [th, vh] of hits){
+        const ti = Math.max(th, audio.ctx.currentTime);
+        if(target.type==='osc') noteOn(target, deg, ti, len*0.9, vh);
         else if(target.type==='mic') micGate(target, ti, len*0.9, deg);
-        else sliceOn(target, deg, ti, len*0.9, vel);
+        else sliceOn(target, deg, ti, len*0.9, vh);
       }
       o.flashAt = tt; o.flashIdx = idx;
       target.flashAt = tt;
     }
   }
 }
-/* how a sequencer steps: its own 16 pads by default, or whatever a steps puck says */
+/* the clock body's CLICK face: a woodblock on every beat, the one accented; the ring is its pitch, the slider its level */
+function clickTick(c, t, accent){
+  if(!audio) return;
+  const os = audio.ctx.createOscillator(), g = audio.ctx.createGain();
+  os.type = 'sine'; os.frequency.value = clickHz(c)*(accent ? 1.5 : 1);
+  g.gain.setValueAtTime(0.0001, t); g.gain.linearRampToValueAtTime(c.arc*0.6*(accent ? 1 : 0.7), t+0.002); g.gain.setTargetAtTime(0.0001, t+0.004, 0.012);
+  os.connect(g); g.connect(audio.master); os.start(t); os.stop(t+0.1);
+  c.flashAt = t;
+}
+/* how a sequencer steps: its own 16 pads by default, or whatever a walk body says */
 function seqSpec(o){
   const sp = objects.find(q=>q.type==='steps' && q.hop===o.id);
   if(!sp) return { len:16, rate:1, dir:0 };
-  return { len:stepsLen(sp), rate:stepsRate(sp).r, dir:sp.option%4 };
+  return { len:stepsLen(sp), rate:stepsRate(sp).r, dir:sp.option%6 };
 }
 function seqPosAt(o, n){
   const sp = seqSpec(o), len = sp.len;
@@ -2532,7 +2735,9 @@ function seqPosAt(o, n){
   if(sp.dir===0) p = n % len;
   else if(sp.dir===1) p = len-1 - (n % len);
   else if(sp.dir===2){ const per = Math.max(1, 2*len-2), q = n % per; p = q<len ? q : per-q; }
-  else p = Math.floor(hash01(n)*len);
+  else if(sp.dir===3) p = Math.floor(hash01(n)*len);
+  else if(sp.dir===4){ let w = 0; for(let k=n-len+1;k<=n;k++) w += hash01(k*17+3)<0.5 ? -1 : 1; p = ((w % len)+len)%len; }   // DRUNK: a random walk
+  else p = (2*n) % len;                                                                                                    // SKIP: every other step
   return (p + seqOffset(o)) % 16;
 }
 function seqPlayIdx(o){
@@ -2548,9 +2753,9 @@ function warpFor(o){ return objects.find(q=>q.type==='warp' && q.hop===o.id) || 
    a time), the envelope (each word plucked, keyed, padded or swelled) and express
    (vibrato, brightness, tremolo or a scoop, all driven by how loud the voice is).
    Nothing has to be recorded first. */
-function micFxWanted(mic){ return !!(warpFor(mic) || objects.some(q=>(q.type==='env' || q.type==='xpress' || q.type==='seq') && q.hop===mic.id)); }
+function micFxWanted(mic){ return !!(mic.option%2===1 || warpFor(mic) || objects.some(q=>(q.type==='env' || q.type==='xpress' || q.type==='seq') && q.hop===mic.id)); }
 function micFxNames(mic){
-  const n=[]; if(warpFor(mic)) n.push('warp');
+  const n=[]; if(mic.option%2===1) n.push('tuned'); if(warpFor(mic)) n.push('warp');
   if(objects.some(q=>q.type==='seq' && q.hop===mic.id)) n.push('seq');
   if(objects.some(q=>q.type==='env' && q.hop===mic.id)) n.push('envelope');
   if(objects.some(q=>q.type==='xpress' && q.hop===mic.id)) n.push('express');
@@ -2559,10 +2764,12 @@ function micFxNames(mic){
 function micFxCfg(mic){
   if(!mic.voice) return;
   const wp = warpFor(mic), ev = objects.find(q=>q.type==='env' && q.hop===mic.id), xp = objects.find(q=>q.type==='xpress' && q.hop===mic.id);
-  const cfg = { ratio:1, grain:0.08, rev:false, seqOn: objects.some(q=>q.type==='seq' && q.hop===mic.id), env:!!ev, atk:0.005, rel:0.2, shape:1, xface:0, depth:0 };
-  if(wp){ const face = wp.option%4, semis = face===1 ? -12 : face===2 ? 12 : warpSemis(wp); cfg.ratio = Math.pow(2, semis/12); cfg.grain = Math.max(0.03, warpGrain(wp)); cfg.rev = face===3; }
-  if(ev){ cfg.atk = envAttack(ev); cfg.rel = envRelease(ev); cfg.shape = ev.option%4; }
-  if(xp){ cfg.xface = xp.option%4; cfg.depth = xpressDepth(xp); }
+  const cfg = { ratio:1, grain:0.08, rev:false, seqOn: objects.some(q=>q.type==='seq' && q.hop===mic.id), env:!!ev, atk:0.005, rel:0.2, shape:1, xface:0, depth:0,
+                tune: mic.option%2===1 ? (mic.tuneSemis||0) : 0, freeze:false, stutter:false, step:stepDur() };
+  if(wp){ const face = wp.option%6, semis = face===1 ? -12 : face===2 ? 12 : face>=4 ? 0 : warpSemis(wp); cfg.ratio = Math.pow(2, semis/12); cfg.grain = Math.max(0.03, warpGrain(wp)); cfg.rev = face===3; cfg.stutter = face===4; cfg.freeze = face===5; }
+  if(ev){ cfg.atk = envAttack(ev); cfg.rel = envRelease(ev); cfg.shape = ev.option%ENV_SHAPES.length; }
+  if(xp){ cfg.xface = xp.option%6; cfg.depth = xpressDepth(xp); }
+  if(mic.panG && audio) mic.panG.gain.setTargetAtTime(xp && cfg.xface===4 ? cfg.depth*0.9 : 0, audio.ctx.currentTime, 0.05);   // PAN on a mic: a wobble left and right
   mic.voice.send({ type:'cfg', cfg });
 }
 function micFxSync(mic){
@@ -2580,6 +2787,17 @@ function micFxSync(mic){
     micFxCfg(mic);
   });
 }
+/* the voice body's TUNED face: the mic listens to its own pitch and the shifter pulls it to the nearest note of the key */
+function micTuneTick(o){
+  if(!audio || !o.humAn || !o.voice) return;
+  o.humAn.getFloatTimeDomainData(o.humBuf);
+  const { f, rms } = autoCorrelate(o.humBuf, audio.ctx.sampleRate);
+  if(f < 0){ if(rms < 0.015) o.micNote = null; return; }
+  const midiF = 69 + 12*Math.log2(f/440), q = quantMidi(Math.round(midiF));
+  const semis = Math.max(-6, Math.min(6, q - midiF));
+  o.tuneSemis = (o.tuneSemis||0)*0.5 + semis*0.5; o.micNote = q;
+  o.voice.send({ type:'cfg', cfg:{ tune:o.tuneSemis } });
+}
 function micGate(mic, t, dur, deg){ if(mic.voice) mic.voice.send({ type:'gate', t, dur, semis: degSemis(deg) - 12 }); }   // a seq step on a mic: open the gate, retune the voice
 /* the chain puck walks a sequencer through its bank every N bars */
 function chainTick(c, barAbs){
@@ -2588,11 +2806,13 @@ function chainTick(c, barAbs){
   if(barAbs % every !== 0 || c.lastBar===barAbs) return;
   c.lastBar = barAbs;
   c.pos = (c.pos||0) + 1;
-  const face = c.option%4; let i;
+  const face = c.option%6; let i;
   if(face===0) i = c.pos % count;
   else if(face===1){ const per = Math.max(1, 2*count-2), r = c.pos % per; i = r<count ? r : per-r; }
   else if(face===2) i = Math.floor(Math.random()*count);
-  else { const song = [0,0,1,0,2,2,1,3]; i = song[c.pos % 8] % count; }
+  else if(face===3){ const song = [0,0,1,0,2,2,1,3]; i = song[c.pos % 8] % count; }
+  else if(face===4) i = Math.min(count-1, c.pos);                                                      // ONCE: through the patterns, then stay on the last
+  else { i = Math.floor(hash01(c.pos*131+7)*count); if(i===q.option) i = (i+1)%count; }                // SHUFFLE: never the same twice running
   if(i!==q.option){ seqSelect(q, i); q.flashAt = audio.ctx.currentTime; }
 }
 /* the euclid puck writes a Bjorklund rhythm into the sequencer it sits by */
@@ -2612,13 +2832,14 @@ function bjorklund(hits, len){   // Bjorklund's algorithm, canonical form (E(5,8
 function applyEuclid(e){
   const q = e.hop!=='C' && objects.find(x=>x.id===e.hop); if(!q || q.type!=='seq') return;
   const len = seqSpec(q).len, hits = Math.min(len, euclidHits(e)), rot = euclidRot(e) % len;
-  const pat = bjorklund(hits, len), maxDeg = scaleSteps().length*2 - 1, face = e.option%4;
+  const pat = bjorklund(hits, len), maxDeg = scaleSteps().length*2 - 1, face = e.option%6;
   if(!q.euBackup) q.euBackup = q.steps.map(s=>({on:s.on,deg:s.deg,acc:!!s.acc}));
   let k = 0;
   for(let i=0;i<16;i++){
     const on = i<len ? pat[(i - rot + len) % len] : false;
     const st = q.steps[i]; st.on = on;
-    if(on){ st.deg = face===0 ? 0 : face===1 ? (k%2 ? 4 : 0) : face===2 ? Math.min(maxDeg, k*2 % (maxDeg+1)) : Math.floor(hash01(i*31+hits*7+rot)*(maxDeg+1)); k++; }
+    if(on){ st.deg = face===0 ? 0 : face===1 ? (k%2 ? 4 : 0) : face===2 ? Math.min(maxDeg, k*2 % (maxDeg+1)) : face===3 ? Math.floor(hash01(i*31+hits*7+rot)*(maxDeg+1))
+                   : face===4 ? Math.max(0, maxDeg - (k*2 % (maxDeg+1))) : (()=>{ const per = Math.max(1, maxDeg), r = (k*2) % (2*per); return r<=per ? r : 2*per-r; })(); k++; }
   }
 }
 function releaseEuclid(q){
@@ -2645,11 +2866,11 @@ function scheduleBar(o, t, barAbs){
   const bars = Math.max(1, Math.ceil(entry.beats/4));
   if(barAbs % bars !== 0) return;
   const src = audio.ctx.createBufferSource();
-  src.buffer = entry.buffer;
+  src.buffer = entry.buffer; src.loop = true;                                        // looped, so a shifted start wraps round
   src.playbackRate.value = entry.buffer.duration / (entry.beats * 60/state.bpm);
   audio.wowG.connect(src.playbackRate);
   src.connect(o.amp);
-  src.start(t);
+  src.start(t, (loopShift(o)/(entry.beats*4))*entry.buffer.duration % entry.buffer.duration);   // the ring: which sixteenth the bar starts on
   src.stop(t + bars*16*stepDur() + 0.03);
   if(o.playing){ try{ o.playing.stop(t); }catch(e){} }
   o.playing = src;
@@ -2659,19 +2880,21 @@ function scheduleBar(o, t, barAbs){
    be pitched without changing tempo, slowed to half, doubled, or read backwards */
 let hannCurve = null;
 function scheduleWarpBar(o, wp, entry, t, barAbs){
-  const face = wp.option%4, speed = face===1 ? 0.5 : face===2 ? 2 : 1, rev = face===3;
+  const face = wp.option%6, speed = face===1 ? 0.5 : face===2 ? 2 : 1, rev = face===3, still = face>=4, slice = warpSlice(wp), n16 = entry.beats*4;
   const loopBars = Math.max(1, Math.ceil(entry.beats/4)) / speed;
   const period = Math.max(1, Math.round(loopBars));
   if(barAbs % period !== 0) return;
   const ctx = audio.ctx, bufDur = entry.buffer.duration;
   const playDur = period*16*stepDur();
   const gs = warpGrain(wp), hop = gs/2, count = Math.ceil(playDur/hop);
-  const rate = bufDur/(entry.beats*60/state.bpm) * Math.pow(2, warpSemis(wp)/12);
+  const rate = bufDur/(entry.beats*60/state.bpm) * (still ? 1 : Math.pow(2, warpSemis(wp)/12));
   if(!hannCurve){ hannCurve = new Float32Array(64); for(let i=0;i<64;i++) hannCurve[i] = 0.5-0.5*Math.cos(TAU*i/63); }
   const srcs = [];
   for(let k=0;k<count;k++){
     const tt = t + k*hop;
-    const frac = ((k*hop/playDur)*loopBars/period) % 1;
+    let frac = ((k*hop/playDur)*loopBars/period) % 1;
+    if(face===4){ const sd = stepDur(); frac = (Math.floor(slice*n16)/n16 + (((k*hop) % sd)/sd)/n16) % 1; }   // STUTTER: one sixteenth of the loop, again on every step
+    else if(face===5) frac = slice;                                                                            // FREEZE: one point in the loop, for ever
     let off = (rev ? 1-frac : frac) * bufDur;
     off = Math.max(0, Math.min(bufDur-0.001, off - (rev ? gs*rate : 0)));
     const src = ctx.createBufferSource(); src.buffer = entry.buffer; src.playbackRate.value = rate;
@@ -2690,7 +2913,7 @@ function sliceOn(s, deg, t, len, vel){
   const entry = entryFor(s);
   if(!entry || !s.amp) return;
   const wp = warpFor(s);
-  const rate = entry.buffer.duration / (entry.beats * 60/state.bpm) * (wp ? Math.pow(2, warpSemis(wp)/12) : 1);
+  const rate = entry.buffer.duration / (entry.beats * 60/state.bpm) * (wp && wp.option%6<4 ? Math.pow(2, warpSemis(wp)/12) : 1);
   const maxDeg = scaleSteps().length*2 - 1;
   const offset = (deg/maxDeg) * Math.max(0, entry.buffer.duration - len*rate);
   const src = audio.ctx.createBufferSource();
@@ -2980,7 +3203,7 @@ function sceneSnapshot(){
   return snap;
 }
 function sceneCapture(o){
-  o.slots[o.option%4] = sceneSnapshot();
+  o.slots[o.option%SCENE_SLOTS] = sceneSnapshot();
   o.flashAt = audio ? audio.ctx.currentTime : 0;
   saveSoon();
 }
@@ -2988,7 +3211,7 @@ function sceneMorph(o){   // called when the puck turns or flips: sets the targe
   const m = o.angle/TAU;
   if(m>0.01 && !o.morphOrigin) o.morphOrigin = sceneSnapshot();
   if(m<=0.01 && o.morphOrigin){ sceneRestoreOrigin(o); return; }
-  o.morphTarget = o.slots[o.option%4] || null;
+  o.morphTarget = o.slots[o.option%SCENE_SLOTS] || null;
 }
 function sceneRestoreOrigin(o){
   const org = o.morphOrigin; o.morphOrigin = null; o.morphTarget = null;
@@ -3248,8 +3471,8 @@ function tryAbsorbWave(pts){
   if(peak < 8*S) return;
   for(let i=0;i<N;i++) y[i] /= peak;
   osc.customWave = y.map(v=>Math.round(v*1000)/1000);
-  osc.option = 4;
-  applyDrawnWave(osc);
+  const wasNoise = osc.option===5; osc.option = OSC_DRAWN;
+  if(wasNoise && audio) rebuildNodes(osc); else applyDrawnWave(osc);
   osc.flashAt = audio ? audio.ctx.currentTime : 0;
   saveSoon();
 }
@@ -3407,7 +3630,7 @@ function onPlace(o){
   if(!audio) return;
   if(o.type==='rec') armRec(o);
   else if(o.type==='stems') armStems(o);
-  else if(o.type==='scene' && !o.slots[o.option%4]) sceneCapture(o);
+  else if(o.type==='scene' && !o.slots[o.option%SCENE_SLOTS]) sceneCapture(o);
 }
 /* lift a physical object and put it straight back: the "again" gesture */
 function onReplace(o){
@@ -3450,6 +3673,51 @@ function placeFree(o){
 const TUIO_TYPES = ['osc','sampler','seq','filter','delay','mod','lfo','dist','reverb','rec','mic','tempo','chorus','crush',
                     'key','tune','env','xpress','steps','euclid','chance','chain','scene','motion','warp','send','space','master','stems',
                     'theremin','drums','harp','marbles','hum','conduct','air','water','spheres','song'];
+/* ================= the physical kit =================
+   Every function of the table on the fewest bodies. A face is a mode (the discrete choice), the turn is the
+   continuous control, the on-screen slider is the level or intensity. The faces of one body are modes of one
+   thing, so being mutually exclusive is the point. Shapes: a two-sided puck (2 faces), a cube (6), a truncated
+   octahedron (8 hexagonal faces; its six squares carry the theme). `runs` lists (type, faces) in face order;
+   `twice` marks the bodies worth printing two of. hardware/make_kit.py reads this table. */
+const KIT = [
+  { body:'osc',      shape:'cube', runs:[['osc',6]],                   theme:'a wave',            twice:true },
+  { body:'loops',    shape:'cube', runs:[['sampler',6]],               theme:'a coil' },
+  { body:'record',   shape:'cube', runs:[['rec',5],['stems',1]],       theme:'a spool' },
+  { body:'voice',    shape:'cube', runs:[['mic',2],['hum',4]],         theme:'ripples from a mouth' },
+  { body:'drums',    shape:'cube', runs:[['drums',6]],                 theme:'a drum' },
+  { body:'harp',     shape:'cube', runs:[['harp',6]],                  theme:'strings' },
+  { body:'water',    shape:'cube', runs:[['water',6]],                 theme:'a bowl and its rods' },
+  { body:'balls',    shape:'cube', runs:[['marbles',4],['spheres',2]], theme:'spheres' },
+  { body:'air',      shape:'cube', runs:[['theremin',3],['air',3]],    theme:'a hand in the air' },
+  { body:'filter',   shape:'cube', runs:[['filter',6]],                theme:'a funnel' },
+  { body:'delay',    shape:'cube', runs:[['delay',6]],                 theme:'steps' },
+  { body:'reverb',   shape:'cube', runs:[['reverb',6]],                theme:'a bell' },
+  { body:'dirt',     shape:'cube', runs:[['dist',4],['crush',2]],      theme:'a jagged star' },
+  { body:'mod',      shape:'cube', runs:[['mod',2],['chorus',4]],      theme:'a twisted twin' },
+  { body:'lfo',      shape:'to',   runs:[['lfo',8]],                   theme:'one slow wave' },
+  { body:'seq',      shape:'cube', runs:[['seq',6]],                   theme:'a crown of studs', twice:true },
+  { body:'walk',     shape:'cube', runs:[['steps',6]],                 theme:'footprints' },
+  { body:'euclid',   shape:'cube', runs:[['euclid',6]],                theme:'dots on a ring' },
+  { body:'chance',   shape:'cube', runs:[['chance',6]],                theme:'the pips of a die' },
+  { body:'chain',    shape:'cube', runs:[['chain',6]],                 theme:'links' },
+  { body:'key',      shape:'to',   runs:[['key',8]],                   theme:'a key' },
+  { body:'tuning',   shape:'to',   runs:[['tune',8]],                  theme:'a tuning fork' },
+  { body:'envelope', shape:'cube', runs:[['env',6]],                   theme:'an envelope' },
+  { body:'express',  shape:'cube', runs:[['xpress',6]],                theme:'a pressed fingertip' },
+  { body:'scene',    shape:'cube', runs:[['scene',6]],                 theme:'a camera' },
+  { body:'motion',   shape:'cube', runs:[['motion',4]],                theme:'a loop' },
+  { body:'warp',     shape:'cube', runs:[['warp',6]],                  theme:'grains' },
+  { body:'send',     shape:'puck', runs:[['send',2]],                  theme:'an arrow' },
+  { body:'space',    shape:'cube', runs:[['space',6]],                 theme:'left and right' },
+  { body:'master',   shape:'cube', runs:[['master',6]],                theme:'a crown' },
+  { body:'clock',    shape:'cube', runs:[['tempo',3],['conduct',2]],   theme:'a pendulum' },
+  { body:'song',     shape:'cube', runs:[['song',6]],                  theme:'a record' },
+];
+const FACES = {}, BODY_OF = {};                        // physical faces per type, and which body carries it
+for(const b of KIT) for(const [t,n] of b.runs){ FACES[t] = n; BODY_OF[t] = b.body; }
+const EXTRA_FACES = [];                               // (type, face) for ids from TUIO_TYPES.length*4 up
+for(const t of TUIO_TYPES) for(let v=4; v<(FACES[t]||1); v++) EXTRA_FACES.push([t,v]);
+function kitBodies(){ return KIT.map(b => Object.assign({}, b, { faces: b.runs.flatMap(([t,n]) => Array.from({length:n}, (_,v) => [t,v])) })); }
 const tuioObjs = new Map();
 function tuioConnect(url){
   const ws = new WebSocket(url);
@@ -3514,15 +3782,44 @@ function objectState(o){
            slots: o.slots ? o.slots.map(s=>s && JSON.parse(JSON.stringify(s))) : undefined,
            wave: o.customWave || undefined, ownLoop: o.ownLoop || undefined };
 }
+function padBank(o){ while(o.bank.length < SEQ_PATTERNS.length) o.bank.push(SEQ_PATTERNS[o.bank.length].map(x => x ? {on:true,deg:x[0]} : {on:false,deg:0})); }   // an older bank of four gets E and F
 function restoreObjectState(o, s){
+  const was = o.option;
   o.angle=s.angle; o.arc=s.arc; o.option=s.option||0; o.muted=!!s.muted;
-  if(s.bank && o.bank){ o.bank = s.bank.map(p=>p.map(x=>({on:!!x.on,deg:x.deg|0,acc:!!x.acc}))); o.steps = o.bank[o.option%o.bank.length]; }
-  if(s.slots && o.slots) o.slots = s.slots;
+  if(audio && ((o.type==='osc' && oscKind(was)!==oscKind(o.option)) || (o.type==='filter' && filterKind(was)!==filterKind(o.option)))) rebuildNodes(o);
+  if(s.bank && o.bank){ o.bank = s.bank.map(p=>p.map(x=>({on:!!x.on,deg:x.deg|0,acc:!!x.acc}))); padBank(o); o.steps = o.bank[o.option%o.bank.length]; }
+  if(s.slots && o.slots){ o.slots = s.slots; while(o.slots.length<SCENE_SLOTS) o.slots.push(null); }
   if(s.wave) o.customWave = s.wave;
   if(s.ownLoop && o.type==='rec'){ o.ownLoop = s.ownLoop; o.recState = 'play'; }
 }
 const MARK = { centre:0.11, headR:0.38, headDot:0.06, bitR:0.24, bitDot:0.045 };   // fractions of disc diameter; 8 bit slots at 45°
-function markerType(id){ return { type: TUIO_TYPES[(id>>2) % TUIO_TYPES.length], variant: id & 3 }; }
+/* ids 0–155 are four faces of every type (id = type*4 + face); the faces beyond four, for the bodies that have them,
+   are numbered on from 156 in type order. markerType() decodes an id; markerId() is its inverse; both stay within 8 bits. */
+function markerType(id){
+  const n = TUIO_TYPES.length*4;
+  if(id < n) return { type: TUIO_TYPES[id>>2], variant: id & 3 };
+  const e = EXTRA_FACES[id-n]; return e ? { type:e[0], variant:e[1] } : null;
+}
+function markerId(type, variant){
+  variant = variant|0;
+  if(variant < 4) return TUIO_TYPES.indexOf(type)*4 + variant;
+  const k = EXTRA_FACES.findIndex(e=>e[0]===type && e[1]===variant);
+  return k < 0 ? -1 : TUIO_TYPES.length*4 + k;
+}
+/* the marker of another face of the same body, still on the table but unseen for a moment (it has just been turned over),
+   or lost in the last few seconds: its musical state comes across to the new face */
+function camKin(id, tnow){
+  const mt = markerType(id); if(!mt) return null;
+  for(const [kid, e] of [...cam.markers]){
+    const kt = markerType(kid);
+    if(kid!==id && kt && kt.type===mt.type && tnow-e.last>120){ const st = objectState(e.obj); cam.markers.delete(kid); destroyObject(e.obj); return st; }
+  }
+  for(const [kid, l] of [...cam.lost]){
+    const kt = markerType(kid);
+    if(kid!==id && kt && kt.type===mt.type && tnow-l.t<4000){ cam.lost.delete(kid); return l.state; }
+  }
+  return null;
+}
 
 /* ---- 4-point homography (DLT), camera px -> screen px ---- */
 function solveH(src, dst){
@@ -3750,17 +4047,13 @@ function camFrame(meta){
     seen.add(m.id);
     let e=cam.markers.get(m.id);
     if(!e){
-      const {type,variant}=markerType(m.id);
+      const mt=markerType(m.id); if(!mt) continue;
+      const {type,variant}=mt;
+      const lost=cam.lost.get(m.id), kin=(lost && tnow-lost.t<4000) ? null : camKin(m.id, tnow);   // the same body, turned to another face: it keeps its state
       const o=spawn(type,p.x,p.y);
-      const lost=cam.lost.get(m.id);
       if(lost && tnow-lost.t<4000){ restoreObjectState(o, lost.state); cam.lost.delete(m.id); }
-      else {
-        if(type==='osc'||type==='lfo') o.option=variant;
-        else if(type==='filter') o.option=variant%FILTER_MODES.length;
-        else if(type==='sampler') o.angle=((variant+0.5)/LOOPS.length)*TAU;
-        else if(type==='seq') seqSelect(o, variant);
-        else if(ADV.has(type)) o.option=variant % ADV_LEGEND[type].faces.length;
-      }
+      else if(kin){ restoreObjectState(o, kin); setOption(o, variant % nOptions(type)); }
+      else setOption(o, variant % nOptions(type));
       if(audio){ rewireAudio(o); rewireCtl(o); applyParams(o); if(lost && tnow-lost.t<4000) onReplace(o); else onPlace(o); }
       e={obj:o,last:tnow,ang,r0:m.r,lift:0}; cam.markers.set(m.id,e);
       addRipple(p.x,p.y,0.7);
@@ -3769,7 +4062,7 @@ function camFrame(meta){
     let da=ang-e.ang; if(da>Math.PI) da-=TAU; if(da<-Math.PI) da+=TAU;
     e.ang=((e.ang+da*0.6)%TAU+TAU)%TAU; e.last=tnow;
     if(Math.abs(da)>0.01 || Math.hypot(o.x-ox,o.y-oy)>1.5) o.camMoving=tnow;
-    if(o.type!=='sampler' && Math.abs(da)>0.01){ o.angle=e.ang; applyParams(o); }
+    if(Math.abs(da)>0.01){ o.angle=e.ang; applyParams(o); }
     else if(o.type==='sampler' && Math.abs(da)>0.35){ o.angle=e.ang; applyParams(o); }
     // lift and tilt: the cube itself is the expression controller. Lifting it toward the
     // camera grows its marker (pressure); tilting it squashes the disc (a pitch bend).
@@ -3994,42 +4287,43 @@ function markerSVG(id, mm){
   for(let s=0;s<8;s++) if((id>>s)&1){ const a=s*Math.PI/4; dots+=`<circle cx="${R+Math.cos(a)*c(MARK.bitR)}" cy="${R+Math.sin(a)*c(MARK.bitR)}" r="${c(MARK.bitDot)}" fill="#000"/>`; }
   return `<svg xmlns="http://www.w3.org/2000/svg" width="${D}mm" height="${D}mm" viewBox="0 0 ${D} ${D}"><circle cx="${R}" cy="${R}" r="${R-0.3}" fill="#fff" stroke="#bbb" stroke-width="0.3"/>${dots}</svg>`;
 }
-const BASIC_LEGEND = {
-  osc:{name:'OSC',turn:'pitch (in key)',slide:'level',faces:['SINE','SAW','SQUARE','TRIANGLE']},
-  sampler:{name:'LOOPS',turn:'which loop',slide:'level',faces:['KICK','BEAT','HATS','BASS']},
-  seq:{name:'SEQ',turn:'shift the pattern',slide:'gate length',faces:['pattern A','pattern B','pattern C','pattern D']},
-  filter:{name:'FILTER',turn:'cutoff',slide:'resonance',faces:['LOW-PASS','HIGH-PASS','BAND-PASS','LOW-PASS']},
-  delay:{name:'DELAY',turn:'time (beat divisions)',slide:'feedback',faces:['1/16','1/8','1/4','1/2']},
-  mod:{name:'MOD',turn:'ring frequency',slide:'mix',faces:['RING']},
-  lfo:{name:'LFO',turn:'rate',slide:'depth',faces:['SINE','SAW','SQUARE','TRIANGLE']},
-  dist:{name:'DRIVE',turn:'drive',slide:'mix',faces:['DRIVE']},
-  reverb:{name:'VERB',turn:'decay',slide:'mix',faces:['VERB']},
-  rec:{name:'REC',turn:'bars 1 · 2 · 4 · 8',slide:'level',faces:['REC']},
-  mic:{name:'MIC',turn:'—',slide:'level',faces:['MIC']},
-  tempo:{name:'TEMPO',turn:'BPM 60–180',slide:'—',faces:['TEMPO']},
-  chorus:{name:'CHORUS',turn:'rate',slide:'mix',faces:['CHORUS']},
-  crush:{name:'CRUSH',turn:'bits 12 → 2',slide:'mix',faces:['CRUSH']},
+const BASIC_LEGEND = {   // a face is a mode, the turn is the continuous control, the slider a level
+  osc:{name:'OSC',turn:'pitch (in key)',slide:'level',faces:['SINE','SAW','SQUARE','TRIANGLE','PULSE','NOISE']},
+  sampler:{name:'LOOPS',turn:'which sixteenth the bar starts on',slide:'level',faces:['KICK','BEAT','HATS','BASS','CHORD','ARP']},
+  seq:{name:'SEQ',turn:'shift the pattern',slide:'gate length',faces:['pattern A','pattern B','pattern C','pattern D','pattern E','pattern F']},
+  filter:{name:'FILTER',turn:'cutoff (VOWEL: a e i o u)',slide:'resonance',faces:['LOW-PASS','HIGH-PASS','BAND-PASS','NOTCH','PEAK','VOWEL']},
+  delay:{name:'DELAY',turn:'feedback',slide:'mix',faces:['1/16','1/8','1/8·','1/4','1/2','1 BAR']},
+  mod:{name:'MOD',turn:'ring frequency · tremolo rate',slide:'mix',faces:['RING','TREMOLO']},
+  lfo:{name:'LFO',turn:'rate',slide:'depth',faces:['SINE','SAW','SQUARE','TRIANGLE','SINE · SYNC','SAW · SYNC','SQUARE · SYNC','TRIANGLE · SYNC']},
+  dist:{name:'DIRT',turn:'drive',slide:'mix',faces:['DRIVE','WARM','FUZZ','FOLD']},
+  reverb:{name:'VERB',turn:'size',slide:'mix',faces:['ROOM','HALL','PLATE','SPRING','CATHEDRAL','GATED']},
+  rec:{name:'REC',turn:'which sixteenth the loop starts on',slide:'level',faces:['1 BAR','2 BARS','4 BARS','8 BARS','16 BARS']},
+  mic:{name:'MIC',turn:'—',slide:'level',faces:['LIVE','TUNED']},
+  tempo:{name:'CLOCK',turn:'BPM 60–180 · swing 0–35 % · click pitch',slide:'click level',faces:['TEMPO','SWING','CLICK']},
+  chorus:{name:'MOD',turn:'rate',slide:'mix',faces:['CHORUS','FLANGER','PHASER','VIBRATO']},
+  crush:{name:'CRUSH',turn:'bits 12 → 2',slide:'mix',faces:['CRUSH','LO-FI']},
 };
 function legendOf(type){ return ADV_LEGEND[type] || PLAY_LEGEND[type] || BASIC_LEGEND[type]; }
 function markerSheetHTML(mm){
   mm = mm || 60;
-  const sec = (title, types) => {
-    const ids=[]; for(const t of types){ const ti=TUIO_TYPES.indexOf(t); for(let v=0;v<4;v++) ids.push(ti*4+v); }
-    let pages=`<section class="note"><h2>${title}</h2></section>`;
-    for(let p=0;p<ids.length;p+=12){
-      pages+=`<section class="page">`+ids.slice(p,p+12).map(id=>{ const {type,variant}=markerType(id); const lg=legendOf(type)||{name:type.toUpperCase(),faces:[]};
-        return `<figure><div class="m">${markerSVG(id,mm)}</div><figcaption><b>${lg.name}</b> · face ${variant+1}${lg.faces[variant]?' · '+lg.faces[variant]:''} · id ${id}</figcaption></figure>`; }).join('')+`</section>`;
-    }
-    return pages;
-  };
-  const basic = TUIO_TYPES.filter(t=>!ADV.has(t) && !PLAY.has(t)), adv = TUIO_TYPES.filter(t=>ADV.has(t)), play = TUIO_TYPES.filter(t=>PLAY.has(t));
+  const SHAPE = { cube:'a cube · six faces', to:'a truncated octahedron · eight faces', puck:'a two-sided puck' };
+  const fig = ([type,variant], k) => { const id=markerId(type,variant), lg=legendOf(type)||{name:type.toUpperCase(),faces:[]};
+    return `<figure><div class="m">${markerSVG(id,mm)}</div><figcaption><b>${lg.name}</b> · face ${k+1}${lg.faces[variant]?' · '+lg.faces[variant]:''} · id ${id}</figcaption></figure>`; };
+  const pages = []; let cur = [], n = 0;
+  for(const b of kitBodies()){
+    if(n + b.faces.length > 12 && cur.length){ pages.push(cur); cur = []; n = 0; }
+    cur.push(`<h2>${b.body.toUpperCase()} <small>${SHAPE[b.shape]}${b.twice?' · print two':''} · ${b.theme}</small></h2>` + b.faces.map(fig).join(''));
+    n += b.faces.length;
+  }
+  if(cur.length) pages.push(cur);
   const cell = Math.round(mm*1.1);
   return `<!doctype html><html><head><meta charset="utf-8"><title>Lumatable markers</title><style>
   @page{size:A4;margin:12mm} body{margin:0;font:10pt sans-serif;color:#333}
-  .page{display:grid;grid-template-columns:repeat(3,1fr);grid-auto-rows:${cell}mm;gap:2mm;page-break-after:always;padding:2mm}
-  figure{margin:0;text-align:center} .m{width:${mm}mm;height:${mm}mm;margin:0 auto} figcaption{margin-top:1mm;letter-spacing:.05em;font-size:8.5pt}
-  .note{padding:10mm;font-size:11pt;line-height:1.5} h2{page-break-before:always}</style></head><body>
-  <section class="note"><h1>Lumatable marker sheet · ${mm} mm</h1><p>Print at 100% (no scaling) on matte white card. Cut each disc out with a 3 mm white margin, and stick it to the <b>top</b> of a cube or a puck (the 3D-printed ones have a shallow pocket the disc drops into). The small offset dot is the heading: turning the object turns its ring. Each object type has four faces; a cube carries four faces of one object plus two blanks, so turning it over changes its mode.</p><p>Heading dot at 0.38 D, ID dots at 0.24 D on eight 45° slots (256 ids). The second section is the advanced set: hexagonal pucks in the printed kit.</p></section>${sec('The main tray', basic)}${sec('The play tray', play)}${sec('The advanced pucks', adv)}</body></html>`;
+  .page{display:grid;grid-template-columns:repeat(3,1fr);grid-auto-rows:auto;gap:2mm;page-break-after:always;padding:2mm;align-content:start}
+  .page h2{grid-column:1/-1;margin:2mm 0 0;font-size:12pt;letter-spacing:.15em} h2 small{font-weight:normal;letter-spacing:.05em;color:#777;font-size:8.5pt;margin-left:3mm}
+  figure{margin:0;text-align:center;height:${cell}mm} .m{width:${mm}mm;height:${mm}mm;margin:0 auto} figcaption{margin-top:1mm;letter-spacing:.05em;font-size:8.5pt}
+  .note{padding:10mm;font-size:11pt;line-height:1.5}</style></head><body>
+  <section class="note"><h1>Lumatable marker sheet · ${mm} mm</h1><p>Print at 100% (no scaling) on matte white card. Cut each disc out with a 3 mm white margin and stick it to a face of the body it belongs to, in face order. The small offset dot is the heading: turning the body turns its ring. Every body is one thing with several modes: the faces of a cube or a die are its modes, and only one can face up, which is the point. The on-screen slider is the level.</p><p>Heading dot at 0.38 D, ID dots at 0.24 D on eight 45° slots (256 ids). Bodies marked <i>print two</i> are the ones you will want twice on the table.</p></section>${pages.map(p=>`<section class="page">${p.join('')}</section>`).join('')}</body></html>`;
 }
 /* printable cards: one per object, what turning, sliding and flipping does */
 function cardsHTML(){
@@ -4048,28 +4342,28 @@ function cardsHTML(){
   p{margin:0;color:#444;line-height:1.35;font-size:8.5pt}</style></head><body><main>${TUIO_TYPES.map(card).join('')}</main></body></html>`;
 }
 const CARD_TEXT = {
-  osc:'A tone in the current key. Push two together for FM. Tap the small key button for a piano; draw a shape beside it to become its waveform.',
-  sampler:'A loop locked to the beat. Turn to choose; imports appear as extra loops.',
-  seq:'Sixteen pads around the ring; tap for a note, pull outward for a higher one. Sits by an oscillator to play it, by a loop to slice it.',
-  filter:'Cutoff by turning, resonance by sliding. Sits between a sound and the centre.',
-  delay:'Repeats in time with the beat. Feedback on the slider.', mod:'Ring modulation: metallic, bell-like tones.',
-  lfo:'Wobbles the nearest oscillator, filter or delay. The last four faces lock to the beat.',
-  dist:'Warm to filthy.', reverb:'A room, a hall, a cathedral.', rec:'Records the whole table for a few bars, then loops it. Place it (or lift and replace it) to record again.',
-  mic:'Live input, as soon as it is on the table.', tempo:'Turn to set the tempo for everything.', chorus:'Thickens and widens.', crush:'Lo-fi bit reduction.',
-  key:'The key and scale as an object. Faces shift everything an octave.',
-  tune:'Retunes every note to a historical or world tuning: just intonation, meantone, Werckmeister, 19- and 31-EDO, neutral thirds, slendro, pelog. The second face retunes the generated loops too.',
-  env:'By an oscillator: an ADSR for its notes. By a filter: the cutoff opens on every note the table plays.',
-  xpress:'Velocity from sequencer accents, MIDI and pressure. Its face decides where aftertouch, pinch pressure and a lifted cube go.',
-  steps:'Pattern length, step rate and direction for the sequencer it sits by. Odd lengths make polymetres.',
-  euclid:'Writes a Euclidean rhythm into the sequencer: hits spread as evenly as possible. Faces pick the pitches.',
-  chance:'Each step fires with a probability; faces add ratchets, generative fills and skips. Slide to humanise timing and level.',
-  chain:'Walks the sequencer through its A–D patterns every few bars: an arrangement.',
-  scene:'Four snapshots of the whole table, one per face. Turn to morph from what is playing toward the snapshot; the slider sets the crossfade. Lift and replace, or tap the save dot, to keep the current state.',
-  motion:'Records how you move its target and replays that gesture in a loop, on the beat. Turn a filter for a bar; the table keeps turning it.',
-  warp:'Reads a loop as a cloud of grains: pitch it up or down without changing tempo, play it at half or double speed, or backwards.',
-  send:'The effect it sits by becomes a send bus. Every sound feeds it by how close it sits to this puck.',
-  space:'The table becomes the stereo field: left is left. Faces orbit the sounds or widen with distance from the centre.',
-  master:'Volume and glue compression for the whole table.',
+  osc:'A tone in the current key; the six faces are its six waves, PULSE thin and NOISE tuned by the ring. Push two together for FM. Tap the small key button for a piano; draw a shape beside it to become its waveform.',
+  sampler:'A loop locked to the beat: the face is the loop, the ring shifts where in it the bar starts. Imports appear as extra faces on screen.',
+  seq:'Sixteen pads around the ring; tap for a note, pull outward for a higher one. Six patterns, one a face. Sits by an oscillator to play it, by a loop to slice it.',
+  filter:'Cutoff by turning, resonance by sliding; the face is the shape, from low-pass to a vowel that the ring sings through. Sits between a sound and the centre.',
+  delay:'Repeats in time with the beat: the face is the time, the ring the feedback, the slider the mix.', mod:'Ring modulation (metallic, bell-like) or a tremolo, then the chorus family: chorus, flanger, phaser, vibrato. One body, six ways to move a sound.',
+  lfo:'Wobbles the nearest oscillator, filter or delay. Eight faces: four shapes free-running, the same four locked to the beat.',
+  dist:'Dirt: drive, warm, fuzz, fold, then crush and lo-fi. One body, six ways to break a sound.', reverb:'Six rooms: room, hall, plate, spring, cathedral, gated. The ring is the size.', rec:'Records the whole table for one, two, four, eight or sixteen bars (the face), then loops it; the ring shifts the loop\'s start. Place it (or lift and replace it) to record again; the sixth face records every object as stems.',
+  mic:'Live input, as soon as it is on the table. The TUNED face pulls your voice to the nearest note of the key.', tempo:'The clock: TEMPO (the ring is the BPM), SWING (a continuous amount) and CLICK (a metronome on every beat), then the conductor\'s two faces.', chorus:'Thickens and widens.', crush:'Lo-fi bit reduction.',
+  key:'The key and scale as an object: the ring is the key, the eight faces are the scales, the slider the octave.',
+  tune:'Retunes every note, oscillators and loops alike, to a historical or world tuning: just intonation, Pythagorean, meantone, Werckmeister, 31-EDO, slendro, pelog (Kirnberger, 19-EDO and neutral thirds on screen). The ring is the reference A; the slider blends from equal temperament to the system.',
+  env:'By an oscillator: an ADSR for its notes, in six shapes from a click (PERC) to an organ (GATE). By a filter: the cutoff opens on every note the table plays.',
+  xpress:'Velocity from sequencer accents, MIDI and pressure. Its face decides where aftertouch, pinch pressure and a lifted cube go: vibrato, brightness, tremolo, a bend, a pan wobble or a growl.',
+  steps:'How the sequencer walks: forward, backward, ping-pong, at random, a drunken walk, or every other step. The ring is the length, the slider the rate. Odd lengths make polymetres.',
+  euclid:'Writes a Euclidean rhythm into the sequencer: hits spread as evenly as possible. Faces pick the pitches: root, alternate, rising, random, falling, up and down.',
+  chance:'Each step fires with a probability; faces add ratchets, generative fills, skips, ghost notes and whole bars that drop out. Slide to humanise timing and level.',
+  chain:'Walks the sequencer through its A–F patterns every few bars: looped, ping-pong, random, a song shape, once through, or shuffled.',
+  scene:'Six snapshots of the whole table, one per face. Turn to morph from what is playing toward the snapshot; the slider sets the crossfade. Lift and replace, or tap the save dot, to keep the current state.',
+  motion:'Records how you move its target and replays that gesture in a loop, on the beat. Turn a filter for a bar; the table keeps turning it. Two faces of its cube are blank.',
+  warp:'Reads a loop as a cloud of grains: pitch it up or down without changing tempo, play it at half or double speed, backwards, stutter one sixteenth on every step, or freeze one point for ever (the ring says where).',
+  send:'The effect it sits by becomes a send bus. Every sound feeds it by how close it sits to this puck: the ring is the reach, the slider the level.',
+  space:'The table becomes the stereo field: left is left. Faces orbit the sounds, widen with distance from the centre, mirror the field, sweep everything side to side, or fold it to mono.',
+  master:'Volume (the slider) and glue (the ring) for the whole table: clean, glue, pump, limit, warm or loud.',
   stems:'Records every object on the table, plus the master, into one multichannel WAV for the DAW.',
   theremin:'Touch or wave a hand in its field: nearer the puck is higher (or, at a webcam, left to right). A second hand\'s height is the volume. Faces: free pitch, in key, or a slow glide.',
   drums:'Four pads around the puck: kick and snare below, hat and clap above. Tap them, or strike downward in the air over one. Faces snap hits to the grid, swap in a big kit, or make the pads toms.',
@@ -4079,7 +4373,7 @@ const CARD_TEXT = {
   conduct:'Beat time in the air (or tap its ring) and the whole table takes your tempo. The second face also follows your hand\'s height as dynamics.',
   air:'Sits by any block. Raise or lower a hand to turn that block\'s ring without touching it; faces choose the ring, the slider, or both.',
   water:'A waterphone: a bowl of water with brass rods around it. Hold a rod to bow it, tap one to strike it, and move or turn the puck (or tilt the cube) to slosh the water, which bends every note. Faces: whale, storm (it plays itself), gong, ghost. Put a reverb behind it.',
-  song:'The rim becomes a three-minute song: intro, verses, choruses, a middle eight, an outro. A rec block\'s takes become blobs; drag them onto the rim, before, after or on top of each other. Play, pause and stop at the centre; the arrow saves the song as an MP3. Turn to loop one part; flip for a shorter song shape.',
+  song:'The rim becomes a song: a pop song, a little song, a twelve-bar blues, an AABA standard, a dance-floor build, or free bars (the faces). A rec block\'s takes become blobs; drag them onto the rim, before, after or on top of each other. Play, pause and stop at the centre; the arrow saves the song as an MP3. Turn to loop one part.',
   spheres:'The disc becomes the solar system: the Sun in the middle, every planet on its real orbit, with its real number of moons. Touch a planet or a moon to hear it, in the manner of Holst. Turn to speed the years up. Flip to God mode: flick worlds, block their orbits with a finger, and watch them merge or shatter.',
 };
 async function markerSheet(){
@@ -4188,7 +4482,7 @@ async function measureSync(){
 let saveTimer = null;
 function sceneJSON(){
   return {
-    v:5, bpm:state.bpm, key:state.key, scaleIdx:state.scaleIdx, swingIdx:state.swingIdx, soundMode:state.soundMode,
+    v:6, bpm:state.bpm, key:state.key, scaleIdx:state.scaleIdx, swingIdx:state.swingIdx, swingV:state.swingV, soundMode:state.soundMode,
     objects: objects.map(o=>({
       type:o.type, nx:(o.x-CX)/TABLE_R, ny:(o.y-CY)/TABLE_R,
       angle:o.angle, arc:o.arc, option:o.option, muted:o.muted,
@@ -4205,10 +4499,23 @@ function saveSoon(){
     try{ localStorage.setItem('lumatable-scene', JSON.stringify(sceneJSON())); }catch(e){}
   }, 700);
 }
+/* scenes saved before the kit: the loop, the delay time, the record length and the tuning system were on the ring; the
+   key's scale was on the slider; send and master had their ring and slider the other way round */
+function migrateFaces(so){
+  const a = (so.angle||0)/TAU, seg = n => Math.floor(a*n) % n;
+  if(so.type==='sampler'){ so.option = seg(LOOPS.length); so.angle = 0; }
+  else if(so.type==='delay'){ so.option = seg(6); so.angle = (so.arc||0)*TAU; so.arc = 0.55; }
+  else if(so.type==='rec'){ so.option = seg(REC_BARS.length); so.angle = 0; }
+  else if(so.type==='tune'){ const old = ['12-TET','JUST','PYTHAG','MEANTONE','WERCK III','KIRN III','19-EDO','31-EDO','NEUTRAL','SLENDRO','PELOG'][seg(11)];
+    so.option = Math.max(0, TUNINGS.findIndex(t=>t.n===old)); so.angle = (so.arc==null ? 0.5 : so.arc)*TAU; so.arc = 1; }
+  else if(so.type==='key'){ const oct = [0,1,-1,2][(so.option||0)%4]; so.option = Math.min(SCALES.length-1, Math.floor((so.arc||0)*SCALES.length)); so.arc = (oct+1)/3; }
+  else if(so.type==='send' || so.type==='master'){ const ang = so.angle||0; so.angle = (so.arc||0)*TAU; so.arc = ang/TAU; }
+}
 function loadSceneFrom(sc){
-  if(!sc || ![2,3,4,5].includes(sc.v) || !Array.isArray(sc.objects)) return false;
+  if(!sc || ![2,3,4,5,6].includes(sc.v) || !Array.isArray(sc.objects)) return false;
   state.bpm = sc.bpm||112; state.key = sc.key||0; state.scaleIdx = sc.scaleIdx||0;
-  state.swingIdx = sc.swingIdx||0;
+  state.swingIdx = sc.swingIdx||0; state.swingV = Number.isFinite(sc.swingV) ? sc.swingV : null;
+  if(sc.v < 6) for(const so of sc.objects) migrateFaces(so);   // before the kit, some rings chose what a face chooses now
   if(SOUND_MODES.includes(sc.soundMode)) state.soundMode = sc.soundMode;
   const made = [];
   for(const so of sc.objects){
@@ -4218,6 +4525,7 @@ function loadSceneFrom(sc){
     o.angle=so.angle; o.arc=so.arc; o.option=so.option||0; o.muted=!!so.muted;
     if(o.bank){
       if(Array.isArray(so.bank)) o.bank = so.bank.map(p=>p.map(s=>({on:!!s.on,deg:s.deg|0,acc:!!s.acc})));
+      padBank(o);
       o.option = o.option % o.bank.length;
       if(so.steps && !so.bank) o.bank[o.option] = so.steps.map(s=>({on:!!s.on,deg:s.deg|0,acc:!!s.acc}));
       o.steps = o.bank[o.option];
@@ -4227,7 +4535,7 @@ function loadSceneFrom(sc){
   }
   for(const o of objects) if(o._slotsRaw){
     o.slots = o._slotsRaw.map(s=>s && Object.fromEntries(Object.entries(s).map(([i,v])=>[made[+i] ? made[+i].id : -1, v]).filter(([id])=>id>=0)));
-    while(o.slots.length<4) o.slots.push(null);
+    while(o.slots.length<SCENE_SLOTS) o.slots.push(null);
     delete o._slotsRaw;
   }
   return objects.length>0;
@@ -4293,7 +4601,7 @@ function syncChips(){
   $('bpmv').textContent = state.bpm;
   $('keyv').textContent = NOTE_NAMES[state.key];
   $('scalev').textContent = SCALES[state.scaleIdx].name;
-  $('swingv').textContent = SWINGS[state.swingIdx].n;
+  $('swingv').textContent = state.swingV!=null ? Math.round(state.swingV*100)+'%' : SWINGS[state.swingIdx].n;
   $('soundv').textContent = state.soundMode==='original' ? 'original' : MODE_CFG[state.soundMode].label;
   $('camv').textContent = !cam.on ? 'off' : cam.calib ? 'calibrating' : cam.H ? 'on' : 'uncalibrated';
   $('calChip').textContent = cam.H ? 'refine · hold to recalibrate' : 'calibrate';
@@ -4328,7 +4636,7 @@ $('soundChip').addEventListener('click', ()=>{
   setSoundMode(SOUND_MODES[i]);
 });
 $('swingChip').addEventListener('click', ()=>{
-  state.swingIdx = (state.swingIdx+1)%SWINGS.length; syncChips();
+  state.swingV = null; state.swingIdx = (state.swingIdx+1)%SWINGS.length; syncChips();
   if(audio) buildLoopBuffers();   // bake the new feel into the loops
   saveSoon();
 });
@@ -5054,9 +5362,13 @@ function holstCue(what){
 const SONG_FORMS = [
   { n:'POP SONG',    parts:[['intro',8],['verse 1',16],['chorus',8],['verse 2',16],['chorus',8],['middle 8',8],['last chorus',16],['outro',8]] },   // 88 bars: 2:56 at 120 BPM
   { n:'LITTLE SONG', parts:[['intro',4],['verse',8],['chorus',8],['verse',8],['chorus',8],['outro',4]] },                                          // 40 bars
+  { n:'BLUES',       parts:[['blues 1',12],['blues 2',12],['blues 3',12],['blues 4',12]] },                                                        // 48 bars: four choruses of the twelve-bar
+  { n:'AABA',        parts:[['A',8],['A',8],['B',8],['A',8],['A',8],['A',8],['B',8],['A',8]] },                                                    // 64 bars: the 32-bar standard, twice
+  { n:'BUILD',       parts:[['intro',8],['build',8],['drop',16],['break',8],['build',8],['drop',16],['outro',8]] },                                // 72 bars: the dance-floor shape
   { n:'FREE',        parts:[['',64]] },
 ];
-const SONG_PART_COL = { intro:'#7fa8d8', verse:'#7fd8c8', chorus:'#ffb84d', middle:'#c99cff', last:'#ff8fb0', outro:'#9aa7b8', '':'#7fa8d8' };
+const SONG_PART_COL = { intro:'#7fa8d8', verse:'#7fd8c8', chorus:'#ffb84d', middle:'#c99cff', last:'#ff8fb0', outro:'#9aa7b8', '':'#7fa8d8',
+                        blues:'#7fd8c8', A:'#7fd8c8', B:'#ffb84d', build:'#c99cff', drop:'#ff8fb0', break:'#9aa7b8' };
 const SONG_LANES = 4;   // a classic four-track
 const song = { puck:null, blobs:[], playing:false, pos:0, t0:0, pending:null, sources:[], wrapAt:0, drag:null, dragX:0, dragY:0,
                saving:null, msg:null, nextTake:1, lastRange:'', mp3Load:null };
@@ -5492,6 +5804,11 @@ function drawWaveGlyph(cx,cy,w,kind,color){
   } else if(kind==='square'){
     g.moveTo(cx-w/2,cy+h); g.lineTo(cx-w/2,cy-h); g.lineTo(cx,cy-h);
     g.lineTo(cx,cy+h); g.lineTo(cx+w/2,cy+h); g.lineTo(cx+w/2,cy-h);
+  } else if(kind==='pulse'){
+    g.moveTo(cx-w/2,cy+h); g.lineTo(cx-w/2,cy-h); g.lineTo(cx-w/2+w*0.12,cy-h); g.lineTo(cx-w/2+w*0.12,cy+h);
+    g.lineTo(cx,cy+h); g.lineTo(cx,cy-h); g.lineTo(cx+w*0.12,cy-h); g.lineTo(cx+w*0.12,cy+h); g.lineTo(cx+w/2,cy+h);
+  } else if(kind==='noise'){
+    for(let i=0;i<=16;i++){ const x=cx-w/2+(i/16)*w, y=cy+h*Math.sin(i*12.9898)*Math.cos(i*7.233); i?g.lineTo(x,y):g.moveTo(x,y); }
   } else {
     g.moveTo(cx-w/2,cy+h); g.lineTo(cx-w/4,cy-h); g.lineTo(cx+w/4,cy+h); g.lineTo(cx+w/2,cy-h);
   }
@@ -5701,12 +6018,12 @@ function drawObject(o){
     g.strokeStyle='#ff5d5d'; g.lineWidth=2.5; glow('#ff5d5d', 8);
     g.beginPath(); g.arc(o.x,o.y,R_RING1()+3*S,0,TAU); g.stroke(); noGlow();
   }
-  // scene puck: four small slot marks around the ring, the current face brightest
+  // scene body: six small slot marks around the ring, the current face brightest
   if(o.type==='scene'){
-    for(let i=0;i<4;i++){
-      const a=-Math.PI/2 + i/4*TAU, r=R_RING1()+6*S;
+    for(let i=0;i<SCENE_SLOTS;i++){
+      const a=-Math.PI/2 + i/SCENE_SLOTS*TAU, r=R_RING1()+6*S;
       g.fillStyle = o.slots[i] ? col : 'transparent'; g.strokeStyle = col; g.lineWidth = 1.4;
-      g.globalAlpha = (outside?0.35:1)*(i===o.option%4 ? 1 : 0.4);
+      g.globalAlpha = (outside?0.35:1)*(i===o.option%SCENE_SLOTS ? 1 : 0.4);
       g.beginPath(); g.arc(o.x+Math.cos(a)*r, o.y+Math.sin(a)*r, 3.2*S, 0, TAU); if(o.slots[i]) g.fill(); g.stroke();
     }
     g.globalAlpha = outside?0.35:1;
@@ -5752,7 +6069,7 @@ function drawObject(o){
 
   // icon
   g.textAlign='center'; g.textBaseline='middle';
-  if(o.type==='osc' && o.option===4 && o.customWave){
+  if(o.type==='osc' && o.option===OSC_DRAWN && o.customWave){
     g.strokeStyle=col; g.lineWidth=1.6; g.beginPath();
     const w=rb*1.05, h=rb*0.4, cw=o.customWave;
     for(let i=0;i<cw.length;i++)
@@ -5835,6 +6152,7 @@ function drawObject(o){
   } else if(o.type==='delay'){
     g.strokeStyle=col; g.lineWidth=1.6;
     for(const rr of [0.28,0.52]){ g.beginPath(); g.arc(o.x,o.y,rb*rr,0,TAU); g.stroke(); }
+    g.fillStyle=col; g.font=`600 ${7*S}px "Chakra Petch", sans-serif`; g.fillText(delayDiv(o).n, o.x, o.y+1);
   } else if(o.type==='mod'){
     g.strokeStyle=col; g.lineWidth=1.6;
     g.beginPath();
@@ -5905,12 +6223,12 @@ function drawAdvIcon(o, col, rb){
     case 'key': txt(NOTE_NAMES[state.key], 11); break;
     case 'tune': txt('¢', 13); break;
     case 'env': {   // a little ADSR
-      const e = ENV_SHAPES[o.option%4], w=rb*1.1, h=rb*0.5, x0=o.x-w/2, y0=o.y+h/2;
+      const e = ENV_SHAPES[o.option%ENV_SHAPES.length], w=rb*1.1, h=rb*0.5, x0=o.x-w/2, y0=o.y+h/2;
       const aF = 0.08+0.3*(o.angle/TAU), dF = 0.2*(e.dec/0.8), rF = 0.1+0.3*o.arc, sF = Math.max(0.1, 1-aF-dF-rF);
       g.strokeStyle=col; g.lineWidth=1.6; g.beginPath();
       g.moveTo(x0, y0); g.lineTo(x0+w*aF, y0-h); g.lineTo(x0+w*(aF+dF), y0-h*e.sus); g.lineTo(x0+w*(aF+dF+sF), y0-h*e.sus); g.lineTo(x0+w, y0);
       g.stroke(); break; }
-    case 'xpress': txt(['VIB','BRT','TRM','BND'][o.option%4], 8.5); break;
+    case 'xpress': txt(['VIB','BRT','TRM','BND','PAN','GRL'][o.option%6], 8.5); break;
     case 'steps': txt(String(stepsLen(o)), 11); break;
     case 'euclid': {   // the rhythm itself, as dots on a ring
       const len = o.hop!=='C' ? (seqSpec(objects.find(x=>x.id===o.hop)||{}).len||16) : 16;
@@ -5919,10 +6237,10 @@ function drawAdvIcon(o, col, rb){
         g.fillStyle=on?col:COL.rim; g.beginPath(); g.arc(o.x+Math.cos(a)*r, o.y+Math.sin(a)*r, (on?2.2:1.2)*S, 0, TAU); g.fill(); }
       break; }
     case 'chance': txt(Math.round(chanceProb(o)*100)+'%', 8.5); break;
-    case 'chain': { const q = o.hop!=='C' && objects.find(x=>x.id===o.hop); txt(q ? 'ABCD'[q.option%4] : 'AB', 11); break; }
-    case 'scene': txt('ABCD'[o.option%4], 12); break;
+    case 'chain': { const q = o.hop!=='C' && objects.find(x=>x.id===o.hop); txt(q ? 'ABCDEF'[q.option%SEQ_PATTERNS.length] : 'AB', 11); break; }
+    case 'scene': txt('ABCDEF'[o.option%SCENE_SLOTS], 12); break;
     case 'motion': txt('∞', 14); break;
-    case 'warp': { const s=warpSemis(o); txt(o.option%4===3 ? '◀' : (s>0?'+':'')+s, 10); break; }
+    case 'warp': { const s=warpSemis(o), f=o.option%6; txt(f===3 ? '◀' : f===4 ? '⟲' : f===5 ? '❄' : (s>0?'+':'')+s, 10); break; }
     case 'send': txt('→', 14); break;
     case 'space': { g.strokeStyle=col; g.lineWidth=1.6; g.beginPath(); g.arc(o.x,o.y,rb*0.36,0,TAU); g.stroke();
       g.fillStyle=col; g.beginPath(); g.arc(o.x,o.y,rb*0.36,Math.PI/2,Math.PI*1.5); g.fill(); break; }
@@ -6023,7 +6341,7 @@ function frameBody(){
       else if(avg<13 && RES_SCALE<1){ RES_SCALE=Math.min(1,RES_SCALE+0.25); resize(); lastResChange=nowMs; }
     }
   }
-  if(audio) for(const o of objects){ if(o.type==='scene') sceneTick(o, dt); else if(o.type==='motion') motionTick(o); else if(o.type==='hum' && (frameN&1)===0) humTick(o); }
+  if(audio) for(const o of objects){ if(o.type==='scene') sceneTick(o, dt); else if(o.type==='motion') motionTick(o); else if(o.type==='hum' && (frameN&1)===0) humTick(o); else if(o.type==='mic' && o.option%2===1 && (frameN&1)===0) micTuneTick(o); }
   for(const o of objects) if(o.type==='water') waterTick(o, dt);
   if(spheres.on) spheresTick(dt);
   if(song.puck) songTick(dt);

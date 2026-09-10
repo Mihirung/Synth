@@ -75,9 +75,11 @@ The readout under the buttons shows time, length and which part the head is in.
 **Turn the song block's ring** to play just one part round and round (*loop CHORUS*): the
 fastest way to build up a chorus layer by layer. Straight up is the whole song.
 
-**Flip the song block** for a different shape: *POP SONG* (88 bars), *LITTLE SONG* (40
-bars: intro, verse, chorus, verse, chorus, outro, for a shorter attention span) or *FREE*
-(64 unlabelled bars). Blobs keep their bar numbers when the shape changes.
+**Flip the song block** for a different shape, one per face of its cube: *POP SONG* (88
+bars), *LITTLE SONG* (40 bars: intro, verse, chorus, verse, chorus, outro, for a shorter
+attention span), *BLUES* (48 bars: four choruses of the twelve-bar), *AABA* (64 bars: the
+32-bar standard, twice), *BUILD* (72 bars: intro, build, drop, break, build, drop, outro)
+or *FREE* (64 unlabelled bars). Blobs keep their bar numbers when the shape changes.
 
 ## Overdubbing without doubling up
 

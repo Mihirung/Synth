@@ -131,6 +131,118 @@ readily than a puck when nudged. Hollow it to 3 mm walls (about 125 cm³ of resi
 light enough; a felt dot in the middle of each face stops the sliding. The 60 mm cube is
 steadier and cheaper (65 cm³ hollowed) but holds six faces, not twelve.
 
+## The bodies kit: every function on 32 bodies (`print/bodies/`)
+
+![the bodies kit](bodies.png)
+
+The third set answers a different question: not "one body per object" (24 bodies, one face
+each) or "as many objects as fit on a die" (the experimental set), but **what is the smallest
+set of bodies that carries every function of the table, with the faces of each body being
+modes of one thing?** The rule that decides it:
+
+- **A face is a mode.** Anything discrete that an object chooses (which wave, which loop,
+  which room, which scale) is a face. Faces of one body are mutually exclusive on purpose:
+  a filter is a low-pass or a notch, a song is a pop song or a blues, never both.
+- **The turn is the continuous control.** Pitch, cutoff, feedback, size, the key, the
+  reference A, probability, the swing amount.
+- **The on-screen slider is the level or intensity.** Level, mix, resonance, depth, volume.
+  Where an object had its level on the ring (send, master) the two swapped.
+- **Duplicates only where two are wanted at once**: the oscillator and the sequencer are
+  marked *print two*.
+
+Three shapes, chosen by how many modes the thing has: a **cube** for six, a **truncated
+octahedron** (eight hexagonal faces, opposite faces parallel, the six squares free for the
+theme) for eight, a **two-sided puck** for two. Every code face carries the body's theme
+glyph in its corners, as on the experimental set; a face without a code (the squares of a
+truncated octahedron, the two spare faces of the motion cube) carries the theme large, so
+the body reads from any side without a word on it.
+
+| Body | Shape | Faces (modes) | Turn | Slider |
+|---|---|---|---|---|
+| **osc** ×2 | cube | SINE · SAW · SQUARE · TRIANGLE · PULSE · NOISE | pitch | level |
+| **loops** | cube | KICK · BEAT · HATS · BASS · CHORD · ARP | which sixteenth the bar starts on | level |
+| **record** | cube | 1 · 2 · 4 · 8 · 16 bars · STEMS | the loop's start | level |
+| **voice** | cube | LIVE · TUNED · FOLLOW · NOTES · HARMONY · OCTAVES | octave (hum) | level |
+| **drums** | cube | FREE · ON THE GRID · BIG KIT · TOMS · ELECTRO · WOOD | kit pitch | level |
+| **harp** | cube | HARP · NYLON · STEEL · BELL · GLASS · KOTO | root note | level |
+| **water** | cube | WHALE · STORM · GONG · GHOST · RAIN · DEEP | how much water | level |
+| **balls** | cube | marbles: FLICK · ONE A BAR · TWO A BAR · EVERY BEAT · planets: ORRERY · GOD MODE | energy / year length | level |
+| **air** | cube | theremin: FREE · IN KEY · GLIDE · air knob: TURN · SLIDE · BOTH | range | level |
+| **filter** | cube | LOW · HIGH · BAND · NOTCH · PEAK · VOWEL | cutoff (a e i o u) | resonance |
+| **delay** | cube | 1/16 · 1/8 · 1/8· · 1/4 · 1/2 · 1 BAR | feedback | mix |
+| **reverb** | cube | ROOM · HALL · PLATE · SPRING · CATHEDRAL · GATED | size | mix |
+| **dirt** | cube | DRIVE · WARM · FUZZ · FOLD · CRUSH · LO-FI | drive / bits | mix |
+| **mod** | cube | RING · TREMOLO · CHORUS · FLANGER · PHASER · VIBRATO | frequency / rate | mix |
+| **lfo** | truncated octahedron | SINE · SAW · SQUARE · TRIANGLE, free and beat-locked | rate | depth |
+| **seq** ×2 | cube | patterns A · B · C · D · E · F | shift | gate |
+| **walk** | cube | FORWARD · REVERSE · PING-PONG · RANDOM · DRUNK · SKIP | length 1–16 | rate |
+| **euclid** | cube | ROOT · ALTERNATE · RISING · RANDOM · FALLING · UP AND DOWN | hits | rotation |
+| **chance** | cube | DICE · RATCHET · FILL · SKIP · GHOST · DROP | probability | humanise |
+| **chain** | cube | LOOP · PING-PONG · RANDOM · SONG · ONCE · SHUFFLE | every 1 · 2 · 4 · 8 bars | 2–6 patterns |
+| **key** | truncated octahedron | PENTA · MAJOR · MINOR · DORIAN · MIXO · HARMONIC · BLUES · CHROMATIC | key C…B | octave −1 … +2 |
+| **tuning** | truncated octahedron | 12-TET · JUST · PYTHAGOREAN · MEANTONE · WERCKMEISTER · 31-EDO · SLENDRO · PELOG | reference A | how far from equal |
+| **envelope** | cube | PLUCK · KEYS · PAD · SWELL · PERC · GATE | attack | release |
+| **express** | cube | VIBRATO · BRIGHT · TREMOLO · BEND · PAN · GROWL | depth | curve |
+| **scene** | cube | A · B · C · D · E · F | morph | crossfade |
+| **motion** | cube | TURN · SLIDE · MOVE · ALL (two faces blank) | loop 1 · 2 · 4 · 8 bars | smoothing |
+| **warp** | cube | PITCH · HALF · DOUBLE · REVERSE · STUTTER · FREEZE | pitch, or where | grain |
+| **send** | two-sided puck | POST · PRE | reach | level |
+| **space** | cube | POSITION · ORBIT · RADIAL · MIRROR · SWEEP · MONO | width | speed |
+| **master** | cube | CLEAN · GLUE · PUMP · LIMIT · WARM · LOUD | glue | volume |
+| **clock** | cube | TEMPO · SWING · CLICK · conductor: TEMPO · DYNAMICS (one face blank) | BPM / swing / click pitch | click level |
+| **song** | cube | POP SONG · LITTLE SONG · BLUES · AABA · BUILD · FREE | which part to loop | song level |
+
+Thirty-two bodies, thirty-four with the two duplicates: 28 cubes, three truncated octahedra
+and one puck, for 191 code faces. Ids stay within the eight dots: the first four faces of
+every type keep their old ids (type × 4 + face), and the faces beyond four are numbered on
+from 156 in type order, up to 208 (`markerType()` / `markerId()` in the instrument, and the
+same `marker_id()` here, both read from the `KIT` table).
+
+**What was added to make the faces whole.** Grouping by modes showed the gaps, so these
+are new: PULSE and tuned NOISE waves; NOTCH, PEAK and a VOWEL filter (three formants, the
+ring sings a-e-i-o-u); six delay times on faces with feedback on the ring; six reverbs (a
+room with early reflections, a hall, a plate, a spring, a cathedral, a gate); WARM, FUZZ
+and FOLD curves and a LO-FI crush; TREMOLO, FLANGER, PHASER and VIBRATO; a CLICK metronome
+and a continuous SWING on the clock; a TUNED voice (the mic pulls itself to the nearest
+note of the key); patterns E and F; DRUNK and SKIP walks; FALLING and UP-AND-DOWN Euclid
+pitches; GHOST notes and DROP bars; ONCE and SHUFFLE chains; PERC and GATE envelopes; PAN
+and GROWL expression; scenes E and F; STUTTER and FREEZE (on loops and on the live voice);
+MIRROR, SWEEP and MONO stereo; WARM and LOUD masters; an ELECTRO and a WOOD kit; GLASS and
+KOTO strings; RAIN and a DEEP bowl; a BLUES, an AABA and a BUILD song shape. The tuning
+system moved from the ring to the faces (eight on the body, Kirnberger, 19-EDO and neutral
+thirds on screen) and its slider became *how far from equal temperament*, which makes the
+temperament a fader. The key's scale moved from the slider to the faces and the octave
+took the slider.
+
+**Grouping decisions worth knowing.** *balls* (marbles and planets) are both spheres in
+motion on the disc; *air* (theremin and air knob) are both a hand in the air; *voice* (mic
+and hum) are both your voice; *clock* is everything that sets the time, the conductor
+included; *dirt* and *mod* are "six ways to break a sound" and "six ways to move one",
+which is why drive and crush share a cube while chorus and ring modulation share another.
+Everything else is one type with more faces. The stems recorder is the sixth face of the
+record cube: the same body records the table for so many bars, or records everything as
+stems.
+
+**On the table.** Turning a body over is a real gesture, so the instrument treats the new
+face as the same thing: a scene cube turned from B to E keeps its snapshots, a sequencer
+cube keeps its bank, a record cube keeps its loop. Placing a record body arms it, so turn
+the cube to the length you want and put it down. On screen a tap is a flip and the record
+bodies arm on a double tap.
+
+**Sizes and honest trade-offs.** Cubes are 60 mm with 52 mm codes; the truncated octahedra
+are 88 mm across their hexagons (102 mm across the squares) with 52 mm codes, big for a
+small hand but stable, and there are only three; the puck is 70 mm. The truncated
+octahedron's hexagons lean 70° from the table, so the camera-geometry section below (the
+plane check, the mirror band) applies to it as it does to the dice. A cube whose face
+turns over changes marker id, and the old face is still in view for a moment while the new
+one appears, so the hand-over of state waits for the old face to be unseen for 120 ms.
+
+`python3 make_kit.py --bodies` writes all of them to `print/bodies/` (`--body lfo,send` for
+a few); `python3 check_kit.py` reads every code back out of every mesh in its own face
+frame (the dots that stand at the painted level, decoded like the camera does) and fails on
+a mirrored, rotated or mislabelled face; `python3 render_bodies.py` draws the picture.
+`tests/kit.test.js` and `tests/kit-dsp.test.js` cover the faces in the instrument.
+
 ## Camera geometry: leaning faces, and why the camera need not be overhead
 
 A many-faced body shows the camera more than its top face. The neighbours of the top face

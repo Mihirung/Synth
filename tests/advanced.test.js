@@ -36,9 +36,9 @@ const CHROME = process.env.PLAYWRIGHT_CHROMIUM || (fs.existsSync('/opt/pw-browse
   // 2. tuning maths
   const tune = await page.evaluate(()=>{
     for(const o of [...objects]) destroyObject(o);
-    const tn = spawn('tune', CX, CY-TABLE_R*0.6); tn.angle = (1.5/TUNINGS.length)*TAU;  // JUST
+    const tn = spawn('tune', CX, CY-TABLE_R*0.6); tn.option = 1; tn.arc = 1;  // the JUST face, all the way
     const fifth = pitchHz(67)/pitchHz(60), third = pitchHz(64)/pitchHz(60), eq = midiToF(67)/midiToF(60);
-    tn.angle = 0; const tet = pitchHz(67)/pitchHz(60);
+    tn.option = 0; const tet = pitchHz(67)/pitchHz(60);
     destroyObject(tn);
     return { fifth, third, eq, tet, name:TUNINGS[1].n };
   });
@@ -155,7 +155,7 @@ const CHROME = process.env.PLAYWRIGHT_CHROMIUM || (fs.existsSync('/opt/pw-browse
     const seq2=objects.find(o=>o.type==='seq'), sc2=objects.find(o=>o.type==='scene');
     return { ok, v:JSON.parse(json).v, opt:seq2.option, on5:seq2.steps[5].on, bankA3: seq2.bank[0][3].acc, slots: sc2.slots.filter(Boolean).length, ids: Object.keys(sc2.slots[1]||{}).every(id=>objects.some(o=>o.id===+id)) };
   });
-  check('scene v5 persists banks, accents and scene slots', persist.ok && persist.v===5 && persist.opt===2 && persist.on5 && persist.bankA3 && persist.slots===2 && persist.ids, JSON.stringify(persist));
+  check('scene v6 persists banks, accents and scene slots', persist.ok && persist.v===6 && persist.opt===2 && persist.on5 && persist.bankA3 && persist.slots===2 && persist.ids, JSON.stringify(persist));
 
   // 11. 8-bit marker detection round trip
   const det = await page.evaluate(async()=>{

@@ -90,13 +90,23 @@ most of Phase 2 of the plan:
   tracking. *markers* prints the sheet. See [docs/04-hardware-build.md](docs/04-hardware-build.md).
 - **The advanced drawer**: fifteen further pucks behind a *more* button, so the main tray
   stays a child's tray. Tuning systems (just, Pythagorean, meantone, Werckmeister,
-  Kirnberger, 19- and 31-EDO, neutral thirds, slendro, pelog), a key puck, ADSR and filter
-  envelopes, velocity and aftertouch (sequencer accents, MIDI, pen pressure, pinch
-  pressure, and a lifted or tilted cube), pattern length/rate/direction, Euclidean rhythms,
-  probability with ratchets and fills, pattern chaining, four-slot scene snapshots with a
-  morph, gesture loops, granular warp for loops, proximity sends, the table as a stereo
-  field, a master puck, and a stems recorder that writes every object to one multichannel
-  WAV. Imports persist. See [docs/07-advanced.md](docs/07-advanced.md).
+  Kirnberger, 19- and 31-EDO, neutral thirds, slendro, pelog, with a fader from equal
+  temperament to the system), a key puck (eight scales on its faces), envelopes in six
+  shapes, velocity and aftertouch (sequencer accents, MIDI, pen pressure, pinch pressure,
+  and a lifted or tilted cube) routed to vibrato, brightness, tremolo, a bend, a pan wobble
+  or a growl, six ways for a sequencer to walk, Euclidean rhythms, probability with
+  ratchets, fills, ghosts and dropped bars, pattern chaining, six-slot scene snapshots with
+  a morph, gesture loops, granular warp for loops and the live voice (pitch, half, double,
+  reverse, stutter, freeze), proximity sends, the table as a stereo field, a master puck,
+  and a stems recorder that writes every object to one multichannel WAV. Imports persist.
+  See [docs/07-advanced.md](docs/07-advanced.md).
+- **A face is a mode**: every object's discrete choices are its faces (the oscillator's six
+  waves, PULSE and tuned NOISE among them; the filter's low, high, band, notch, peak and a
+  vowel; six delay times; six reverbs from a room to a cathedral and a gate; drive, warm,
+  fuzz, fold, crush and lo-fi; ring, tremolo, chorus, flanger, phaser, vibrato; five record
+  lengths; a clock with tempo, a continuous swing and a click; a mic that tunes itself to
+  the key), the turn is the continuous control, and the on-screen slider is the level. A tap
+  flips to the next face; the record bodies arm on a double tap.
 - **The play tray**: eight instruments for hands and voice behind a *play* button. A
   theremin, air drums, a Karplus–Strong harp, marbles that play the rim and everything they
   hit, a hum-to-synth voice follower, a conductor that takes the tempo from your beats, an
@@ -107,10 +117,11 @@ most of Phase 2 of the plan:
   collisions that merge or shatter worlds, rockets, starships and visitors. All work by
   touch; with a webcam or the table camera, MediaPipe hand tracking on the device turns
   them into air instruments. See [docs/08-play.md](docs/08-play.md).
-- **The song block**: the rim becomes an 88-bar pop song (intro, verses, choruses, middle 8,
-  outro). A rec block's takes pop out as blobs of jelly; drag them onto the rim before, after
-  or on top of each other, play, pause and stop at the centre, loop one part, and save the
-  whole song as an MP3 (WAV offline). Song playback never reaches the recorder, so layers
+- **The song block**: the rim becomes a song: an 88-bar pop song (intro, verses, choruses,
+  middle 8, outro), a little song, a twelve-bar blues, an AABA standard, a dance-floor build
+  or free bars, one per face. A rec block's takes pop out as blobs of jelly; drag them onto
+  the rim before, after or on top of each other, stretch one to loop, play, pause and stop at
+  the centre, loop one part, and save the whole song as an MP3 (WAV offline). Song playback never reaches the recorder, so layers
   can be overdubbed without doubling up. See [docs/09-song.md](docs/09-song.md).
 - **Widescreen layout**: on a wide window (16:10 or wider, 1000 px and up, a mouse or trackpad) the
   tray becomes a column on the left, the header buttons a column on the right, the drawers open
@@ -123,7 +134,10 @@ most of Phase 2 of the plan:
   spool, a grille, a funnel, a bell, a crown of studs…) with its marker in two levels of
   relief on top, so a wipe of paint colours the code. An experimental set puts twelve objects on
   one 100 mm dodecahedron, the object's glyph in every corner of its face, so two dice hold the
-  whole kit. See [hardware/README.md](hardware/README.md).
+  whole kit. The **bodies kit** ([`hardware/print/bodies/`](hardware/print/bodies/)) puts every
+  function on 32 bodies, the faces of each body being the modes of one thing: 28 cubes, three
+  truncated octahedra (the LFO, the key, the tuning) and a two-sided send puck, 191 code faces,
+  each read back out of its mesh by `check_kit.py`. See [hardware/README.md](hardware/README.md).
 - **Physical-table ready** (PC route): open the page with `?tuio=ws://localhost:8765` and run
   [`prototype/tuio-bridge.js`](prototype/tuio-bridge.js) to drive it from reacTIVision's
   TUIO stream instead of the mouse (fiducial class IDs map to object types in blocks of

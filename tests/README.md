@@ -21,7 +21,12 @@ node tests/song.test.js              # the song: a real take becomes a blob, blo
 node tests/micwarp-dsp.test.js       # the live voice processor (pucks on a mic), numerically: the shifter, the seq's gates, envelope words, express vibrato/bright/tremolo (no browser)
 node tests/micwarp.test.js           # pucks beside a mic block: a fake microphone's 220 Hz comes out at 440 under warp, a seq gates it, envelope and express bind, unbinding and rebuilds
 node tests/phone.test.js             # iPhone emulation: trays as pages of the dock, tap-to-place, back; desktop drawers still stack
+node tests/kit.test.js               # the bodies kit: 32 bodies and 191 ids, every type through every face, the new faces (waves, filters, delays, rooms, dirt, mod, the clock, key and tuning dice, walks, Euclid, chance, chains, scenes, warp's stutter and freeze, send, space, master, song shapes, kits, strings, the tuned voice), a body flipped on the table keeps its state, old scenes migrate, the sheets by body
+node tests/kit-dsp.test.js           # the voice processor's new faces, numerically: TUNED, FREEZE, STUTTER, GROWL, PERC (no browser)
 ```
+
+`hardware/check_kit.py` (pure Python) decodes every code face of the bodies kit out of its
+mesh and fails on a mirrored, rotated or mislabelled face.
 
 Each prints a PASS/FAIL line per check and exits non-zero on any failure or page error.
 Screenshots land in `tests/shots/`. Set `PLAYWRIGHT_CHROMIUM` to your Chromium binary if

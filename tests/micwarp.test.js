@@ -65,7 +65,7 @@ const WAV = path.join(os.tmpdir(), 'lumatable-mic-220.wav');
     await new Promise(r=>setTimeout(r,400)); const half = await tone(mic, 1400);
     cycleOption(wp); cycleOption(wp); wp.angle = TAU/2; applyParams(wp);   // REVERSE, ring at 0 st: backwards grains at the same pitch
     await new Promise(r=>setTimeout(r,400)); const rev = await tone(mic, 1400);
-    cycleOption(wp);                            // back to PITCH
+    setOption(wp, 0);                           // back to PITCH (the warp body has six faces now)
     return { fifth: fifth.f, half: half.f, rev: rev.f, revLv: rev.lv, face: wp.option };
   });
   check('turning the ring gives a fifth (330 Hz) live; HALF gives 110 Hz; REVERSE keeps a tone\'s pitch and level', s3.fifth===330 && s3.half===110 && s3.rev===220 && s3.revLv>0.008 && s3.face===0, JSON.stringify(s3));

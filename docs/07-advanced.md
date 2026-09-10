@@ -7,30 +7,45 @@ printed kit, so they read as a different family at a glance, and the eight-year-
 never has to open the drawer at all.
 
 They follow the table's one rule: an object does what it does by **being there**
-(presence), by **where it sits** (position, and so proximity), by **turning** (its main
-parameter), by **the arc** (its second parameter) and by **which face is up** (its
-mode). A single tap on screen is the same as flipping a cube to its next face. Nothing
-needs a menu.
+(presence), by **where it sits** (position, and so proximity), by **turning** (its
+continuous parameter), by **the arc** (its level or intensity) and by **which face is up**
+(its mode, the discrete choice). A single tap on screen is the same as flipping a cube to
+its next face. Nothing needs a menu. The bodies kit (`hardware/README.md`) is this rule
+made physical: a cube for a thing with six modes, a truncated octahedron for eight, a
+two-sided puck for two.
 
 ## The set
 
 | Puck | Sits by | Turn | Slide | Faces |
 |---|---|---|---|---|
-| **key** | anywhere | key C…B | scale | octave 0 / +1 / −1 / +2 |
-| **tuning** | anywhere | tuning system | reference A, 415–466 Hz | oscillators · oscillators + loops |
-| **envelope** | an oscillator, a filter, or a mic (live) | attack 1 ms – 2 s | release 20 ms – 4 s | PLUCK · KEYS · PAD · SWELL |
-| **express** | an oscillator, a filter, a mic (live), or anywhere | velocity depth | velocity curve soft–hard | where aftertouch goes: VIBRATO · BRIGHT · TREMOLO · BEND |
-| **steps** | a sequencer | pattern length 1–16 | rate 1/32 · 1/16 · 1/8 · 1/4 | FORWARD · REVERSE · PING-PONG · RANDOM |
-| **euclid** | a sequencer | hits 1–16 | rotate the pattern | pitches: ROOT · ALTERNATE · RISING · RANDOM |
-| **chance** | a sequencer | probability 100 → 5 % | humanise | DICE · RATCHET · FILL · SKIP |
-| **chain** | a sequencer | every 1 · 2 · 4 · 8 bars | how many patterns, 2–4 | LOOP · PING-PONG · RANDOM · SONG |
-| **scene** | anywhere | morph live → snapshot | crossfade 0–4 bars | snapshot A · B · C · D |
+| **key** | anywhere | key C…B | octave −1 … +2 | the scale: PENTA · MAJOR · MINOR · DORIAN · MIXO · HARMONIC · BLUES · CHROMATIC |
+| **tuning** | anywhere | reference A, 415–466 Hz | how far from equal temperament | 12-TET · JUST · PYTHAGOREAN · MEANTONE · WERCKMEISTER · 31-EDO · SLENDRO · PELOG (Kirnberger, 19-EDO, neutral thirds on screen) |
+| **envelope** | an oscillator, a filter, or a mic (live) | attack 1 ms – 2 s | release 20 ms – 4 s | PLUCK · KEYS · PAD · SWELL · PERC · GATE |
+| **express** | an oscillator, a filter, a mic (live), or anywhere | velocity depth | velocity curve soft–hard | where aftertouch goes: VIBRATO · BRIGHT · TREMOLO · BEND · PAN · GROWL |
+| **walk** (steps) | a sequencer | pattern length 1–16 | rate 1/32 · 1/16 · 1/8 · 1/4 | FORWARD · REVERSE · PING-PONG · RANDOM · DRUNK · SKIP |
+| **euclid** | a sequencer | hits 1–16 | rotate the pattern | pitches: ROOT · ALTERNATE · RISING · RANDOM · FALLING · UP AND DOWN |
+| **chance** | a sequencer | probability 100 → 5 % | humanise | DICE · RATCHET · FILL · SKIP · GHOST · DROP |
+| **chain** | a sequencer | every 1 · 2 · 4 · 8 bars | how many patterns, 2–6 | LOOP · PING-PONG · RANDOM · SONG · ONCE · SHUFFLE |
+| **scene** | anywhere | morph live → snapshot | crossfade 0–4 bars | snapshot A · B · C · D · E · F |
 | **motion** | any object | loop 1 · 2 · 4 · 8 bars | smoothing | what it loops: TURN · SLIDE · MOVE · ALL |
-| **warp** | a loop, a recorder, or a mic (live) | pitch −12 … +12 semitones | grain 20–200 ms | PITCH · HALF · DOUBLE · REVERSE |
-| **send** | an effect | send level | reach | POST · PRE |
-| **space** | anywhere | stereo width | orbit speed | POSITION · ORBIT · RADIAL |
-| **master** | anywhere | volume | glue | CLEAN · GLUE · PUMP · LIMIT |
-| **stems** | anywhere | 1 · 2 · 4 · 8 · 16 · 32 bars | — | (place, tap or replace to arm) |
+| **warp** | a loop, a recorder, or a mic (live) | pitch −12 … +12 semitones (STUTTER, FREEZE: where in the loop) | grain 20–200 ms | PITCH · HALF · DOUBLE · REVERSE · STUTTER · FREEZE |
+| **send** | an effect | reach | send level | POST · PRE |
+| **space** | anywhere | stereo width | orbit or sweep speed | POSITION · ORBIT · RADIAL · MIRROR · SWEEP · MONO |
+| **master** | anywhere | glue | volume | CLEAN · GLUE · PUMP · LIMIT · WARM · LOUD |
+| **stems** | anywhere | 1 · 2 · 4 · 8 · 16 · 32 bars | — | (place, double-tap or replace to arm; the sixth face of the record cube) |
+
+The faces are the discrete choices, the turn the continuous one, the slider the level: the
+same rule the bodies kit is built on. The new faces since the kit: PERC (a click of a
+note) and GATE (an organ); PAN (pressure swings the sound left and right) and GROWL (an
+audio-rate wobble, 31 Hz); DRUNK (a random walk through the pattern) and SKIP (every other
+step); FALLING and UP AND DOWN pitches; GHOST (a quiet echo half a step after a hit) and
+DROP (whole bars fall silent); ONCE (through the patterns, then stay on the last) and
+SHUFFLE (never the same pattern twice running); scenes E and F; STUTTER (one sixteenth of
+the loop, again on every step; on a mic, a fresh grain of the voice on every step) and
+FREEZE (one point of the loop for ever; on a mic, the last grain of the voice held);
+MIRROR (left is right), SWEEP (everything swings, each sound at its own phase) and MONO;
+WARM (a soft saturation stage before the compressor) and LOUD (hard limiting with make-up
+gain).
 
 "Sits by" means the puck binds to the nearest suitable object within the control reach,
 exactly as the LFO and sequencer already do; a dashed purple line shows the binding.
@@ -174,14 +189,19 @@ These are the ideas that only exist because a **camera**, a **screen** and a
 `hardware/print/` holds `cube-60`, `puck-70-round` and `puck-70-hex` as STL and OBJ,
 each with shallow circular pockets that a printed marker disc drops into; the
 generator (`hardware/make_parts.py`) is pure Python and checks each mesh is watertight.
-`hardware/markers-60mm.html` and `markers-52mm.html` are the marker sheets (every
-object, four faces each, both trays); `hardware/cards.html` prints a card per object
-with what turning, sliding and flipping does. See `hardware/README.md` for print
-settings and assembly.
+`hardware/markers-60mm.html` and `markers-52mm.html` are the marker sheets, one body at
+a time in face order; `hardware/cards.html` prints a card per object with what turning,
+sliding and flipping does. See `hardware/README.md` for print settings and assembly, and
+for the **bodies kit**: every function of the table on 32 bodies (28 cubes, three
+truncated octahedra for the LFO, the key and the tuning, and a two-sided send puck), the
+faces of each body being the modes of one thing.
 
-Markers now carry eight ID dots at 45° (256 ids) rather than six, so the twenty-nine
-object types with four faces each fit with room to spare; the detector and the sheet
-changed together, and the round-trip test renders each marker and reads it back.
+Markers carry eight ID dots at 45° (256 ids). The first four faces of every type keep
+their ids (type × 4 + face); the faces beyond four are numbered on from 156 in type
+order, 191 faces in all, the highest id 208. The detector, the sheet and the kit
+generator read the same table, and the round-trip tests render each marker and read it
+back, on paper (`tests/faces.test.js`) and out of the printed meshes
+(`hardware/check_kit.py`).
 
 ## Honest limits
 

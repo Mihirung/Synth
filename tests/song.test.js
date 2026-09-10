@@ -31,8 +31,8 @@ const CHROME = process.env.PLAYWRIGHT_CHROMIUM || (fs.existsSync('/opt/pw-browse
   // 2. a real take: an osc plays, the rec block is tapped, one bar later a blob floats beside it (and the rec does not loop)
   const s2 = await page.evaluate(async()=>{
     const osc = spawn('osc', CX-0.2*TABLE_R, CY-0.3*TABLE_R); computePatch();
-    const rec = spawn('rec', CX-0.5*TABLE_R, CY+0.15*TABLE_R); rec.angle = 0.05*TAU; computePatch();   // one bar
-    cycleOption(rec);   // a tap arms it
+    const rec = spawn('rec', CX-0.5*TABLE_R, CY+0.15*TABLE_R); rec.option = 0; computePatch();   // the one-bar face
+    cycleOption(rec); cycleOption(rec);   // a double tap arms it
     const armed = rec.recState==='armed';
     const t0 = performance.now();
     while(rec.recState!=='idle' || audio.captures.size){ if(performance.now()-t0 > 9000) break; await new Promise(r=>setTimeout(r,100)); }
@@ -60,6 +60,7 @@ const CHROME = process.env.PLAYWRIGHT_CHROMIUM || (fs.existsSync('/opt/pw-browse
   // 4. play at the centre: the head moves, blobs sound from the song bus, and a rec take taken meanwhile hears none of it
   const s4 = await page.evaluate(async()=>{
     for(const o of objects) if(o.type==='osc') setMuted(o, true);
+    await new Promise(r=>setTimeout(r, 250));   // the mute is a 15 ms fade: let its tail go before a take could start on the next bar
     const an = audio.ctx.createAnalyser(); an.fftSize = 1024; audio.songBus.connect(an); const w = new Float32Array(1024);
     const lv = ()=>{ an.getFloatTimeDomainData(w); let s=0; for(const v of w) s+=v*v; return Math.sqrt(s/w.length); };
     song.pos = 19;   // just before the first blob
@@ -67,7 +68,7 @@ const CHROME = process.env.PLAYWRIGHT_CHROMIUM || (fs.existsSync('/opt/pw-browse
     canvas.dispatchEvent(new PointerEvent('pointerdown', { clientX:bt.x, clientY:bt.y, pointerId:9, pointerType:'touch', bubbles:true }));
     canvas.dispatchEvent(new PointerEvent('pointerup', { clientX:bt.x, clientY:bt.y, pointerId:9, pointerType:'touch', bubbles:true }));
     const playing = song.playing, p0 = song.pos;
-    const rec = objects.find(o=>o.type==='rec'); cycleOption(rec);   // record one bar while the song plays
+    const rec = objects.find(o=>o.type==='rec'); cycleOption(rec); cycleOption(rec);   // record one bar while the song plays
     const t0 = performance.now(); let peakLv = 0;
     while(performance.now()-t0 < 6500){ await new Promise(r=>setTimeout(r,50)); if(song.pos>20.1 && song.pos<22) peakLv = Math.max(peakLv, lv()); }
     return { playing, p0, pos: song.pos, moved: song.pos > p0+1, sources: song.sources.length, peakLv, blobs: song.blobs.length, rec: rec.recState, captures: audio.captures.size };
@@ -85,10 +86,10 @@ const CHROME = process.env.PLAYWRIGHT_CHROMIUM || (fs.existsSync('/opt/pw-browse
     tap('play'); await new Promise(r=>setTimeout(r,80));
     const inLoop = song.playing && song.pos>=24 && song.pos<32 && Math.abs((song.wrapAt - song.t0)/barDur() - 32) < 0.01;
     tap('stop'); p.angle = 0; applyParams(p);
-    cycleOption(p); const little = songForm().n+':'+songBars(); cycleOption(p); const free = songForm().n+':'+songBars(); cycleOption(p); const pop = songForm().n+':'+songBars();
-    return { paused, held, src0, stopped, loop, lp, inLoop, little, free, pop, still: song.blobs.map(b=>b.bar).join(',') };
+    cycleOption(p); const little = songForm().n+':'+songBars(); setOption(p, 5); const free = songForm().n+':'+songBars(); setOption(p, 0); const pop = songForm().n+':'+songBars(); const blues = (setOption(p, 2), songBars()), aaba = (setOption(p, 3), songBars()), build = (setOption(p, 4), songBars()); setOption(p, 0);
+    return { paused, held, src0, stopped, loop, lp, inLoop, little, free, pop, blues, aaba, build, still: song.blobs.map(b=>b.bar).join(',') };
   });
-  check('pause holds the bar, stop goes home, the ring loops the chorus (bars 24–32), faces flip the shape and the blobs keep their bars', s5.paused && s5.held && s5.src0===0 && s5.stopped && s5.loop==='24-32' && /loop CHORUS/.test(s5.lp) && s5.inLoop && s5.little==='LITTLE SONG:40' && s5.free==='FREE:64' && s5.pop==='POP SONG:88' && s5.still==='20,20,40', JSON.stringify(s5));
+  check('pause holds the bar, stop goes home, the ring loops the chorus (bars 24–32), faces flip the shape and the blobs keep their bars', s5.paused && s5.held && s5.src0===0 && s5.stopped && s5.loop==='24-32' && /loop CHORUS/.test(s5.lp) && s5.inLoop && s5.little==='LITTLE SONG:40' && s5.free==='FREE:64' && s5.pop==='POP SONG:88' && s5.blues===48 && s5.aaba===64 && s5.build===72 && s5.still==='20,20,40', JSON.stringify(s5));
 
   // 6. saving: an offline render of the rim, then a file (WAV here: the MP3 encoder cannot load without the network)
   const s6 = await page.evaluate(async()=>{

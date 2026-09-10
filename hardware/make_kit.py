@@ -22,12 +22,21 @@ metronome for tempo, and a record for the song. The play tray has a drum, a tria
 with strings, a sphere with marble sockets, ripples for hum, a baton, a knurled knob, two
 antennae, a bowl with rods, and Saturn.
 
+The bodies kit (--bodies) is the third set: every function of the table on the fewest bodies, read from the
+instrument's KIT table. A face is a mode, the turn is the continuous control, the on-screen slider the level.
+Cubes carry six faces of one thing (the oscillator's six waves, the delay's six times), truncated octahedra
+carry eight (the LFO's four shapes twice, the key's eight scales, eight tunings), and the send is a two-sided
+puck. The theme of each body is a glyph in every corner of its faces and, large, on any face without a code
+(the squares of a truncated octahedron, the blank faces of a cube).
+
 Run:  python3 make_kit.py                 writes print/kit/*.stl (deboss)
       python3 make_kit.py --relief emboss --obj --out somewhere
       python3 make_kit.py --only osc,mic  a few bodies
       python3 make_kit.py --cube osc      a 60 mm cube: faces 1-4 of one object in relief, two blank
       python3 make_kit.py --hex key       a hexagonal puck for an advanced object
       python3 make_kit.py --round rec     a plain round puck for any object
+      python3 make_kit.py --bodies        the bodies kit, 32 bodies, to print/bodies
+      python3 make_kit.py --body lfo,send one or two bodies of it
 """
 import math, os, re, sys, argparse
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
@@ -56,8 +65,39 @@ def tuio_types():
 TYPES = tuio_types()
 
 
+def kit_table():
+    """the bodies kit, read from the instrument: [{body, shape, faces:[(type, face)...], theme, twice}]"""
+    try:
+        html = open(os.path.join(HERE, '..', 'prototype', 'index.html'), encoding='utf-8').read()
+        block = re.search(r"const KIT = \[(.*?)\n\];", html, re.S).group(1)
+    except Exception:
+        return []
+    out = []
+    for line in block.splitlines():
+        b = re.search(r"body:'(\w+)',\s*shape:'(\w+)',\s*runs:\[(.*?)\],\s*theme:'([^']*)'(.*)", line)
+        if not b:
+            continue
+        body, shape, runs, theme, rest = b.groups()
+        faces = []
+        for t, n in re.findall(r"\['(\w+)',(\d+)\]", runs):
+            faces += [(t, v) for v in range(int(n))]
+        out.append(dict(body=body, shape=shape, faces=faces, theme=theme, twice='twice:true' in rest))
+    return out
+
+
+KIT = kit_table()
+FACES = {}
+for _b in KIT:
+    for _t, _v in _b['faces']:
+        FACES[_t] = max(FACES.get(_t, 0), _v + 1)
+EXTRA = [(t, v) for t in TYPES for v in range(4, FACES.get(t, 1))]   # ids from len(TYPES)*4 up, as in the instrument
+
+
 def marker_id(type_, variant=0):
-    return TYPES.index(type_) * 4 + variant
+    """the instrument's marker id: four faces of every type first, the faces beyond four numbered on from there"""
+    if variant < 4:
+        return TYPES.index(type_) * 4 + variant
+    return len(TYPES) * 4 + EXTRA.index((type_, variant))
 
 
 # ---------------------------------------------------------------- outlines
@@ -137,7 +177,10 @@ def marker_face(m, frame, ring_out, D, mid, relief='deboss', depth=0.6, glyph=No
     # the region outside the disc, between the body outline and the disc edge
     nO = len(ring_out)
     A = [(pt[0] + n[0]*zO, pt[1] + n[1]*zO, pt[2] + n[2]*zO) for pt in ring_out]   # the body's top loop, at the outer level
-    angA = [TAU * i / nO for i in range(nO)]
+    angA = _unwrap([math.atan2(_dot(sub(pt, o), v), _dot(sub(pt, o), u)) % TAU for pt in ring_out])   # its true angles (a loop sampled along its edges is not uniform)
+    if angA[0] > 1e-9:                                                              # the loop must start at its smallest angle for the merge
+        k = min(range(nO), key=lambda i: angA[i] % TAU)
+        A = A[k:] + A[:k]; angA = _unwrap([a % TAU for a in angA[k:] + angA[:k]])
     discO = [circ(R, k, zO) for k in range(NC)]
     angC = [TAU * k / NC for k in range(NC)]
     strip(tri, A, angA, discO, angC)
@@ -253,7 +296,28 @@ GLYPHS = {
     'conduct':  [[(0.1, 0.1), (0.85, 0.85)], _arc(0.85, 0.85, 0.08, 0, TAU, 8)],
     'air':      [_arc(0.5, 0.5, 0.42, 0, TAU, 12), [(0.5, 0.5), (0.5, 0.92)]],
     'seq':      [_arc(0.5, 0.5, 0.42, k * TAU / 8 - 0.18, k * TAU / 8 + 0.18, 2) for k in range(8)],
+    # the bodies kit's themes
+    'walk':     [[(0.08, 0.15), (0.32, 0.62), (0.58, 0.3), (0.9, 0.85)], [(0.72, 0.85), (0.9, 0.85), (0.9, 0.67)]],
+    'euclid':   [_arc(0.5, 0.5, 0.42, k * TAU / 8 - 0.16, k * TAU / 8 + 0.16, 2) for k in (0, 2, 3, 5, 6)],
+    'chance':   [_arc(x, y, 0.09, 0, TAU, 8) for x, y in ((0.22, 0.22), (0.78, 0.22), (0.5, 0.5), (0.22, 0.78), (0.78, 0.78))],
+    'chain':    [_arc(0.34, 0.5, 0.24, 0, TAU, 12), _arc(0.66, 0.5, 0.24, 0, TAU, 12)],
+    'key':      [_arc(0.24, 0.5, 0.16, 0, TAU, 10), [(0.4, 0.5), (0.95, 0.5)], [(0.78, 0.5), (0.78, 0.3)], [(0.9, 0.5), (0.9, 0.34)]],
+    'tuning':   [[(0.34, 0.95), (0.34, 0.5), (0.5, 0.36), (0.66, 0.5), (0.66, 0.95)], [(0.5, 0.36), (0.5, 0.05)]],
+    'envelope': [[(0.05, 0.1), (0.25, 0.9), (0.4, 0.55), (0.7, 0.55), (0.95, 0.1)]],
+    'express':  [_arc(0.5, 0.36, 0.2, 0, TAU, 10), _arc(0.5, 0.36, 0.4, 0.4, math.pi - 0.4, 8), _arc(0.5, 0.36, 0.58, 0.6, math.pi - 0.6, 8)],
+    'scene':    [[(0.1, 0.32), (0.1, 0.1), (0.32, 0.1)], [(0.68, 0.1), (0.9, 0.1), (0.9, 0.32)], [(0.9, 0.68), (0.9, 0.9), (0.68, 0.9)], [(0.32, 0.9), (0.1, 0.9), (0.1, 0.68)], _arc(0.5, 0.5, 0.1, 0, TAU, 8)],
+    'motion':   [_arc(0.3, 0.5, 0.2, 0, TAU, 12), _arc(0.7, 0.5, 0.2, 0, TAU, 12)],
+    'warp':     [_arc(x, y, 0.06, 0, TAU, 6) for x, y in ((0.2, 0.3), (0.45, 0.75), (0.7, 0.25), (0.85, 0.6), (0.35, 0.45), (0.6, 0.55))],
+    'send':     [[(0.05, 0.5), (0.9, 0.5)], [(0.65, 0.25), (0.9, 0.5), (0.65, 0.75)]],
+    'space':    [_arc(0.5, 0.5, 0.42, 0, TAU, 14), [(0.5, 0.08), (0.5, 0.92)], [(0.2, 0.35), (0.45, 0.35)], [(0.12, 0.5), (0.45, 0.5)], [(0.2, 0.65), (0.45, 0.65)]],
+    'master':   [[(0.1, 0.15), (0.1, 0.7), (0.3, 0.45), (0.5, 0.85), (0.7, 0.45), (0.9, 0.7), (0.9, 0.15), (0.1, 0.15)]],
 }
+BODY_GLYPH = { 'loops': 'sampler', 'record': 'rec', 'voice': 'hum', 'balls': 'marbles', 'dirt': 'dist', 'clock': 'tempo', 'reverb': 'reverb', 'mod': 'chorus' }
+
+
+def theme_glyph(body):
+    """the glyph a body carries in its corners and on its blank faces"""
+    return BODY_GLYPH.get(body, body) if BODY_GLYPH.get(body, body) in GLYPHS else None
 
 
 def glyph_shells(m, P, strokes, radius, angle, size, z0, z1, width=1.0):
@@ -378,6 +442,153 @@ def cube(type_, size=60.0, D=52.0, relief='deboss', variants=(0, 1, 2, 3)):
                 m.tri(c, ring[i], ring[(i + 1) % N_SIDE])
     m.name = 'cube-60-' + type_
     return m
+
+
+def blank_face(m, frame, ring, glyph=None, size=0.0):
+    """a face with no code: flat, with the theme glyph standing 0.6 mm proud in the middle"""
+    o, u, v, n = frame
+    for i in range(len(ring)):
+        m.tri(o, ring[i], ring[(i + 1) % len(ring)])
+    if glyph and size > 0:
+        P = lambda x, y, z: (o[0] + u[0]*x + v[0]*y + n[0]*z, o[1] + u[1]*x + v[1]*y + n[1]*z, o[2] + u[2]*x + v[2]*y + n[2]*z)
+        glyph_shells(m, P, GLYPHS[glyph], 0.0, math.pi / 2, size, -0.3, 0.6, width=1.6)   # 'up' along +v
+
+
+def edge_ring(corners, per_edge):
+    """a face outline sampled along its edges (per_edge points each), so two faces sharing an edge share its points"""
+    ring = []
+    for i in range(len(corners)):
+        a, b = corners[i], corners[(i + 1) % len(corners)]
+        for k in range(per_edge):
+            f = k / per_edge
+            ring.append(tuple(a[j] + (b[j] - a[j]) * f for j in range(3)))
+    return ring
+
+
+def cube_faces(name, faces, size=60.0, D=52.0, relief='deboss', glyph=None):
+    """a cube: up to six (type, face) codes in relief, in the order top, bottom, +x, -x, +y, -y; a face without a code is blank
+    with the theme glyph large in the middle. The frames are right-handed with the normal outward, so every code reads
+    correctly when its face is up."""
+    m, h = Mesh(), size / 2
+    frames = [
+        ((0, 0, h),  (1, 0, 0), (0, 1, 0), (0, 0, 1)),
+        ((0, 0, -h), (0, 1, 0), (1, 0, 0), (0, 0, -1)),
+        ((h, 0, 0),  (0, 1, 0), (0, 0, 1), (1, 0, 0)),
+        ((-h, 0, 0), (0, 0, 1), (0, 1, 0), (-1, 0, 0)),
+        ((0, h, 0),  (0, 0, 1), (1, 0, 0), (0, 1, 0)),
+        ((0, -h, 0), (1, 0, 0), (0, 0, 1), (0, -1, 0)),
+    ]
+    m.faces = []
+    for fi, (o, u, v, n) in enumerate(frames):
+        P = lambda x, y, z: (o[0] + u[0]*x + v[0]*y + n[0]*z, o[1] + u[1]*x + v[1]*y + n[1]*z, o[2] + u[2]*x + v[2]*y + n[2]*z)
+        ring = []
+        for i in range(N_SIDE):
+            a = TAU * i / N_SIDE
+            t = outline('square', a, h)
+            ring.append(P(t * math.cos(a), t * math.sin(a), 0))
+        if fi < len(faces):
+            mid = marker_id(*faces[fi])
+            marker_face_general(m, (o, u, v, n), ring, D, mid, relief, glyph=glyph, corners=4, corner0=math.pi / 4)
+            m.faces.append(((o, u, v, n), mid))
+        else:
+            blank_face(m, (o, u, v, n), ring, glyph, size * 0.5)
+    m.name = name
+    return m
+
+
+def puck2(name, faces, half=35.0, height=16.0, D=60.0, relief='deboss', glyph=None):
+    """a two-sided puck: one code on top, its partner underneath, both reading correctly when they are up; eight chevrons
+    round the rim, the theme (an arrow) of the send"""
+    m = Mesh()
+    N = N_SIDE
+    tex = lambda a, z: sum(1.1 * abump(a, k * TAU / 8 + 0.04 * abs(z - height / 2), 0.05) for k in range(8)) * min(1.0, (height - z) / 1.5) * min(1.0, z / 1.5)
+    rings = []
+    zs = [height * k / 8 for k in range(9)]
+    for z in zs:
+        ring = []
+        for i in range(N):
+            a = TAU * i / N
+            r = half + (tex(a, z) if 0 < z < height else 0.0)
+            ring.append((r * math.cos(a), r * math.sin(a), z))
+        rings.append(ring)
+    for k in range(len(rings) - 1):
+        lo, hi = rings[k], rings[k + 1]
+        for i in range(N):
+            j = (i + 1) % N
+            m.tri(lo[i], lo[j], hi[j]); m.tri(lo[i], hi[j], hi[i])
+    top, bot = rings[-1], rings[0]
+    m.faces = []
+    # the top: the world frame
+    ft = ((0, 0, height), (1, 0, 0), (0, 1, 0), (0, 0, 1))
+    marker_face(m, ft, top, D, marker_id(*faces[0]), relief, glyph=glyph, corners=0)
+    m.faces.append((ft, marker_id(*faces[0])))
+    # the bottom: seen from below (u = +y, v = +x, n = -z); its loop must be anticlockwise about -z, i.e. clockwise about +z
+    fb = ((0, 0, 0), (0, 1, 0), (1, 0, 0), (0, 0, -1))
+    lring = [bot[(N // 4 - i) % N] for i in range(N)]        # the same vertices as the wall's bottom ring, in the bottom frame's order
+    if len(faces) > 1:
+        marker_face_general(m, fb, lring, D, marker_id(*faces[1]), relief, glyph=glyph, corners=0)
+        m.faces.append((fb, marker_id(*faces[1])))
+    else:
+        blank_face(m, fb, lring, glyph, 30.0)
+    m.name = name
+    return m
+
+
+def trunc_oct(name, faces, across=88.0, D=52.0, relief='deboss', glyph=None):
+    """a truncated octahedron: eight hexagonal faces carry codes (any without a code is blank); the six squares carry the theme
+    glyph. `across` is the distance between opposite hexagons. Vertices are the permutations of (0, +-1, +-2); a face's
+    outline is sampled along its edges so the hexagons and the squares share every edge point."""
+    from itertools import permutations
+    V = set()
+    for p in permutations((0, 1, 2)):
+        for sx in (-1, 1):
+            for sy in (-1, 1):
+                V.add((p[0] * (sx if p[0] else 1), p[1] * (sy if p[1] else 1), p[2] * (sx * sy if p[2] else 1)))
+    # the sign trick above is not exhaustive; build the 24 vertices plainly
+    V = set()
+    for p in permutations((0, 1, 2)):
+        for s1 in (-1, 1):
+            for s2 in (-1, 1):
+                V.add(tuple((s1 if c == 1 else s2 if c == 2 else 1) * c for c in p))
+    V = sorted(V)
+    assert len(V) == 24, len(V)
+    sc = across / (2 * math.sqrt(3))            # a hexagon sits at distance 3/sqrt(3) = sqrt(3) in unit coordinates
+    V = [(p[0] * sc, p[1] * sc, p[2] * sc) for p in V]
+    hexes = [unit((sx, sy, sz)) for sx in (-1, 1) for sy in (-1, 1) for sz in (-1, 1)]
+    squares = [(1, 0, 0), (-1, 0, 0), (0, 1, 0), (0, -1, 0), (0, 0, 1), (0, 0, -1)]
+    PER = 8
+    m = Mesh(); m.faces = []
+    for fi, n in enumerate(hexes + squares):
+        k = 6 if fi < len(hexes) else 4
+        pts = sorted(V, key=lambda p: -_dot(n, p))[:k]
+        assert max(_dot(n, p) for p in pts) - min(_dot(n, p) for p in pts) < 1e-6, 'face not planar'
+        c = tuple(sum(p[j] for p in pts) / k for j in range(3))
+        u = unit(sub(pts[0], c)); v = cross(n, u)                   # u toward a vertex; u x v = n
+        ang = lambda p: math.atan2(_dot(sub(p, c), v), _dot(sub(p, c), u)) % TAU
+        pts.sort(key=ang)                                           # anticlockwise about n
+        ring = edge_ring(pts, PER)
+        if fi < len(hexes) and fi < len(faces):
+            mid = marker_id(*faces[fi])
+            marker_face_general(m, (c, u, v, n), ring, D, mid, relief, glyph=glyph, corners=6, corner0=0.0)
+            m.faces.append(((c, u, v, n), mid))
+        else:
+            side = math.dist(pts[0], pts[1])
+            blank_face(m, (c, u, v, n), ring, glyph, side * (0.6 if k == 4 else 0.9))
+    m.name = name
+    return m
+
+
+def body_of(entry, relief='deboss'):
+    """one body of the bodies kit, from its KIT entry"""
+    g = theme_glyph(entry['body'])
+    name = '%s-%s' % (entry['shape'], entry['body'])
+    if entry['shape'] == 'cube':
+        return cube_faces(name, entry['faces'], relief=relief, glyph=g)
+    if entry['shape'] == 'to':
+        return trunc_oct(name, entry['faces'], relief=relief, glyph=g)
+    if entry['shape'] == 'puck':
+        return puck2(name, entry['faces'], relief=relief, glyph=g)
+    raise ValueError(entry['shape'])
 
 
 def marker_face_general(m, frame, ring, D, mid, relief, glyph=None, corners=0, corner0=0.0):
@@ -534,9 +745,18 @@ if __name__ == '__main__':
     ap.add_argument('--round', default='')
     ap.add_argument('--d12', default='', help='up to twelve objects for one dodecahedron, e.g. osc,filter,seq')
     ap.add_argument('--d12-set', action='store_true', help='six dodecahedra that hold the whole kit three times over')
+    ap.add_argument('--bodies', action='store_true', help='the bodies kit: every function on the fewest bodies (cubes, truncated octahedra, a two-sided puck)')
+    ap.add_argument('--body', default='', help='named bodies of the bodies kit, e.g. lfo,send,osc')
     args = ap.parse_args()
     os.makedirs(args.out, exist_ok=True)
     made = False
+    if args.bodies or args.body:
+        want = [x for x in args.body.split(',') if x]
+        for e in KIT:
+            if want and e['body'] not in want:
+                continue
+            write(body_of(e, args.relief), args.out, args.obj)
+        made = True
     for t in [x for x in args.cube.split(',') if x]:
         write(cube(t, relief=args.relief), args.out, args.obj); made = True
     for t in [x for x in args.hex.split(',') if x]:

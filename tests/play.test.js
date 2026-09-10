@@ -170,7 +170,7 @@ const CHROME = process.env.PLAYWRIGHT_CHROMIUM || (fs.existsSync('/opt/pw-browse
     for(const o of [...objects]) destroyObject(o);
     const ok = loadSceneFrom(JSON.parse(json));
     const types = objects.map(o=>o.type).sort().join(',');
-    const sheet = markerSheetHTML(60).includes('The play tray'), cards = cardsHTML().includes('AIR DRUMS');
+    const sheet = markerSheetHTML(60).includes('AIR DRUMS') && markerSheetHTML(60).includes('BALLS'), cards = cardsHTML().includes('AIR DRUMS');
     return { ok, types, n: objects.length, sheet, cards, ids: TUIO_TYPES.length*4 };
   });
   check('play objects persist, survive a sound-mode switch, and print on the sheets', misc.ok && misc.n===7 && misc.sheet && misc.cards && misc.ids<=256, JSON.stringify(misc));
