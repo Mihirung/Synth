@@ -100,6 +100,22 @@ const CHROME = process.env.PLAYWRIGHT_CHROMIUM || (fs.existsSync('/opt/pw-browse
   });
   check('save: the render starts at bar 20, runs to the last blob, and a song file is handed over', s6.peak>0.2 && s6.peak<=0.95 && Math.abs(s6.firstBar-20)<0.05 && s6.len===s6.expect && s6.file && s6.file.size>1000 && /\.(wav|mp3)$/.test(s6.file.name), JSON.stringify(s6));
 
+  // 6b. four tracks; the grip at the end of the bar-40 blob stretches it to bar 48: four loops of a two-bar take, scheduled as four repeats, rendered to bar 48
+  const grip = await page.evaluate(()=>{ const b=song.blobs[2]; const h=(songR1()-songR0())/SONG_LANES, r=songR0()+(b.lane+0.5)*h;
+    const at=bar=>{ const a=songAngleOfBar(bar); return { x:CX+Math.cos(a)*r, y:CY+Math.sin(a)*r }; };
+    return { lanes: SONG_LANES, band:+((songR1()-songR0())/TABLE_R).toFixed(3), from: at(b.bar+b.bars), to: at(48.3), hit: !!songHandleAt(at(b.bar+b.bars).x, at(b.bar+b.bars).y) }; });
+  await drag(grip.from, grip.to, 20);
+  const s6b = await page.evaluate(async()=>{
+    const b=song.blobs[2];
+    songStopSources(); song.playing=false;
+    const when=audio.ctx.currentTime+0.05; song.t0=when-40*barDur(); song.playing=true; songSchedulePass(40, when);
+    const reps=song.sources.filter(s=>s.blob===b).length, starts=song.sources.filter(s=>s.blob===b).map(s=>+((s.t-when)/barDur()).toFixed(2)).join(',');
+    song.playing=false; songStopSources();
+    const r=await songRender(); const expect=Math.ceil((48*barDur()+1)*r.sr);
+    return { len:b.len, bars:b.bars, occupied: songOccupied(b.lane, 44, 1, null), reps, starts, renderLen:r.pcm.length, expect };
+  });
+  check('four tracks; the grip stretches a two-bar take to eight bars: it loops four times on the bar, holds its lane, and renders to bar 48', grip.lanes===4 && grip.band>0.1 && grip.hit && s6b.len===8 && s6b.bars===2 && s6b.occupied && s6b.reps===4 && s6b.starts==='0,2,4,6' && s6b.renderLen===s6b.expect, JSON.stringify({grip:{lanes:grip.lanes,band:grip.band,hit:grip.hit}, ...s6b}));
+
   await page.evaluate(()=>{ const rec=objects.find(o=>o.type==='rec'); const sr=audio.ctx.sampleRate, buf=audio.ctx.createBuffer(1, Math.round(4*barDur()*sr), sr); songAddBlob(rec, buf, 4); song.dragX = song.blobs[3].x; song.dragY = song.blobs[3].y; });
   await page.waitForTimeout(300);
   await page.screenshot({ path:path.join(SHOTS,'song.png') });
@@ -110,8 +126,8 @@ const CHROME = process.env.PLAYWRIGHT_CHROMIUM || (fs.existsSync('/opt/pw-browse
   const binned = await page.evaluate(()=>song.blobs.length);
   await page.waitForTimeout(400);
   await page.reload(); await page.click('#begin'); await page.waitForTimeout(900);
-  const s7 = await page.evaluate(()=>({ puck: !!song.puck, n: song.blobs.length, placed: song.blobs.map(b=>b.placed+':'+b.bar+':'+b.lane).sort().join(' '), take: song.nextTake }));
-  check('the bin takes a blob; after a reload the song puck and the three placed blobs are back', binned===3 && s7.puck && s7.n===3 && s7.placed==='true:20:0 true:20:1 true:40:0' && s7.take===4, JSON.stringify({ binned, ...s7 }));
+  const s7 = await page.evaluate(()=>({ puck: !!song.puck, n: song.blobs.length, placed: song.blobs.map(b=>b.placed+':'+b.bar+':'+b.lane).sort().join(' '), lens: song.blobs.map(b=>b.bar+':'+(b.len||b.bars)).sort().join(' '), take: song.nextTake }));
+  check('the bin takes a blob; after a reload the song puck, the three placed blobs and the stretch are back', binned===3 && s7.puck && s7.n===3 && s7.placed==='true:20:0 true:20:1 true:40:0' && s7.lens==='20:1 20:2 40:8' && s7.take===4, JSON.stringify({ binned, ...s7 }));
 
   // 8. taking the puck away stops the song and hides the rim; the blobs wait
   const s8 = await page.evaluate(()=>{ songPlay(); const was = song.playing; destroyObject(song.puck); return { was, off: !song.puck && !song.playing, kept: song.blobs.length }; });

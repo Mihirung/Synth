@@ -40,9 +40,15 @@ behave in zero gravity. The number in the middle is how many bars it holds; its 
 - **Drag a blob to the rim** and let go. It snaps to the nearest bar and sticks there. A
   label follows the finger while you drag (*BAR 21 · VERSE 1*) so you can see where it
   will land.
-- **Before, after or on top.** The band has three lanes. A blob dropped on bars that are
-  already taken goes into the next free lane, so takes stack. A blob can also half
-  overlap another one.
+- **Before, after or on top.** The band is a classic four-track: four lanes, numbered at
+  the top, with a line between each. A blob dropped on bars that are already taken goes
+  into the next free lane, so takes stack. A blob can also half overlap another one.
+- **Stretch a take.** Every blob on the rim has a grip at its end. Pull the grip along the
+  edge and the blob grows a whole bar at a time; the take loops to fill the stretch, each
+  repeat starting on the bar, with a tick where each repeat begins and the count in its
+  label (*take 3 ×4*). A two-bar drum loop pulled out to the end of the song becomes the
+  drums for the whole song; pulled to the end of the chorus, the drums for the chorus.
+  Pull it back to shorten it, down to a single bar.
 - **Tap a blob** to hear it on its own. Tap again to stop it.
 - **Drag a blob off the rim** back onto the disc to take it out of the song. It floats
   again where you leave it.
@@ -108,8 +114,10 @@ one lap of the table. That is the thing worth learning first.
   `nextBarTime()`; `songTick()` for the jelly physics (a spring with honey damping) and the
   loop wrap; `songRender()` / `songExport()` for the file; `songSave()` / `songRestore()`
   for IndexedDB (database version 2, store `song`).
-- The band is `TABLE_R × 0.905 … 0.985`, three lanes; anything dropped beyond 0.86 R
-  snaps to the rim, beyond 1.04 R is the bin.
+- The band is `TABLE_R × 0.87 … 0.985`, four lanes; anything dropped beyond 0.86 R
+  snaps to the rim, beyond 1.04 R is the bin. A blob's `bars` is its take, `len` its stretch
+  on the rim; `songScheduleBlob()` and `songRender()` repeat the take every `bars` bars up
+  to `len`, and `songHandleAt()` / `songStretch()` are the grip.
 - Tests: `tests/song.test.js` records a real take, drags blobs with the mouse, plays,
   measures the song bus, records a silent take while the song plays (isolation), renders,
   saves, reloads and checks everything came back.
