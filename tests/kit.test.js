@@ -105,6 +105,21 @@ const CHROME = process.env.PLAYWRIGHT_CHROMIUM || (fs.existsSync('/opt/pw-browse
     return { loops, shift, ro, bars, flipped, notArmed, armed, bpm, swing, chip, clickHzV, clicks, swingOff };
   });
   check('LOOPS: six loops on six faces, the ring shifts the bar\'s start (step 5); RECORD: five lengths on five faces, one tap flips, a double tap arms', gen.loops.join()==='KICK,BEAT,HATS,BASS,CHORD,ARP' && gen.shift===4 && /from step 5/.test(gen.ro) && gen.bars.join()==='1,2,4,8,16' && gen.flipped===2 && gen.notArmed==='idle' && gen.armed==='armed', JSON.stringify({loops:gen.loops, shift:gen.shift, ro:gen.ro, bars:gen.bars, flipped:gen.flipped, notArmed:gen.notArmed, armed:gen.armed}));
+  // 5b. the click is heard but never recorded: a rec block capturing a bar of nothing but the click comes back silent
+  const click = await page.evaluate(async()=>{
+    for(const o of [...objects]) destroyObject(o);
+    const c = spawn('tempo', CX, CY-TABLE_R*0.5); setOption(c, 2); c.arc = 1; applyParams(c);          // CLICK, full level
+    const r = spawn('rec', CX+TABLE_R*0.4, CY); setOption(r, 0);                                        // one bar
+    let ticks = 0; const orig = clickTick; clickTick = (o,t,a)=>{ ticks++; orig(o,t,a); };
+    let peak = null; const fin = finishCapture;
+    finishCapture = cap => { let p = 0; for(const b of cap.blocks) for(let i=0;i<b.data.length;i++) p = Math.max(p, Math.abs(b.data[i])); peak = p; fin(cap); };
+    armRec(r);
+    const t0 = performance.now(); while(r.recState!=='idle' || audio.captures.size){ if(performance.now()-t0 > 9000) break; await new Promise(x=>setTimeout(x,100)); }
+    clickTick = orig; finishCapture = fin;
+    return { ticks, peak, state: r.recState, loop: !!r.ownLoop };
+  });
+  check('CLICK is heard but never recorded: the clock ticked through a whole bar and the rec block\'s take came back silent', click.ticks>=4 && click.peak!==null && click.peak<0.001 && click.state==='idle', JSON.stringify(click));
+
   check('CLOCK: TEMPO sets 120 BPM from the ring; SWING sets a continuous 18 % that the chip shows; CLICK ticks every beat at the ring\'s pitch; the chip takes the swing back', gen.bpm===120 && Math.abs(gen.swing-0.18)<0.01 && gen.chip==='18%' && gen.clickHzV===707 && gen.clicks>=3 && gen.swingOff===null, JSON.stringify({bpm:gen.bpm, swing:gen.swing, chip:gen.chip, clickHz:gen.clickHzV, clicks:gen.clicks, swingOff:gen.swingOff}));
 
   // 6. key and tuning on their truncated octahedra; envelope and express

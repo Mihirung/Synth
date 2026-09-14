@@ -35,6 +35,7 @@ synthesiser.
 | [docs/07-advanced.md](docs/07-advanced.md) | The advanced pucks: tuning, envelopes, expression, chance, scenes, motion, warp, sends, stems, and the physical kit |
 | [docs/08-play.md](docs/08-play.md) | The play tray: theremin, air drums, harp, marbles, hum, conductor, air knob and waterphone, by touch, hands or voice |
 | [docs/09-song.md](docs/09-song.md) | The song block: a three-minute pop-song timeline around the rim, takes as draggable blobs, play/pause/stop at the centre, MP3/WAV export |
+| [docs/10-blocks.md](docs/10-blocks.md) | **The manual for the main tray**: every block face by face, with one table of every face on the table |
 | [hardware/README.md](hardware/README.md) | The printed kit: STL/OBJ parts, marker sheets and cards |
 | [tests/README.md](tests/README.md) | Headless end-to-end tests of the instrument (Playwright) |
 
@@ -58,7 +59,8 @@ most of Phase 2 of the plan:
 - **Scenes persist** in the browser between visits, with demo and clear controls, and any
   patch can be shared as a **jam link** (the whole scene encoded in the URL — open it on
   any device and the patch loads).
-- **Swing** (off/lite/full, baked into the generated loops and the sequencer), a
+- **Swing** (off/lite/full from the header chip, or any amount from 0 to 35 % on the clock
+  block's swing face, baked into the generated loops and the sequencer), a
   dual-detuned oscillator voice for a warmer virtual-analog tone, and **audio import**:
   load any audio file as a bar-fitted loop on a sampler cube.
 - **Full original-Reactable object set and gestures**: distortion and reverb effects,
@@ -107,7 +109,7 @@ most of Phase 2 of the plan:
   lengths; a clock with tempo, a continuous swing and a click; a mic that tunes itself to
   the key), the turn is the continuous control, and the on-screen slider is the level. A tap
   flips to the next face; the record bodies arm on a double tap.
-- **The play tray**: eight instruments for hands and voice behind a *play* button. A
+- **The play tray**: nine instruments for hands and voice behind a *play* button. A
   theremin, air drums, a Karplus–Strong harp, marbles that play the rim and everything they
   hit, a hum-to-synth voice follower, a conductor that takes the tempo from your beats, an
   air knob, a **waterphone**: a modal model of the bowl, the brass rods and the sloshing

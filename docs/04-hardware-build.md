@@ -78,10 +78,12 @@ Total: typically **£30 to £100** on top of a TV and phone you already have.
    but its sandbox does not pass the camera through, so use Pages (or any static host) for
    the table.
 2. **Print the markers.** Tap **markers** in the header; print the sheet at 100 % on matte
-   card. Cut out the discs with a small white margin and stick them on the tops of cubes and
-   pucks (or drop them into the pockets of the printed parts in `hardware/`). One object type
-   per cube: its four faces are four variants (oscillator waveforms, filter modes, loop slots,
-   sequencer patterns, scene snapshots); the remaining two faces stay blank.
+   card. Cut out the discs with a small white margin and stick them on the faces of the
+   bodies (or drop them into the pockets of the printed parts in `hardware/`). The sheet is
+   printed one body at a time, in face order: a cube takes six discs, a truncated octahedron
+   eight, a two-sided puck two. The faces of one body are the modes of one thing, so a cube
+   carries an oscillator's six waves or a reverb's six rooms rather than six unrelated
+   objects.
 3. **Mount the phone** above the screen, camera down, roughly centred. Higher is better for
    coverage and for fewer hand occlusions; 1.0 to 1.4 m suits a 43 to 55 in screen with the
    phone's main camera. Lock the phone's screen rotation.

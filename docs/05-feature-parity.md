@@ -12,21 +12,21 @@ excluded, with reason.
 
 | Object | Status | Notes |
 |---|---|---|
-| Oscillator | **done** | Dual detuned voices, 4 waveforms + a finger-drawn wave, scale-quantised, little piano, proximity FM, **polyphonic** (chords from sequencer / MIDI / keys) |
-| Sampler / loop player | **done** | Six synthesised loops + your own imports; bar-synced; rotate to change loop |
-| Sequencer | **done** | 16 radial pitch pads; drives oscillators, and slices samplers/recorders |
-| Filter | **done** | LP/HP/BP, cutoff by rotation, resonance by arc |
-| Delay | **done** | Tempo-synced divisions, feedback by arc |
-| Modulator | **done** | Ring/AM; plus oscillator-to-oscillator FM by proximity |
-| LFO | **done** | Free-run Hz and tempo-synced divisions; modulates osc/filter/delay |
-| Distortion / waveshaper | **done** | "Drive" object |
-| Reverb | **done** | Convolution with rotation-set decay |
-| Chorus | **done** | LFO-modulated delay (a modern addition beyond the original set) |
-| Bitcrusher | **done** | "Crush" object, 2-12 bit (a modern addition) |
-| Input (live audio) | **done** | "Mic" object via getUserMedia |
-| Loop recorder | **done** | Captures the table's own output for 1/2/4/8 bars, loops it |
-| Tempo (global) | **done** | Tangible "tempo" puck (rotate to set BPM), plus a header chip |
-| Tonalizer (scale) | **done** | Global key + scale chips, and a tangible *key* puck (turn = key, slide = scale, faces = octave); a *tuning* puck adds eleven temperaments |
+| Oscillator | **done** | Dual detuned voices, 6 waveforms (sine, saw, square, triangle, a 12.5 % pulse, tuned noise) + a finger-drawn wave, scale-quantised, little piano, proximity FM, **polyphonic** (chords from sequencer / MIDI / keys) |
+| Sampler / loop player | **done** | Six synthesised loops on six faces + your own imports; bar-synced; the ring shifts where in the loop the bar starts |
+| Sequencer | **done** | 16 radial pitch pads, six patterns (A-F) on six faces; drives oscillators, slices samplers/recorders, and gates a live voice |
+| Filter | **done** | Low, high, band, notch, peak and a three-formant vowel filter the ring sings a-e-i-o-u through; cutoff by rotation, resonance by arc |
+| Delay | **done** | Six tempo-synced divisions on six faces (1/16 to a bar), feedback by rotation, mix by arc |
+| Modulator | **done** | Ring and tremolo, with chorus, flanger, phaser and vibrato on the companion block; plus oscillator-to-oscillator FM by proximity |
+| LFO | **done** | Eight faces: four shapes free-running (0.05-16 Hz) and the same four tempo-synced (4 bars to 1/16); modulates osc/filter/delay |
+| Distortion / waveshaper | **done** | "Dirt" object: drive, warm (asymmetric, even harmonics), fuzz (hard clip) and fold (a wavefolder) |
+| Reverb | **done** | Convolution, six generated rooms (room with early reflections, hall, plate, spring, cathedral, gated), size by rotation |
+| Chorus | **done** | LFO-modulated delay, with flanger (feedback), phaser (four swept all-passes) and vibrato (all wet) faces (a modern addition beyond the original set) |
+| Bitcrusher | **done** | "Crush" object, 2-12 bit, plus a lo-fi face that adds the 2.6 kHz roll-off of an early sampler (a modern addition) |
+| Input (live audio) | **done** | "Mic" object via getUserMedia, with a tuned face that pulls the voice to the nearest note of the key |
+| Loop recorder | **done** | Captures the table's own output for 1/2/4/8/16 bars (the face is the length), loops it; the ring shifts where the loop starts |
+| Tempo (global) | **done** | Tangible "clock" puck: tempo by rotation, a continuous swing baked into the loops, and a metronome click; plus a header chip |
+| Tonalizer (scale) | **done** | Global key + scale chips, and a tangible *key* puck (turn = key, faces = the eight scales, slide = octave); a *tuning* puck adds eleven temperaments with a fader from equal temperament to the system |
 | Volume / accents | **done** | Per-object arc as level, a *master* puck (volume + glue), and sequencer accents (three-state pads with an *express* puck) |
 | Containers / groups | **out of scope** | A power-user grouping feature; low value for the target audience |
 
@@ -40,7 +40,7 @@ excluded, with reason.
 | Live waveform on connections | **done** | Real per-connection AnalyserNode |
 | Cut a connection | **done** | Swipe across the line (robust crossing test) |
 | Finger-drawn waveform absorbed by oscillator | **done** | Draw a shape near an osc; becomes its tone |
-| Cube-face flipping for presets/sounds | **done** | A single tap flips to the next face on screen; every object's modes are faces; sequencers keep a four-pattern bank, scenes four snapshots; the printed cubes carry four faces |
+| Cube-face flipping for presets/sounds | **done** | A single tap flips to the next face on screen; every object's modes are faces; sequencers keep a six-pattern bank, scenes six snapshots; the printed bodies carry six faces (a cube), eight (a truncated octahedron) or two (a puck) |
 | Multi-touch, many hands | **partial** | Multi-touch works on one screen; several people around one table is the physical build (**hardware**), which is how the original did it too |
 
 ## Modern additions (what they'd build today)
@@ -65,8 +65,8 @@ excluded, with reason.
 | Microtonal tuning | **done** | *Tuning* puck: just, Pythagorean, meantone, Werckmeister III, Kirnberger III, 19/31-EDO, neutral, slendro, pelog; reference A slider; loops retune on face 2 |
 | Envelopes | **done** | *Envelope* puck: ADSR per oscillator in both engines, or a velocity-driven filter envelope |
 | Velocity / pressure / aftertouch | **done** | *Express* puck: accents, MIDI velocity and aftertouch, pitch wheel, pen pressure, pinch pressure, cube lift and tilt; destinations vibrato/bright/tremolo/bend |
-| Sequencer depth | **done** | *Steps* (length, rate, direction), *euclid* (Bjorklund), *chance* (probability, ratchets, fills, skips, humanise), *chain* (pattern arrangement) |
-| Scenes and morphing | **done** | *Scene* puck: four snapshots as faces, morph by turning, crossfade by the slider, lift-and-replace to store |
+| Sequencer depth | **done** | *Walk* (length, rate, six directions including a drunken walk), *euclid* (Bjorklund, six pitch shapes), *chance* (probability, ratchets, fills, skips, ghosts, dropped bars, humanise), *chain* (six ways to arrange the patterns) |
+| Scenes and morphing | **done** | *Scene* puck: six snapshots as faces, morph by turning, crossfade by the slider, lift-and-replace to store |
 | Gesture recording | **done** | *Motion* puck loops any movement of any object on the grid |
 | Time-stretch / pitch-shift | **done** | *Warp* puck: granular pitch without tempo change, half/double speed, reverse |
 | Effect sends | **done** | *Send* puck: proximity-scaled sends into any effect, pre or post |

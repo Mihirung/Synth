@@ -1,6 +1,6 @@
 # 8. The play tray: instruments for hands and voice
 
-The **play** button opens a third tray: seven instruments you play with your hands in the
+The **play** button opens a third tray: nine instruments you play with your hands in the
 air, with your voice, or, without any camera, with your fingers on the screen. It is the
 tray for Frances. Every instrument follows the table's rules (place it, turn it, slide it,
 flip it) and joins the patching like any generator: put a delay or a reverb between an air
@@ -17,13 +17,13 @@ height above the table. Either way the picture never leaves the device.
 | Instrument | By touch | By hands | Turn | Slide | Faces |
 |---|---|---|---|---|---|
 | **theremin** | drag a finger in its field: nearer the puck is higher | on the table, the puck is the antenna: a hand closer to it is higher, a second hand's height is the volume; at a webcam, pitch runs left to right | range, 1–4 octaves | level | FREE · IN KEY · GLIDE |
-| **air drums** | tap the four pads around it; slide onto another pad for a roll | strike downward over a pad; the depth of the strike is the velocity | kit pitch | level | FREE · ON THE GRID · BIG KIT · TOMS |
-| **harp** | sweep across the strings that fan out from it | sweep a fingertip across them in the air | root note (C3–C5) | level | HARP · NYLON · STEEL · BELL |
+| **air drums** | tap the four pads around it; slide onto another pad for a roll | strike downward over a pad; the depth of the strike is the velocity | kit pitch | level | FREE · ON THE GRID · BIG KIT · TOMS · ELECTRO · WOOD |
+| **harp** | sweep across the strings that fan out from it | sweep a fingertip across them in the air | root note (C3–C5) | level | HARP · NYLON · STEEL · BELL · GLASS · KOTO |
 | **marbles** | flick from the ring around it to launch a marble | pinch on the ring and flick | energy: speed and how many bounces | level | FLICK · ONE A BAR · TWO A BAR · EVERY BEAT |
 | **hum** | hum or sing into the microphone | — | octave, −2 to +2 | level | FOLLOW · NOTES · HARMONY · OCTAVES |
 | **conductor** | tap its ring in time | beat time in the air; strikes are beats | — | how quickly the tempo follows | TEMPO · TEMPO + DYNAMICS |
 | **air knob** | — | sits by any block; raise a hand to turn that block's ring | — | — | TURN · SLIDE · BOTH |
-| **waterphone** | hold a rod to bow it, tap one to strike it, move or turn the puck to slosh the water | a resting fingertip bows, a fast one strikes, a sweep over the bowl tilts it, a strike over the bowl is a mallet on the dome | how much water | level | WHALE · STORM · GONG · GHOST |
+| **waterphone** | hold a rod to bow it, tap one to strike it, move or turn the puck to slosh the water | a resting fingertip bows, a fast one strikes, a sweep over the bowl tilts it, a strike over the bowl is a mallet on the dome | how much water | level | WHALE · STORM · GONG · GHOST · RAIN · DEEP |
 | **planets** | the disc becomes the solar system; touch a world, a moon, a ring or an asteroid to hear it | pinch works as a touch | how fast a year goes, 4 s to 2 min | level | ORRERY · GOD MODE |
 
 **Theremin.** Two sine partials with a slow hand-tremor vibrato, silent until played, so
@@ -36,14 +36,21 @@ large enough to hit without looking. The kit is synthesised at start-up from the
 generators as the loops (a pitched sine drop, a noise-and-tone snare, a differentiated
 noise hat, a three-burst clap, sine-sweep toms, a long crash). ON THE GRID snaps every hit
 to the nearest sixteenth, so air drumming stays in time with the loops even with camera
-latency. BIG KIT is heavier; TOMS makes the four pads four pitched toms.
+latency. BIG KIT is heavier; TOMS makes the four pads four pitched toms. **ELECTRO** is the
+drum-machine kit: a long boomy kick that keeps falling in pitch for most of a second, a bright
+noise snare, a tick of a hat, and the clap kept from the acoustic kit. **WOOD** is percussion
+rather than a kit: a woodblock, a bongo, a shaker and a cowbell, which is the set to put under
+a loop that already has a backbeat.
 
 **Harp.** Between nine and fifteen strings (two octaves of the current scale plus the
 octave) fan out from the puck away from the centre, clipped at the rim. Each is a
 Karplus–Strong string: a burst of noise circulating in a delay line the length of one
 period, averaged by a two-point filter, so high strings ring shorter than low ones as a
 real string does. Each pluck synthesises its own buffer once and caches it. The faces set
-the damping and brightness: harp, nylon, steel, bell.
+the damping and brightness: harp, nylon, steel, bell, and now **GLASS** and **KOTO**. Glass
+rings for four and a half seconds with almost no damping and a very dark pluck, so it is a
+struck wine glass. Koto is the opposite: a bright, hard pluck that dies in about a second,
+with the short decay of a plucked silk string.
 
 **Marbles.** Flick from the ring and a marble rolls off across the disc. The rim is a tone
 circle: every bounce plays the note in key at that angle, on a plucked string. Everything a
@@ -93,8 +100,11 @@ the analogue engines, so it runs in every sound mode:
 
 Several fingers bow several rods. Faces: WHALE (bowing, the default), STORM (deep water
 and random gusts, so it plays itself as a horror bed), GONG (bowl-heavy strikes, longer
-decays), GHOST (harmonic bowing). A physical cube sloshes the water when you tilt it. Put
-a **reverb** behind it; every recording of the real thing has one. The numerical test in
+decays), GHOST (harmonic bowing), and two more. **RAIN** taps rods at random every tenth of
+a second or so, very lightly, so the bowl patters instead of wailing. **DEEP** scales the
+whole instrument to a bowl nearly twice the size, which drops every partial and turns the
+wail into something much larger and slower. A physical cube sloshes the water when you tilt
+it. Put a **reverb** behind it; every recording of the real thing has one. The numerical test in
 `tests/waterphone-dsp.test.js` checks the partial ratios, a bow's sustain and release, the
 bend under a slosh, that ten hard bows plus dome strikes stay bounded, the faces, and the
 cost (about two per cent of real time).
@@ -136,6 +146,13 @@ leaves for Mars and lands seven times in ten, otherwise it makes a small crater;
 every minute or two a **visitor** from outside drops in, warbles at a couple of planets
 and leaves. In God mode ships can be grabbed and thrown too, and become tiny bodies
 under gravity until they hit something.
+
+**In the printed kit** these nine sit on four bodies, grouped by what they are rather than
+by what they do: the **air** cube is the theremin's three faces and the air knob's three,
+both being a hand in the air; the **balls** cube is marbles and planets, both spheres moving
+on the disc; the **voice** cube is the mic and hum; and the conductor shares the **clock**
+cube with the tempo block, because both set the time. See
+[hardware/README.md](../hardware/README.md).
 
 ## How the hands are read
 

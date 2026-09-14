@@ -292,6 +292,7 @@
     <p><b>Hum.</b> Hum a tune. The table hums it back.</p>
     <p><b>Conductor.</b> Tap its ring in time. Everybody follows you.</p>
     <p><b>Waterphone.</b> Hold a rod to bow it. Tap a rod to hit it. Wobble the block to slosh the water. Spooky!</p>
+    <p><b>Tap any of them</b> to change it. The drums have six kits (try <b>WOOD</b>: a woodblock, a bongo, a shaker and a cowbell). The harp has six strings (<b>GLASS</b> rings for ages). The waterphone has six moods (<b>RAIN</b> patters all by itself).</p>
     <p><b>Planets.</b> The whole circle turns into space. Touch the Sun, a planet or a moon to hear it. Run a finger across Saturn's rings. Tap the block for <b>God mode</b>: flick the planets, block them with a finger, and watch them crash and join up.</p>
     <h3>With a camera</h3>
     <p>Say <b>yes</b> when it asks to use the camera. Then wave your hands in the air instead of touching.</p>
@@ -303,6 +304,12 @@
     <p>Beside a <b>mic</b> block, <b>warp</b>, <b>envelope</b>, <b>express</b> and a <b>seq</b> work on the live voice: pitch, the shape of each word, vibrato and tremolo, and a rhythm that gates and retunes the singing, with <b>steps</b>, <b>euclid</b> and <b>chance</b> on the seq as usual. The green blocks always did.</p>
     <p>Some work anywhere on the disc: <b>key</b>, <b>tuning</b>, <b>scene</b>, <b>space</b>, <b>master</b>, <b>stems</b>.</p>
     <p>Each puck's card (from <b>markers</b> in the header) says what turning, sliding and flipping does.</p>
+    <h3>Every block's faces</h3>
+    <p>A <b>face</b> is a mode: tap the middle to flip to the next one. The <b>ring</b> is the one continuous control, the <b>slider</b> is the level. Only the <span class="cg">rec</span> and <b>stems</b> blocks differ: they arm on a <b>double tap</b>, because putting a real cube down is what arms it.</p>
+    <p><span class="cg">osc</span> sine, saw, square, triangle, <b>pulse</b>, <b>noise</b> (noise is tuned by the ring, so you can play a tune with it) · <span class="cg">loops</span> six loops, and the ring shifts which sixteenth the bar starts on · <span class="cg">rec</span> 1, 2, 4, 8 or 16 bars · <span class="cg">mic</span> live, or <b>tuned</b> to the key · <span class="cc">seq</span> six patterns, A to F.</p>
+    <p><span class="cf">filter</span> low, high, band, <b>notch</b>, <b>peak</b>, <b>vowel</b> (the ring sings a, e, i, o, u) · <span class="cf">delay</span> 1/16 up to a whole bar, with feedback on the ring · <span class="cf">reverb</span> <b>room, hall, plate, spring, cathedral, gated</b> · <span class="cf">dirt</span> drive, <b>warm</b>, <b>fuzz</b>, <b>fold</b> · <span class="cf">crush</span> crush, <b>lo-fi</b>.</p>
+    <p><span class="cf">mod</span> ring, <b>tremolo</b> · <span class="cf">chorus</span> chorus, <b>flanger</b>, <b>phaser</b>, <b>vibrato</b> · <span class="cc">lfo</span> four shapes free-running, then the same four locked to the beat · <span class="cc">clock</span> tempo, <b>swing</b> (any amount, baked into the loops) and a <b>click</b> that the recorder cannot hear.</p>
+    <p>Under <b>more</b>: six envelope shapes, six places for pressure to go (including <b>pan</b> and <b>growl</b>), six ways for a sequencer to walk, six chances (<b>ghost</b> notes, <b>dropped</b> bars), six scenes, and warp's <b>stutter</b> and <b>freeze</b>, which work on a loop or on your live voice.</p>
     <h3>The header</h3>
     <p><b>BPM</b>, <b>key</b> and <b>scale</b> keep everything in tune and in time. <b>Sound</b> switches between the original engine and four analogue models. <b>Swing</b> adds groove.</p>
     <p><b>Record</b> saves a performance. <b>Share</b> puts the whole table in a link. <b>Undo</b> is also <span class="kbd">Ctrl</span> <span class="kbd">Z</span>.</p>
@@ -2713,13 +2720,15 @@ function scheduleStep(stepAbs, t){
     }
   }
 }
-/* the clock body's CLICK face: a woodblock on every beat, the one accented; the ring is its pitch, the slider its level */
+/* the clock body's CLICK face: a woodblock on every beat, the one accented; the ring is its pitch, the slider its level.
+   It goes straight to the speakers, past the compressor: a metronome that a rec block or the header's record button
+   could hear would end up inside every take, which is the one thing a click must never do. */
 function clickTick(c, t, accent){
   if(!audio) return;
   const os = audio.ctx.createOscillator(), g = audio.ctx.createGain();
   os.type = 'sine'; os.frequency.value = clickHz(c)*(accent ? 1.5 : 1);
   g.gain.setValueAtTime(0.0001, t); g.gain.linearRampToValueAtTime(c.arc*0.6*(accent ? 1 : 0.7), t+0.002); g.gain.setTargetAtTime(0.0001, t+0.004, 0.012);
-  os.connect(g); g.connect(audio.master); os.start(t); os.stop(t+0.1);
+  os.connect(g); g.connect(audio.syncDelay); os.start(t); os.stop(t+0.1);
   c.flashAt = t;
 }
 /* how a sequencer steps: its own 16 pads by default, or whatever a walk body says */
