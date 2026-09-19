@@ -42,6 +42,18 @@ excluded, with reason.
 | Finger-drawn waveform absorbed by oscillator | **done** | Draw a shape near an osc; becomes its tone |
 | Cube-face flipping for presets/sounds | **done** | A single tap flips to the next face on screen; every object's modes are faces; sequencers keep a six-pattern bank, scenes six snapshots; the printed bodies carry six faces (a cube), eight (a truncated octahedron) or two (a puck) |
 | Multi-touch, many hands | **partial** | Multi-touch works on one screen; several people around one table is the physical build (**hardware**), which is how the original did it too |
+| **Hardlinks** | **done** | Bump two blocks together to secure their connection: drawn red, immune to distance, undone by bumping again, gone when either leaves the table |
+| **Locking a finger parameter** | **done** | Pull the arc handle away from the block; it turns red and ignores fingers until pulled away again |
+| **Hold-to-mute a connection** | **done** | A finger resting on a line mutes it while it is down; the swipe-to-cut gesture is unchanged |
+| **Rotation triggers the envelope** | **done** | An oscillator with an *envelope* puck beside it re-articulates on every new note you turn to, which is the original's built-in envelope with ours as a separate object |
+| **Tonality edited note by note** | **done** | Twelve fields around the *key* block, tapped in and out, override the scale presets for the whole table |
+| Object subtype menu (drag the icon left) | **out of scope** | Ours is a tap on the block, which flips to the next face; the same job with one fewer step |
+| Control panels (drag the icon right) | **out of scope** | The original opened 2D-control, envelope, browser and step-duration panels beside each object. We make those objects instead (*envelope*, *express*, *walk*), which keeps one interaction model instead of two |
+| Suboscillators panel | **out of scope** | Four extra detunable oscillators per object. Ours has a fixed pair plus proximity FM; a panel of sliders is the thing this instrument is trying not to be |
+| Per-step duration and per-step velocity | **partial** | The *walk* puck sets one rate for the pattern and accents give two velocities; the original had a row per step for each |
+| Sequencer driving an effect's parameter | **not done** | On the original a sequencer wired to a wave shaper stepped its main parameter, not just its envelope. Ours plays generators only |
+| One-shot and pitch-locked loop modes | **partial** | *warp* covers time-stretching; a true one-shot mode with rotation as playback speed is not there |
+| Global objects with a field of influence | **out of scope** | The research papers give globals a circular field, so a tonalizer affects only what is inside it. The shipped Live! dropped this and made globals table-wide, which is what we do |
 
 ## Modern additions (what they'd build today)
 

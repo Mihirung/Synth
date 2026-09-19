@@ -265,6 +265,8 @@
     <h3>Lines</h3>
     <p>A line means <b>the sound goes this way</b>. It wiggles when sound is flowing.</p>
     <p><b>Swipe across a line</b> to cut it. <b>Tap the line</b> (anywhere along it) to mend it.</p>
+    <p><b>Hold your finger on a line</b> to make it stop. Lift your finger and it comes back. Good for a big drop in the middle of a song.</p>
+    <p><b>Push two blocks together</b> until they bump. Now they are <b>joined with a red line</b> and they stay joined, even if you drag them far apart. Bump them again to let go.</p>
     <h3>Little tricks</h3>
     <p>Tap the pads around a <span class="cc">seq</span> block to make a tune. Pull a pad out for a higher note.</p>
     <p>Push two <span class="cg">osc</span> blocks together. They tickle each other.</p>
@@ -304,6 +306,12 @@
     <p>Beside a <b>mic</b> block, <b>warp</b>, <b>envelope</b>, <b>express</b> and a <b>seq</b> work on the live voice: pitch, the shape of each word, vibrato and tremolo, and a rhythm that gates and retunes the singing, with <b>steps</b>, <b>euclid</b> and <b>chance</b> on the seq as usual. The green blocks always did.</p>
     <p>Some work anywhere on the disc: <b>key</b>, <b>tuning</b>, <b>scene</b>, <b>space</b>, <b>master</b>, <b>stems</b>.</p>
     <p>Each puck's card (from <b>markers</b> in the header) says what turning, sliding and flipping does.</p>
+    <h3>Gestures from the original table</h3>
+    <p><b>Hardlink.</b> Bump two blocks together and their connection is secured: it turns <b>red</b> and stops caring about distance, so a sequencer can play an oscillator from right across the table. Bump them again to undo it. This is the original's answer to patching by proximity: a patch you place is a patch you can knock apart, unless you nail it down.</p>
+    <p><b>Lock a slider.</b> Pull the slider's handle <b>away from the block</b> and it turns red and ignores fingers. Pull it away again to unlock. The Reactable manual gives the reason: a hand moving fast knocks the very thing it just set.</p>
+    <p><b>Hold to mute.</b> A finger resting on a connection mutes it for as long as it is down.</p>
+    <p><b>Turn an oscillator to play it.</b> Put an <b>envelope</b> beside an <span class="cg">osc</span> and it stops droning: every new note you turn to is plucked, keyed, padded or swelled. Take the envelope away and the drone comes back.</p>
+    <p><b>Build a scale by ear.</b> The <b>key</b> block has <b>twelve fields</b> around it, one per semitone, the root ringed. Tap them in and out and the whole table follows. A face loads a preset into them; from there it is yours.</p>
     <h3>Every block's faces</h3>
     <p>A <b>face</b> is a mode: tap the middle to flip to the next one. The <b>ring</b> is the one continuous control, the <b>slider</b> is the level. Only the <span class="cg">rec</span> and <b>stems</b> blocks differ: they arm on a <b>double tap</b>, because putting a real cube down is what arms it.</p>
     <p><span class="cg">osc</span> sine, saw, square, triangle, <b>pulse</b>, <b>noise</b> (noise is tuned by the ring, so you can play a tune with it) · <span class="cg">loops</span> six loops, and the ring shifts which sixteenth the bar starts on · <span class="cg">rec</span> 1, 2, 4, 8 or 16 bars · <span class="cg">mic</span> live, or <b>tuned</b> to the key · <span class="cc">seq</span> six patterns, A to F.</p>
@@ -510,7 +518,15 @@ const SEQ_PATTERNS = [
 const state = { bpm:112, key:0, scaleIdx:0, swingIdx:0, swingV:null, soundMode:'original' };
 const ANALOG = () => state.soundMode!=='original';
 const swingAmt = () => state.swingV!=null ? state.swingV : SWINGS[state.swingIdx].v;   // the clock's SWING face sets a continuous amount
-const scaleSteps = () => SCALES[state.scaleIdx].steps;
+const stepsToNotes = steps => { const n = Array(12).fill(false); for(const st of steps) n[((st%12)+12)%12] = true; return n; };
+/* the tonality object: "Touching the fields around the tonality object makes it possible to change a
+   tonality preset note by note." (Reactable Live! manual.) A key puck with its own set of notes
+   overrides the scale presets for the whole table. */
+const scaleSteps = () => {
+  const k = activeKeyPuck();
+  if(k && k.notes && k.notes.some(Boolean)){ const st=[]; for(let i=0;i<12;i++) if(k.notes[i]) st.push(i); return st; }
+  return SCALES[state.scaleIdx].steps;
+};
 
 /* ================= GPU post pipeline (WebGL) =================
    The crisp 2D scene is drawn offscreen, then pushed through a
@@ -746,7 +762,7 @@ const R_PAD0  = () => 62*S, R_PAD1 = () => 84*S;
 const LINK    = () => TABLE_R*0.60;
 const CTL_LINK= () => TABLE_R*0.52;
 const ARC_START = 0.75*Math.PI, ARC_SPAN = 1.5*Math.PI;
-const hitR = o => (o.type==='seq' || o.type==='marbles' || o.type==='conduct') ? R_PAD1()+4 : R_ARC1()+6;
+const hitR = o => (o.type==='seq' || o.type==='marbles' || o.type==='conduct' || o.type==='key') ? R_PAD1()+4 : R_ARC1()+6;
 
 /* ================= model ================= */
 let nextId = 1;
@@ -782,7 +798,8 @@ function spawn(type, x, y){
   if(type==='mic') o.micState = 'wait';
   if(type==='tempo') o.angle = ((state.bpm-60)/120)*TAU;
   if(type==='seq'){ o.bank = SEQ_PATTERNS.map(p => p.map(s => s ? {on:true,deg:s[0]} : {on:false,deg:0})); o.steps = o.bank[0]; }
-  if(type==='key'){ o.angle = ((state.key+0.5)/12)*TAU; o.option = state.scaleIdx; o.arc = 1/3; }   // the slider: octave 0
+  if(type==='key'){ o.angle = ((state.key+0.5)/12)*TAU; o.option = state.scaleIdx; o.arc = 1/3;    // the slider: octave 0
+                    o.notes = stepsToNotes(SCALES[state.scaleIdx].steps); }                        // the twelve fields around it
   if(type==='env') o.angle = 0.21*TAU;             // ~5 ms attack
   if(type==='xpress') o.angle = 0.6*TAU;
   if(type==='steps') o.angle = 0.97*TAU;           // 16 steps
@@ -852,6 +869,8 @@ function destroyObject(o){
   if(o.type==='master' && audio) applyMaster(null);
   const i = objects.indexOf(o);
   if(i>=0) objects.splice(i,1);
+  for(const q of objects) if(q.hard===o.id) q.hard = null;          // a hardlink lasts only while both are on the table
+  for(const k of bumps) if(k.split('|').includes(String(o.id))) bumps.delete(k);
   if(BIND[o.type] && o.hop!=='C') onBind(o, o.hop, 'C');
   if(o.type==='seq' && o.hop!=='C'){ const q = objects.find(x=>x.id===o.hop); if(q && q.type==='mic') micFxSync(q); }
   computePatch(); saveSoon();
@@ -986,7 +1005,10 @@ function readout(o){
     case 'tempo': return o.option%3===1 ? ['CLOCK · SWING', Math.round(swingAmt()*100)+'% · rebakes the loops']
                        : o.option%3===2 ? ['CLOCK · CLICK', Math.round(clickHz(o))+' Hz · level '+Math.round(o.arc*100)+'%']
                        : ['CLOCK · TEMPO', tempoBpm(o)+' BPM'];
-    case 'key': return ['KEY · '+NOTE_NAMES[state.key]+' '+SCALES[state.scaleIdx].name, 'octave '+(keyOct()>0?'+':'')+(keyOct()/12)];
+    case 'key': { const st = scaleSteps(), pre = SCALES[state.scaleIdx].steps;
+      const own = st.length!==pre.length || st.some((v,i)=>v!==pre[i]);
+      return ['KEY · '+NOTE_NAMES[state.key]+' '+(own ? st.length+' notes' : SCALES[state.scaleIdx].name),
+              'octave '+(keyOct()>0?'+':'')+(keyOct()/12)+(own ? ' · tap the ring' : '')]; }
     case 'tune': return ['TUNING · '+tuneSys(o).n, 'A = '+tuneRef(o).toFixed(1)+' Hz · '+Math.round(tuneAmt(o)*100)+'% of the way'];
     case 'env': return ['ENVELOPE · '+ENV_SHAPES[o.option%ENV_SHAPES.length].n, fmtMs(envAttack(o))+' ▲ · '+fmtMs(envRelease(o))+' ▼'+(o.hop==='C'?' · unbound': (objects.find(x=>x.id===o.hop)||{}).type==='mic' ? ' · live on the mic' : '')];
     case 'xpress': return ['EXPRESS · '+fn, 'velocity '+Math.round(xpressDepth(o)*100)+'% · '+(o.arc<0.4?'soft':o.arc>0.6?'hard':'linear')+((objects.find(x=>x.id===o.hop)||{}).type==='mic' ? ' · live on the mic' : '')];
@@ -1473,6 +1495,21 @@ function drawnHarm(o){
   for(let h=1;h<=H;h++){ let a=0,b=0; for(let i=0;i<N;i++){ const ph=TAU*h*i/N; a+=y[i]*Math.cos(ph); b+=y[i]*Math.sin(ph); }
     re.push(a*2/N); im.push(b*2/N); }
   return {re,im};
+}
+/* "When rotating the object the envelope is triggered and the frequency of the oscillator is
+   changed... The oscillator has a built-in envelope, which is deactivated when it is flat."
+   (Reactable Live! manual, Oscillator.) Ours is the envelope puck: with one beside it an
+   oscillator stops droning flatly and re-articulates on every new note you turn to. */
+function oscTurnTrigger(o){
+  if(!audio || o.gated || !o.gate) return;
+  const e = envFor(o); if(!e.puck) return;
+  const n = oscMidi(o); if(n===o.turnNote) return;
+  o.turnNote = n;
+  const sh = ENV_SHAPES[e.puck.option % ENV_SHAPES.length], t = audio.ctx.currentTime, p = o.gate.gain, a = Math.max(0.002, e.a);
+  p.cancelScheduledValues(t); p.setValueAtTime(0.0001, t);
+  p.linearRampToValueAtTime(1, t+a);
+  p.setTargetAtTime(Math.max(0.0001, sh.sus), t+a, Math.max(0.01, sh.dec)/3);
+  o.flashAt = t;
 }
 function oscSetDrone(o,on){
   if(o.ana) o.ana.send({type:'drone',on:!!on});
@@ -2074,6 +2111,9 @@ function setOption(o, i){
     applyEuclid(o);
   } else if(o.type==='motion'){
     motionClear(o);
+  } else if(o.type==='key'){
+    o.notes = stepsToNotes(SCALES[o.option % SCALES.length].steps);   // a face is a preset: it reloads the twelve fields
+    applyParams(o); tonalSoon();
   } else if(o.type==='mic'){
     micFxSync(o);
   } else if(o.type==='song'){
@@ -2865,6 +2905,8 @@ function onBind(o, prev, next){
   if(o.type==='chance' && pq) pq.jump = 0;
   if(o.type==='send') updateSends();
   if(o.type==='xpress'){ for(const q of [pq,nq]) if(q) setPressure(q, 0, 'rebind'); }
+  if(o.type==='env'){ for(const q of [pq,nq]) if(q && q.type==='osc' && q.gate && audio && !q.gated){   // binding or unbinding reopens the drone
+    q.turnNote = null; q.gate.gain.cancelScheduledValues(audio.ctx.currentTime); q.gate.gain.setTargetAtTime(1, audio.ctx.currentTime, 0.05); } }
   if(o.type==='warp' || o.type==='env' || o.type==='xpress'){ for(const q of [pq,nq]) if(q && q.type==='mic') micFxSync(q); }
 }
 function scheduleBar(o, t, barAbs){
@@ -3101,9 +3143,53 @@ function setBpm(v){
 }
 
 /* ================= dynamic patching ================= */
+/* ================= hardlinks =================
+   "On the Reactable all connection are automatic based on the distance of the objects.
+   Connections between objects can be secured through hardlinks. A hardlink is shown in red
+   and generated by moving two objects close together. A hardlink will not break as long as
+   both objects are on the table. The hardlink can be undone by moving the objects close
+   together a second time."  (Reactable Live! manual, Gestures.)                            */
+const bumps = new Set();
+const pairKey = (a,b) => a.id<b.id ? a.id+'|'+b.id : b.id+'|'+a.id;
+function hardOK(a,b){   // could a, as the source, legally drive b? the same rules the patcher uses
+  if(a===b) return false;
+  if(a.type==='osc' && b.type==='osc') return false;            // that overlap is already proximity FM
+  if(FAMILY[a.type]==='gen') return FAMILY[b.type]==='fx';
+  if(FAMILY[a.type]==='fx')  return FAMILY[b.type]==='fx';
+  if(a.type==='lfo') return ['osc','filter','delay'].includes(b.type);
+  if(a.type==='seq') return ['osc','sampler','rec','mic'].includes(b.type);
+  const al = BIND[a.type];
+  if(al) return al==='any' ? (ADV.has(b.type) || PLAY.has(b.type)) : al.includes(b.type);
+  return false;
+}
+function checkBumps(){   // one bump, one toggle: a pair must part before it can toggle again
+  const R = R_BODY()*1.75, seen = new Set();
+  for(let i=0;i<objects.length;i++) for(let j=i+1;j<objects.length;j++){
+    const a=objects[i], b=objects[j];
+    if(dist(a,b) > R) continue;
+    const k = pairKey(a,b); seen.add(k);
+    if(bumps.has(k)) continue;
+    bumps.add(k);
+    const src = hardOK(a,b) ? a : hardOK(b,a) ? b : null;
+    if(!src) continue;
+    const dst = src===a ? b : a;
+    src.hard = src.hard===dst.id ? null : dst.id;
+    src.flashAt = visNow(); addRipple((a.x+b.x)/2, (a.y+b.y)/2, 0.5); saveSoon();
+  }
+  for(const k of bumps) if(!seen.has(k)) bumps.delete(k);
+}
+function hardHop(o){   // a hardlinked object ignores proximity and holds the link it was given
+  if(!o.hard) return false;
+  const t = objects.find(x=>x.id===o.hard);
+  if(!t){ o.hard = null; return false; }
+  setHop(o, t.id); return true;
+}
+const isHard = o => o.hard && o.hard===o.hop;
 function computePatch(){
+  checkBumps();
   const fx = objects.filter(o=>FAMILY[o.type]==='fx').sort((a,b)=>distC(a)-distC(b));
   for(const e of fx){
+    if(hardHop(e)) continue;
     let best=null, bd=LINK();
     for(const f of fx){
       if(f===e || distC(f) >= distC(e)-8*S) continue;
@@ -3113,6 +3199,7 @@ function computePatch(){
     setHop(e, best?best.id:'C');
   }
   for(const o of objects) if(FAMILY[o.type]==='gen'){
+    if(hardHop(o)) continue;
     const cur = o.hop!=='C' && objects.find(x=>x.id===o.hop);
     let best=null, bd=LINK();
     for(const f of fx){
@@ -3125,6 +3212,7 @@ function computePatch(){
     setHop(o, best?best.id:'C');
   }
   for(const l of objects) if(l.type==='lfo'){
+    if(hardHop(l)) continue;
     let best=null, bd=CTL_LINK();
     for(const t of objects){
       if(t===l || !['osc','filter','delay'].includes(t.type)) continue;
@@ -3134,6 +3222,7 @@ function computePatch(){
     setHop(l, best?best.id:'C');
   }
   for(const q of objects) if(q.type==='seq'){
+    if(hardHop(q)) continue;
     let best=null, bd=CTL_LINK();
     for(const t of objects) if(t.type==='osc' || t.type==='sampler' || t.type==='rec' || t.type==='mic'){
       const d = dist(q,t);
@@ -3143,6 +3232,7 @@ function computePatch(){
   }
   // the advanced pucks bind to the nearest thing they know how to change
   for(const a of objects) if(BIND[a.type]){
+    if(hardHop(a)) continue;
     const allow = BIND[a.type];
     let best=null, bd=CTL_LINK();
     for(const t of objects){
@@ -3314,6 +3404,10 @@ function padIndexAt(o,x,y){
   const a = ((pAngle(o,x,y) + Math.PI/2) % TAU + TAU) % TAU;
   return Math.round(a/TAU*16) % 16;
 }
+function noteIndexAt(o,x,y){   // the twelve fields around a key puck, the root at the top
+  const a = ((pAngle(o,x,y) + Math.PI/2) % TAU + TAU) % TAU;
+  return Math.round(a/TAU*12) % 12;
+}
 function pianoBtn(o){ return { x:o.x, y:o.y - (R_ARC1()+13*S), r:12*S }; }
 function pianoRect(o){
   const w=156*S, h=44*S;
@@ -3375,6 +3469,15 @@ canvas.addEventListener('pointerdown', e=>{
   if(hit){
     const { o, d } = hit;
     try{ canvas.setPointerCapture(e.pointerId); }catch(err){}
+    if(o.type==='key' && d > R_ARC1()+4 && d <= R_PAD1()+4){    // build a scale note by note
+      const i = noteIndexAt(o,x,y);
+      if(!o.notes) o.notes = stepsToNotes(SCALES[o.option % SCALES.length].steps);
+      o.notes[i] = !o.notes[i];
+      if(!o.notes.some(Boolean)) o.notes[i] = true;              // never leave the table with no notes at all
+      tonalSoon(); for(const q of objects) if(q.type==='osc') applyParams(q);
+      o.flashAt = visNow(); addRipple(o.x, o.y, 0.35); saveSoon();
+      return;
+    }
     if(o.type==='seq' && d > R_ARC1()+4 && d <= R_PAD1()+4){
       drags.set(e.pointerId, { mode:'pad', obj:o, idx:padIndexAt(o,x,y), sx:x, sy:y, moved:false });
       return;
@@ -3413,7 +3516,15 @@ canvas.addEventListener('pointerdown', e=>{
   }
   // empty table: begin a stroke — a swipe cuts lines, a doodle can become a waveform
   try{ canvas.setPointerCapture(e.pointerId); }catch(err){}
-  drags.set(e.pointerId, { mode:'stroke', pts:[{x,y}], cuts:new Set() });
+  const dr = { mode:'stroke', pts:[{x,y}], cuts:new Set() };
+  /* "A second possibility to mute a connection temporarily is by holding down a finger just
+     over the connection." (Live! manual, Gestures.) Hold to drop it out, lift to bring it back. */
+  const line = connAt(x,y);
+  if(line && !line.muted) dr.holdT = setTimeout(()=>{
+    if(drags.get(e.pointerId)!==dr || dr.moved || !objects.includes(line) || line.muted) return;
+    dr.held = line; setMuted(line, true); addRipple(x, y, 0.4);
+  }, 220);
+  drags.set(e.pointerId, dr);
 });
 function zoneAt(x,y){
   for(let i=objects.length-1;i>=0;i--){
@@ -3503,8 +3614,13 @@ canvas.addEventListener('pointermove', e=>{
     obj.angle = ((pAngle(obj,x,y)-dr.off) % TAU + TAU) % TAU;
     if(obj.type==='water'){ let da=obj.angle-oa; if(da>Math.PI) da-=TAU; if(da<-Math.PI) da+=TAU; waterSlosh(obj, da*4); }
     applyParams(obj);
+    if(obj.type==='osc') oscTurnTrigger(obj);
   } else if(dr.mode==='arc'){
-    applyArcFromPointer(obj,x,y);
+    /* "As this can cause problems when playing quickly this parameter can be locked with a
+       gesture by dragging the point away from the object." (Live! manual, Gestures.) */
+    if(Math.hypot(x-obj.x, y-obj.y) > R_ARC1()+26*S){
+      if(!dr.locked){ dr.locked = true; obj.lock = !obj.lock; obj.flashAt = visNow(); addRipple(obj.x,obj.y,0.35); saveSoon(); }
+    } else applyArcFromPointer(obj,x,y);
   } else if(dr.mode==='key'){
     setPressure(obj, pointerPress(e), 'pointer');
   } else if(dr.mode==='bow'){
@@ -3533,6 +3649,11 @@ canvas.addEventListener('pointermove', e=>{
       saveSoon();
     }
   } else if(dr.mode==='stroke'){
+    if(!dr.moved && Math.hypot(x-dr.pts[0].x, y-dr.pts[0].y) > 6*S){   // it became a swipe, so it is a cut, not a hold
+      dr.moved = true;
+      if(dr.holdT){ clearTimeout(dr.holdT); dr.holdT = null; }
+      if(dr.held){ setMuted(dr.held, false); dr.held = null; }
+    }
     const prev = dr.pts[dr.pts.length-1];
     if(dr.pts.length < 500) dr.pts.push({x,y});
     for(const o of objects) if(o.type==='harp' && harpSweep(o, prev, {x,y}, 0.85)) dr.plucked = true;
@@ -3584,6 +3705,8 @@ function endDrag(e){
     addRipple(dr.obj.x,dr.obj.y,0.35);
     saveSoon();
   }
+  if(dr.holdT){ clearTimeout(dr.holdT); dr.holdT = null; }
+  if(dr.held){ if(objects.includes(dr.held)) setMuted(dr.held, false); dr.held = null; return; }   // the momentary mute ends when the finger lifts
   if(dr.mode==='stroke' && !dr.harp){
     const p0 = dr.pts[0], p = dr.pts[dr.pts.length-1];
     if(Math.hypot(p.x-p0.x, p.y-p0.y) < 14*S && dr.cuts.size===0){   // a tap (a wobbly finger still counts) on a line cuts or mends it
@@ -3597,6 +3720,7 @@ function endDrag(e){
 canvas.addEventListener('pointerup', endDrag);
 canvas.addEventListener('pointercancel', endDrag);
 function applyArcFromPointer(o,x,y){
+  if(o.lock) return;                      // locked, so a fast hand cannot knock it
   const a = ((pAngle(o,x,y)) % TAU + TAU) % TAU;
   let rel = (a-ARC_START+TAU) % TAU;
   if(rel > ARC_SPAN) rel = rel < ARC_SPAN + (TAU-ARC_SPAN)/2 ? ARC_SPAN : 0;
@@ -3789,7 +3913,8 @@ function objectState(o){
   return { angle:o.angle, arc:o.arc, option:o.option, muted:!!o.muted,
            bank: o.bank ? o.bank.map(p=>p.map(s=>({on:s.on,deg:s.deg,acc:!!s.acc}))) : undefined,
            slots: o.slots ? o.slots.map(s=>s && JSON.parse(JSON.stringify(s))) : undefined,
-           wave: o.customWave || undefined, ownLoop: o.ownLoop || undefined };
+           wave: o.customWave || undefined, ownLoop: o.ownLoop || undefined,
+           notes: o.notes ? o.notes.slice() : undefined, lock: !!o.lock };
 }
 function padBank(o){ while(o.bank.length < SEQ_PATTERNS.length) o.bank.push(SEQ_PATTERNS[o.bank.length].map(x => x ? {on:true,deg:x[0]} : {on:false,deg:0})); }   // an older bank of four gets E and F
 function restoreObjectState(o, s){
@@ -3799,6 +3924,8 @@ function restoreObjectState(o, s){
   if(s.bank && o.bank){ o.bank = s.bank.map(p=>p.map(x=>({on:!!x.on,deg:x.deg|0,acc:!!x.acc}))); padBank(o); o.steps = o.bank[o.option%o.bank.length]; }
   if(s.slots && o.slots){ o.slots = s.slots; while(o.slots.length<SCENE_SLOTS) o.slots.push(null); }
   if(s.wave) o.customWave = s.wave;
+  if(s.notes) o.notes = s.notes.slice();
+  o.lock = !!s.lock;
   if(s.ownLoop && o.type==='rec'){ o.ownLoop = s.ownLoop; o.recState = 'play'; }
 }
 const MARK = { centre:0.11, headR:0.38, headDot:0.06, bitR:0.24, bitDot:0.045 };   // fractions of disc diameter; 8 bit slots at 45°
@@ -4071,7 +4198,7 @@ function camFrame(meta){
     let da=ang-e.ang; if(da>Math.PI) da-=TAU; if(da<-Math.PI) da+=TAU;
     e.ang=((e.ang+da*0.6)%TAU+TAU)%TAU; e.last=tnow;
     if(Math.abs(da)>0.01 || Math.hypot(o.x-ox,o.y-oy)>1.5) o.camMoving=tnow;
-    if(Math.abs(da)>0.01){ o.angle=e.ang; applyParams(o); }
+    if(Math.abs(da)>0.01){ o.angle=e.ang; applyParams(o); if(o.type==='osc') oscTurnTrigger(o); }
     else if(o.type==='sampler' && Math.abs(da)>0.35){ o.angle=e.ang; applyParams(o); }
     // lift and tilt: the cube itself is the expression controller. Lifting it toward the
     // camera grows its marker (pressure); tilting it squashes the disc (a pitch bend).
@@ -4499,6 +4626,8 @@ function sceneJSON(){
       bank: o.bank ? o.bank.map(p=>p.map(s=>({on:s.on,deg:s.deg,acc:s.acc||undefined}))) : undefined,
       slots: o.slots ? o.slots.map(s=>s && Object.fromEntries(Object.entries(s).map(([id,v])=>[objects.findIndex(x=>x.id===+id), v]).filter(([i])=>i>=0))) : undefined,
       wave: o.customWave || undefined,
+      notes: o.notes || undefined, lock: o.lock || undefined,
+      hard: o.hard!=null ? (objects.findIndex(x=>x.id===o.hard) >= 0 ? objects.findIndex(x=>x.id===o.hard) : undefined) : undefined,
     })),
   };
 }
@@ -4541,6 +4670,14 @@ function loadSceneFrom(sc){
     }
     if(o.slots && Array.isArray(so.slots)) o._slotsRaw = so.slots;
     if(Array.isArray(so.wave) && so.wave.length===64) o.customWave = so.wave.map(Number);
+    if(Array.isArray(so.notes) && so.notes.length===12) o.notes = so.notes.map(Boolean);
+    o.lock = !!so.lock;
+    if(so.hard!=null) o._hardRaw = so.hard;
+  }
+  for(const o of objects) if(o._hardRaw!=null){               // hardlinks, once every object exists again
+    const t = made[o._hardRaw];
+    if(t) o.hard = t.id;
+    delete o._hardRaw;
   }
   for(const o of objects) if(o._slotsRaw){
     o.slots = o._slotsRaw.map(s=>s && Object.fromEntries(Object.entries(s).map(([i,v])=>[made[+i] ? made[+i].id : -1, v]).filter(([id])=>id>=0)));
@@ -5834,6 +5971,14 @@ function drawConnection(o){
   const x0=o.x+ux*R_BODY(), y0=o.y+uy*R_BODY();
   const L=len-R_BODY()-(o.hop==='C'?14*S:R_BODY());
   if(L<=0) return;
+  if(isHard(o)){   // a secured connection: a red sheath, wide enough to show round the waveform drawn over it
+    g.save(); g.strokeStyle='#ff5d5d'; g.globalAlpha=0.4; g.lineWidth=13*S; g.lineCap='round'; glow('#ff5d5d', 9);
+    g.beginPath(); g.moveTo(x0,y0); g.lineTo(x0+ux*L,y0+uy*L); g.stroke();
+    g.globalAlpha=0.9; g.lineWidth=2.4*S;                                  // and a collar at each end, where the eye looks
+    for(const f of [0.06, 0.94]){ const mx=x0+ux*L*f, my=y0+uy*L*f;
+      g.beginPath(); g.moveTo(mx-py*7*S, my+px*7*S); g.lineTo(mx+py*7*S, my-px*7*S); g.stroke(); }
+    g.restore(); noGlow();
+  }
   if(isCtl){   // a purple link: a faint thread with bright dots travelling along it
     g.save();
     g.strokeStyle=COL.ctl; g.globalAlpha=0.35; g.lineWidth=1.2;
@@ -5905,7 +6050,7 @@ function drawObject(o){
   g.stroke();
 
   // arc fader (the tempo puck has no secondary parameter)
-  if(o.type!=='tempo'){
+  if(o.type!=='tempo' || o.option%3===2){   // the clock shows its arc only on CLICK, where it is the level
     const am=(R_ARC0()+R_ARC1())/2;
     g.lineWidth=3.5; g.strokeStyle=COL.rim;
     g.beginPath(); g.arc(o.x,o.y,am,ARC_START,ARC_START+ARC_SPAN); g.stroke();
@@ -5913,8 +6058,10 @@ function drawObject(o){
     g.beginPath(); g.arc(o.x,o.y,am,ARC_START,ARC_START+ARC_SPAN*o.arc); g.stroke();
     noGlow();
     const ha=ARC_START+ARC_SPAN*o.arc;
-    g.fillStyle=COL.text;
-    g.beginPath(); g.arc(o.x+Math.cos(ha)*am, o.y+Math.sin(ha)*am, 4*S, 0, TAU); g.fill();
+    g.fillStyle = o.lock ? '#ff5d5d' : COL.text;                  // the locked handle turns red, as the original's did
+    g.beginPath(); g.arc(o.x+Math.cos(ha)*am, o.y+Math.sin(ha)*am, (o.lock?5:4)*S, 0, TAU); g.fill();
+    if(o.lock){ g.strokeStyle='#ff5d5d'; g.lineWidth=1.4; g.globalAlpha=0.7;
+      g.beginPath(); g.arc(o.x+Math.cos(ha)*am, o.y+Math.sin(ha)*am, 8*S, 0, TAU); g.stroke(); g.globalAlpha=1; }
   }
   // loop-recorder state ring
   if(o.type==='rec' && audio){
@@ -6026,6 +6173,19 @@ function drawObject(o){
   if(o.type==='motion' && o.motionRec){
     g.strokeStyle='#ff5d5d'; g.lineWidth=2.5; glow('#ff5d5d', 8);
     g.beginPath(); g.arc(o.x,o.y,R_RING1()+3*S,0,TAU); g.stroke(); noGlow();
+  }
+  // key body: the twelve fields of the tonality object, the ones in the scale lit, the root ringed
+  if(o.type==='key'){
+    const notes = o.notes || stepsToNotes(SCALES[o.option % SCALES.length].steps), r = (R_PAD0()+R_PAD1())/2;
+    for(let i=0;i<12;i++){
+      const a = -Math.PI/2 + i/12*TAU, px = o.x+Math.cos(a)*r, py = o.y+Math.sin(a)*r;
+      g.globalAlpha = (outside?0.35:1)*(notes[i] ? 1 : 0.32);
+      g.fillStyle = col; g.strokeStyle = col; g.lineWidth = 1.3;
+      g.beginPath(); g.arc(px, py, (notes[i]?3.6:2.2)*S, 0, TAU);
+      if(notes[i]) g.fill(); else g.stroke();
+      if(i===0){ g.globalAlpha = outside?0.35:1; g.beginPath(); g.arc(px, py, 6.4*S, 0, TAU); g.stroke(); }
+    }
+    g.globalAlpha = outside?0.35:1;
   }
   // scene body: six small slot marks around the ring, the current face brightest
   if(o.type==='scene'){
