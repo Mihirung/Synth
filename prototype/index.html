@@ -265,7 +265,6 @@
     <h3>Lines</h3>
     <p>A line means <b>the sound goes this way</b>. It wiggles when sound is flowing.</p>
     <p><b>Swipe across a line</b> to cut it. <b>Tap the line</b> (anywhere along it) to mend it.</p>
-    <p><b>Hold your finger on a line</b> to make it stop. Lift your finger and it comes back. Good for a big drop in the middle of a song.</p>
     <p><b>Push two blocks together</b> until they bump. Now they are <b>joined with a red line</b> and they stay joined, even if you drag them far apart. Bump them again to let go.</p>
     <h3>Little tricks</h3>
     <p>Tap the pads around a <span class="cc">seq</span> block to make a tune. Pull a pad out for a higher note.</p>
@@ -308,9 +307,7 @@
     <p>Each puck's card (from <b>markers</b> in the header) says what turning, sliding and flipping does.</p>
     <h3>Gestures from the original table</h3>
     <p><b>Hardlink.</b> Bump two blocks together and their connection is secured: it turns <b>red</b> and stops caring about distance, so a sequencer can play an oscillator from right across the table. Bump them again to undo it. This is the original's answer to patching by proximity: a patch you place is a patch you can knock apart, unless you nail it down.</p>
-    <p><b>Lock a slider.</b> Pull the slider's handle <b>away from the block</b> and it turns red and ignores fingers. Pull it away again to unlock. The Reactable manual gives the reason: a hand moving fast knocks the very thing it just set.</p>
-    <p><b>Hold to mute.</b> A finger resting on a connection mutes it for as long as it is down.</p>
-    <p><b>Turn an oscillator to play it.</b> Put an <b>envelope</b> beside an <span class="cg">osc</span> and it stops droning: every new note you turn to is plucked, keyed, padded or swelled. Take the envelope away and the drone comes back.</p>
+    <p><b>Turn an oscillator to play it.</b> Put an <b>envelope</b> beside an <span class="cg">osc</span> and it becomes an instrument instead of a drone: it sounds when the envelope arrives, and again on every new note you turn to. The envelope's sustain decides what happens in between, so PAD holds and PLUCK waits for you. Take the envelope away and the drone comes back.</p>
     <p><b>Build a scale by ear.</b> The <b>key</b> block has <b>twelve fields</b> around it, one per semitone, the root ringed. Tap them in and out and the whole table follows. A face loads a preset into them; from there it is yours.</p>
     <h3>Every block's faces</h3>
     <p>A <b>face</b> is a mode: tap the middle to flip to the next one. The <b>ring</b> is the one continuous control, the <b>slider</b> is the level. Only the <span class="cg">rec</span> and <b>stems</b> blocks differ: they arm on a <b>double tap</b>, because putting a real cube down is what arms it.</p>
@@ -823,6 +820,7 @@ function spawn(type, x, y){
   if(type==='spheres') o.angle = 0.4*TAU;          // a year in about 16 seconds
   if(type==='song'){ o.angle = 0; song.puck = o; song.lastRange = ''; }   // the ring straight up: the whole song
   objects.push(o);
+  for(const q of objects) if(q!==o && dist(q,o) <= R_BODY()*1.75) bumps.add(pairKey(q,o));   // placed touching is not a bump: that is the baseline
   if(type==='spheres') spheresEnter(o);
   if(audio){
     buildNodes(o);
@@ -1504,7 +1502,8 @@ function oscTurnTrigger(o){
   if(!audio || o.gated || !o.gate) return;
   const e = envFor(o); if(!e.puck) return;
   const n = oscMidi(o); if(n===o.turnNote) return;
-  o.turnNote = n;
+  if(audio.ctx.currentTime - (o.turnAt||0) < 0.07) return;   // a tracked cube's angle jitters: never machine-gun on a note boundary
+  o.turnNote = n; o.turnAt = audio.ctx.currentTime;
   const sh = ENV_SHAPES[e.puck.option % ENV_SHAPES.length], t = audio.ctx.currentTime, p = o.gate.gain, a = Math.max(0.002, e.a);
   p.cancelScheduledValues(t); p.setValueAtTime(0.0001, t);
   p.linearRampToValueAtTime(1, t+a);
@@ -2905,8 +2904,16 @@ function onBind(o, prev, next){
   if(o.type==='chance' && pq) pq.jump = 0;
   if(o.type==='send') updateSends();
   if(o.type==='xpress'){ for(const q of [pq,nq]) if(q) setPressure(q, 0, 'rebind'); }
-  if(o.type==='env'){ for(const q of [pq,nq]) if(q && q.type==='osc' && q.gate && audio && !q.gated){   // binding or unbinding reopens the drone
-    q.turnNote = null; q.gate.gain.cancelScheduledValues(audio.ctx.currentTime); q.gate.gain.setTargetAtTime(1, audio.ctx.currentTime, 0.05); } }
+  /* an envelope beside an oscillator makes it an instrument rather than a drone: arriving
+     sounds it once, and from then on its sustain decides whether it holds (PAD) or dies
+     away to wait for the next turn (PLUCK). Taking the envelope away gives the drone back. */
+  if(o.type==='env' && audio){
+    if(pq && pq.type==='osc' && pq.gate && !pq.gated){
+      pq.turnNote = null; pq.turnAt = 0;
+      pq.gate.gain.cancelScheduledValues(audio.ctx.currentTime); pq.gate.gain.setTargetAtTime(1, audio.ctx.currentTime, 0.05);
+    }
+    if(nq && nq.type==='osc'){ nq.turnNote = null; nq.turnAt = 0; oscTurnTrigger(nq); }
+  }
   if(o.type==='warp' || o.type==='env' || o.type==='xpress'){ for(const q of [pq,nq]) if(q && q.type==='mic') micFxSync(q); }
 }
 function scheduleBar(o, t, barAbs){
@@ -3516,15 +3523,7 @@ canvas.addEventListener('pointerdown', e=>{
   }
   // empty table: begin a stroke — a swipe cuts lines, a doodle can become a waveform
   try{ canvas.setPointerCapture(e.pointerId); }catch(err){}
-  const dr = { mode:'stroke', pts:[{x,y}], cuts:new Set() };
-  /* "A second possibility to mute a connection temporarily is by holding down a finger just
-     over the connection." (Live! manual, Gestures.) Hold to drop it out, lift to bring it back. */
-  const line = connAt(x,y);
-  if(line && !line.muted) dr.holdT = setTimeout(()=>{
-    if(drags.get(e.pointerId)!==dr || dr.moved || !objects.includes(line) || line.muted) return;
-    dr.held = line; setMuted(line, true); addRipple(x, y, 0.4);
-  }, 220);
-  drags.set(e.pointerId, dr);
+  drags.set(e.pointerId, { mode:'stroke', pts:[{x,y}], cuts:new Set() });
 });
 function zoneAt(x,y){
   for(let i=objects.length-1;i>=0;i--){
@@ -3616,11 +3615,7 @@ canvas.addEventListener('pointermove', e=>{
     applyParams(obj);
     if(obj.type==='osc') oscTurnTrigger(obj);
   } else if(dr.mode==='arc'){
-    /* "As this can cause problems when playing quickly this parameter can be locked with a
-       gesture by dragging the point away from the object." (Live! manual, Gestures.) */
-    if(Math.hypot(x-obj.x, y-obj.y) > R_ARC1()+26*S){
-      if(!dr.locked){ dr.locked = true; obj.lock = !obj.lock; obj.flashAt = visNow(); addRipple(obj.x,obj.y,0.35); saveSoon(); }
-    } else applyArcFromPointer(obj,x,y);
+    applyArcFromPointer(obj,x,y);
   } else if(dr.mode==='key'){
     setPressure(obj, pointerPress(e), 'pointer');
   } else if(dr.mode==='bow'){
@@ -3649,11 +3644,6 @@ canvas.addEventListener('pointermove', e=>{
       saveSoon();
     }
   } else if(dr.mode==='stroke'){
-    if(!dr.moved && Math.hypot(x-dr.pts[0].x, y-dr.pts[0].y) > 6*S){   // it became a swipe, so it is a cut, not a hold
-      dr.moved = true;
-      if(dr.holdT){ clearTimeout(dr.holdT); dr.holdT = null; }
-      if(dr.held){ setMuted(dr.held, false); dr.held = null; }
-    }
     const prev = dr.pts[dr.pts.length-1];
     if(dr.pts.length < 500) dr.pts.push({x,y});
     for(const o of objects) if(o.type==='harp' && harpSweep(o, prev, {x,y}, 0.85)) dr.plucked = true;
@@ -3705,8 +3695,6 @@ function endDrag(e){
     addRipple(dr.obj.x,dr.obj.y,0.35);
     saveSoon();
   }
-  if(dr.holdT){ clearTimeout(dr.holdT); dr.holdT = null; }
-  if(dr.held){ if(objects.includes(dr.held)) setMuted(dr.held, false); dr.held = null; return; }   // the momentary mute ends when the finger lifts
   if(dr.mode==='stroke' && !dr.harp){
     const p0 = dr.pts[0], p = dr.pts[dr.pts.length-1];
     if(Math.hypot(p.x-p0.x, p.y-p0.y) < 14*S && dr.cuts.size===0){   // a tap (a wobbly finger still counts) on a line cuts or mends it
@@ -3720,7 +3708,6 @@ function endDrag(e){
 canvas.addEventListener('pointerup', endDrag);
 canvas.addEventListener('pointercancel', endDrag);
 function applyArcFromPointer(o,x,y){
-  if(o.lock) return;                      // locked, so a fast hand cannot knock it
   const a = ((pAngle(o,x,y)) % TAU + TAU) % TAU;
   let rel = (a-ARC_START+TAU) % TAU;
   if(rel > ARC_SPAN) rel = rel < ARC_SPAN + (TAU-ARC_SPAN)/2 ? ARC_SPAN : 0;
@@ -3761,6 +3748,7 @@ for(const btn of document.querySelectorAll('.spawn[data-type]')){
 /* what a fresh placement means: recorders arm, a scene keeps what it hears */
 function onPlace(o){
   if(!audio) return;
+  if(o.type==='osc'){ o.turnNote = null; o.turnAt = 0; oscTurnTrigger(o); }   // "a note is triggered as soon as the object is put on the table"
   if(o.type==='rec') armRec(o);
   else if(o.type==='stems') armStems(o);
   else if(o.type==='scene' && !o.slots[o.option%SCENE_SLOTS]) sceneCapture(o);
@@ -3768,6 +3756,7 @@ function onPlace(o){
 /* lift a physical object and put it straight back: the "again" gesture */
 function onReplace(o){
   if(!audio) return;
+  if(o.type==='osc'){ o.turnNote = null; o.turnAt = 0; oscTurnTrigger(o); }
   if(o.type==='rec') armRec(o);
   else if(o.type==='stems') armStems(o);
   else if(o.type==='scene'){ sceneCapture(o); sceneMorph(o); }
@@ -3914,7 +3903,7 @@ function objectState(o){
            bank: o.bank ? o.bank.map(p=>p.map(s=>({on:s.on,deg:s.deg,acc:!!s.acc}))) : undefined,
            slots: o.slots ? o.slots.map(s=>s && JSON.parse(JSON.stringify(s))) : undefined,
            wave: o.customWave || undefined, ownLoop: o.ownLoop || undefined,
-           notes: o.notes ? o.notes.slice() : undefined, lock: !!o.lock };
+           notes: o.notes ? o.notes.slice() : undefined };
 }
 function padBank(o){ while(o.bank.length < SEQ_PATTERNS.length) o.bank.push(SEQ_PATTERNS[o.bank.length].map(x => x ? {on:true,deg:x[0]} : {on:false,deg:0})); }   // an older bank of four gets E and F
 function restoreObjectState(o, s){
@@ -3925,7 +3914,6 @@ function restoreObjectState(o, s){
   if(s.slots && o.slots){ o.slots = s.slots; while(o.slots.length<SCENE_SLOTS) o.slots.push(null); }
   if(s.wave) o.customWave = s.wave;
   if(s.notes) o.notes = s.notes.slice();
-  o.lock = !!s.lock;
   if(s.ownLoop && o.type==='rec'){ o.ownLoop = s.ownLoop; o.recState = 'play'; }
 }
 const MARK = { centre:0.11, headR:0.38, headDot:0.06, bitR:0.24, bitDot:0.045 };   // fractions of disc diameter; 8 bit slots at 45°
@@ -4626,7 +4614,7 @@ function sceneJSON(){
       bank: o.bank ? o.bank.map(p=>p.map(s=>({on:s.on,deg:s.deg,acc:s.acc||undefined}))) : undefined,
       slots: o.slots ? o.slots.map(s=>s && Object.fromEntries(Object.entries(s).map(([id,v])=>[objects.findIndex(x=>x.id===+id), v]).filter(([i])=>i>=0))) : undefined,
       wave: o.customWave || undefined,
-      notes: o.notes || undefined, lock: o.lock || undefined,
+      notes: o.notes || undefined,
       hard: o.hard!=null ? (objects.findIndex(x=>x.id===o.hard) >= 0 ? objects.findIndex(x=>x.id===o.hard) : undefined) : undefined,
     })),
   };
@@ -4671,7 +4659,6 @@ function loadSceneFrom(sc){
     if(o.slots && Array.isArray(so.slots)) o._slotsRaw = so.slots;
     if(Array.isArray(so.wave) && so.wave.length===64) o.customWave = so.wave.map(Number);
     if(Array.isArray(so.notes) && so.notes.length===12) o.notes = so.notes.map(Boolean);
-    o.lock = !!so.lock;
     if(so.hard!=null) o._hardRaw = so.hard;
   }
   for(const o of objects) if(o._hardRaw!=null){               // hardlinks, once every object exists again
@@ -6058,10 +6045,8 @@ function drawObject(o){
     g.beginPath(); g.arc(o.x,o.y,am,ARC_START,ARC_START+ARC_SPAN*o.arc); g.stroke();
     noGlow();
     const ha=ARC_START+ARC_SPAN*o.arc;
-    g.fillStyle = o.lock ? '#ff5d5d' : COL.text;                  // the locked handle turns red, as the original's did
-    g.beginPath(); g.arc(o.x+Math.cos(ha)*am, o.y+Math.sin(ha)*am, (o.lock?5:4)*S, 0, TAU); g.fill();
-    if(o.lock){ g.strokeStyle='#ff5d5d'; g.lineWidth=1.4; g.globalAlpha=0.7;
-      g.beginPath(); g.arc(o.x+Math.cos(ha)*am, o.y+Math.sin(ha)*am, 8*S, 0, TAU); g.stroke(); g.globalAlpha=1; }
+    g.fillStyle=COL.text;
+    g.beginPath(); g.arc(o.x+Math.cos(ha)*am, o.y+Math.sin(ha)*am, 4*S, 0, TAU); g.fill();
   }
   // loop-recorder state ring
   if(o.type==='rec' && audio){

@@ -22,11 +22,17 @@ Two blocks read the same rule the other way round for historical reasons and wer
 with the kit: **send** and **master** used to put their level on the ring. Both now have the
 level on the slider, like everything else.
 
-## Five gestures from the original table
+## Three gestures from the original table
 
-These are not ours. They come from the Reactable Live! manual, and they are the tactile
-half of the instrument: things your hands do to the table rather than to a particular
-block. [docs/02](02-how-it-worked.md) quotes the manual.
+These are not ours. They come from the Reactable Live! manual, and they are things you do
+to the table rather than to a particular block. [docs/02](02-how-it-worked.md) quotes the
+manual, including the gestures we read and deliberately did not take.
+
+The filter for what to take is the camera. The original table watched fingers on its own
+glass, so much of its vocabulary is about where a hand touches the surface. Ours watches
+printed markers from above and tracks hands in the air. Gestures made of **objects** cross
+that gap perfectly; gestures made of **fingers on glass** mostly do not, and where we
+already had an equivalent we kept ours.
 
 - **Bump two blocks together to secure their connection.** Patching by proximity has an
   obvious flaw: a patch you built by placing things falls apart when you move them. The
@@ -35,19 +41,14 @@ block. [docs/02](02-how-it-worked.md) quotes the manual.
   sequencer to the far side of the table, put something closer in its way: it still plays
   that oscillator. Bump the two together a second time to let go. A hardlink lasts as long
   as both blocks are on the table.
-- **Pull the slider's handle away from the block to lock it.** The manual gives the reason:
-  a hand moving fast knocks the very parameter it just set. Drag the handle outward and it
-  turns red and stops listening to fingers. Drag it outward again to unlock.
-- **Hold a finger on a line to drop it out.** A swipe across a connection cuts it until you
-  mend it, which is our old gesture and the original's first one. Resting a finger on the
-  line instead mutes it only while the finger is down, so you can drop the drums out for two
-  bars and bring them back by lifting your hand.
 - **Turn an oscillator to play it.** On the original, rotating an oscillator set its pitch
   *and* triggered its envelope, and the envelope could be flat, in which case nothing
   happened. Ours is the same idea with the envelope as a separate object: an oscillator on
-  its own drones, but put an **envelope** puck beside it and every new note you turn to is
-  articulated. With PLUCK that is a plucked scale under your fingers. Take the envelope away
-  and it goes back to droning.
+  its own drones, but put an **envelope** puck beside it and it becomes something you play.
+  It sounds once when the envelope arrives, and again on every new note you turn to; the
+  envelope's sustain decides what happens in between, so PAD holds and PLUCK dies away and
+  waits for you. Take the envelope away and it goes back to droning. Turning a cube is the
+  one gesture a camera reads perfectly, which is why this one is worth having.
 - **Build a scale by ear on the key block.** See *key* below.
 
 ## Every face in one table
@@ -103,9 +104,10 @@ behind; draw again to get it back.
 Push two oscillators together and the outer one modulates the inner one's frequency.
 
 **Turning it plays it.** With an **envelope** puck beside the oscillator, every new note you
-turn to re-articulates: the original triggered its built-in envelope on rotation, and this is
-that, with the envelope as an object you can take away. Without one the oscillator drones as
-it always did.
+turn to re-articulates, and placing either of them sounds it once: the original triggered its
+built-in envelope on rotation, and this is that, with the envelope as an object you can take
+away. The envelope's sustain decides whether it holds between turns. Without one the
+oscillator drones as it always did.
 
 ### loops
 

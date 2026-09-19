@@ -103,15 +103,16 @@ most of Phase 2 of the plan:
   and a stems recorder that writes every object to one multichannel WAV. Imports persist.
   See [docs/07-advanced.md](docs/07-advanced.md).
 - **Gestures recovered from the original table**: the Reactable Live! manual was read back off
-  the defunct company site and five of its playing gestures are now here. **Hardlinks**: bump
-  two blocks together and their connection is secured in red, immune to distance, undone by
-  bumping again. **Locking a parameter**: pull a slider's handle away from the block so a fast
-  hand cannot knock it. **Hold to mute**: a finger resting on a connection drops it out until
-  you lift. **Turning an oscillator plays it** when an envelope sits beside it, which is the
-  original's built-in envelope with ours as a separate object. **Tonality note by note**:
-  twelve fields around the key block, tapped in and out, for a scale built by ear. See
-  [docs/02-how-it-worked.md](docs/02-how-it-worked.md) for what the manual says and
-  [docs/05-feature-parity.md](docs/05-feature-parity.md) for what we left out and why.
+  the defunct company site, and the three of its gestures that earn their place here are in.
+  **Hardlinks**: bump two blocks together and their connection is secured in red, immune to
+  distance, undone by bumping again, which is the answer to the flaw in patching by proximity.
+  **Turning an oscillator plays it** when an envelope sits beside it, the original's built-in
+  envelope with ours as a separate object. **Tonality note by note**: twelve fields around the
+  key block, tapped in and out, for a scale built by ear. The original watched fingers on its
+  own glass and we watch markers from above, so its object gestures cross that gap and its
+  finger-on-glass ones largely do not. See [docs/02-how-it-worked.md](docs/02-how-it-worked.md)
+  for what the manual says and [docs/05-feature-parity.md](docs/05-feature-parity.md) for what
+  we read and chose to leave.
 - **A face is a mode**: every object's discrete choices are its faces (the oscillator's six
   waves, PULSE and tuned NOISE among them; the filter's low, high, band, notch, peak and a
   vowel; six delay times; six reverbs from a room to a cathedral and a gate; drive, warm,

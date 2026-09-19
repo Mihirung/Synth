@@ -23,7 +23,7 @@ node tests/micwarp.test.js           # pucks beside a mic block: a fake micropho
 node tests/phone.test.js             # iPhone emulation: trays as pages of the dock, tap-to-place, back; desktop drawers still stack
 node tests/kit.test.js               # the bodies kit: 32 bodies and 191 ids, every type through every face, the new faces (waves, filters, delays, rooms, dirt, mod, the clock and its unrecordable click, key and tuning dice, walks, Euclid, chance, chains, scenes, warp's stutter and freeze, send, space, master, song shapes, kits, strings, the tuned voice), a body flipped on the table keeps its state, old scenes migrate, the sheets by body
 node tests/kit-dsp.test.js           # the voice processor's new faces, numerically: TUNED, FREEZE, STUTTER, GROWL, PERC (no browser)
-node tests/original.test.js          # the gestures recovered from the Reactable Live! manual: hardlinks (by hand and by code, including that they beat a nearer target and undo on a second bump), the tonality object's twelve fields, locking the arc against a stray finger, holding a finger on a line to mute it, turning an oscillator into its envelope, and that ordinary proximity patching is undisturbed
+node tests/original.test.js          # the gestures taken from the Reactable Live! manual: hardlinks (by hand and by code, beating a nearer target, undone by a second bump, and never made by merely placing a block), the tonality object's twelve fields, an envelope turning an oscillator into something you play by turning it (including that a jittering camera angle cannot machine-gun it), and that ordinary proximity patching is undisturbed
 ```
 
 `hardware/check_kit.py` (pure Python) decodes every code face of the bodies kit out of its
